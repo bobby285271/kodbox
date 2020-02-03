@@ -1,0 +1,41 @@
+<?php if($data['type'] == 'code') { ?>
+<div style="padding: 20px 40px;">
+    <div style="line-height:20px;height:20px;">&nbsp;</div>
+    <p style="margin:0px;padding:0px;"><strong
+            style="font-size:14px;line-height:30px;color:#333333;font-family:arial,sans-serif;"><?php echo $data['dear'];?></strong>
+    </p>
+    <div style="line-height:20px;height:20px;">&nbsp;</div>
+    <p style="margin:0px;padding:0px;line-height:30px;font-size:14px;color:#333333;font-family:'宋体',arial,sans-serif;">
+        <?php echo $data['codeDesc'];?></p>
+    <p style="margin:0px;padding:0px;line-height:30px;font-size:14px;color:#333333;font-family:'宋体',arial,sans-serif;">
+        <span style="font-size:18px;color:#ff9900;"><?php echo $data['code'];?></span>
+        <span
+            style="margin:0px;padding:0px;margin-left:10px;line-height:30px;font-size:14px;color:#979797;font-family:'宋体',arial,sans-serif;">(<?php echo $data['codeTips'];?>)</span>
+    </p>
+    <div style="line-height:20px;height:20px;">&nbsp;</div>
+    <p style="margin:0px;padding:0px;line-height:30px;font-size:14px;color:#333333;font-family:'宋体',arial,sans-serif;">
+        <?php echo $data['name'];?></p>
+    <p style="margin:0px;padding:0px;line-height:30px;font-size:14px;color:#333333;font-family:'宋体',arial,sans-serif;">
+        <?php echo $data['date'];?></p>
+    <div style="line-height:20px;height:20px;">&nbsp;</div>
+</div>
+<?php } else { ?>
+<div style="padding: 20px 40px;">
+    <p style="margin:0px;padding:0px;"><strong
+            style="font-size:14px;line-height:30px;color:#333333;font-family:arial,sans-serif;"><?php echo $data['dearName'];?></strong>
+    </p>
+    <p
+        style="margin:0px;padding:0px;margin-top: 20px;line-height:30px;font-size:14px;color:#333333;font-family:'宋体',arial,sans-serif;">
+        <?php echo $data['linkDesc'];?></p>
+    <a style="line-height:30px;font-size:14px;color:#3890ff;font-family:'宋体',arial,sans-serif;"
+        href="<?php echo $data['link'];?>" target="_blank"><?php echo $data['link'];?></a>
+    <p
+        style="margin:0px;padding:0px;margin-top: 20px;line-height:30px;font-size:14px;color:#333333;font-family:'宋体',arial,sans-serif;">
+        <?php echo $data['linkTips'];?></p>
+    <p
+        style="margin:0px;padding:0px;margin-top: 30px;line-height:30px;font-size:14px;color:#333333;font-family:'宋体',arial,sans-serif;">
+        <?php echo $data['name'];?></p>
+    <p style="margin:0px;padding:0px;line-height:30px;font-size:14px;color:#333333;font-family:'宋体',arial,sans-serif;">
+        <?php echo $data['date'];?></p>
+</div>
+<?php } ?>

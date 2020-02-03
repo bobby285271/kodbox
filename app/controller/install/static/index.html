@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<link href="<?php echo STATIC_PATH;?>images/common/ico.png" rel="icon" type="image/x-icon">
+	<title>kodbox-<?php echo LNG('common.install'); ?></title>
+	<link href="<?php echo STATIC_PATH;?>style/lib/main.css" rel='stylesheet'>
+	<link href="<?php echo STATIC_PATH;?>style/dist/main.css" rel='stylesheet'>
+	<link href="<?php echo $installPath;?>static/static/index.css" rel='stylesheet'>
+</head>
+
+<body>
+	<div id="app">
+		<div class="install-box">
+			<div class="content-main-message">
+				<div class="header">
+					<img src="<?php echo $installPath;?>static/static/logo.png" alt="kodbox">
+				</div>
+				<div class="body">
+					<div class="content-main">
+						<div class="check-result">
+							<div class="title-box"><?php echo LNG('admin.install.install'); ?></div>
+							<div class="progress-box">
+								<!-- <div class="active"><span>使用协议</span><span class="btm-line"></span></div> -->
+								<div class="active"><span><?php echo LNG('common.env.check');?></span><span class="btm-line"></span></div>
+								<div><span><?php echo LNG('admin.install.databaseSet'); ?></span><span class="btm-line"></span></div>
+								<div><span><?php echo LNG('admin.setting.account'); ?></span><span class="btm-line"></span></div>
+							</div>
+							<!-- <div class="step-box agreement">
+								<div class="message-content">
+									<div class=""></div>
+								</div>
+							</div> -->
+							<div class="step-box env">
+								<div class="message-content form-box">
+									<div class="env-table">
+										<div class="form-row panel-form-body clear"><hr></div>
+										<div class="form-row form-target-save hidden">
+											<div class="setting-title"></div>
+											<div class="setting-content">
+												<button class="form-save-button"><?php echo LNG('common.ok'); ?></button>
+												<a class="help hidden" target="_blank" href="http://doc.kodcloud.com/#/help/install"><?php echo LNG('explorer.editor.help'); ?></a>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="step-box db hidden">
+								<div class="message-content">
+									<p class="info-alert info-alert-yellow hidden"><?php echo LNG('admin.install.dbWasSet'); ?></p>
+									<div class="db-table"></div>
+								</div>
+							</div>
+							<div class="step-box user hidden">
+								<div class="message-content">
+									<div class="user-table"></div>
+								</div>
+							</div>
+							<div class="step-box msg hidden">
+								<i class="font-icon success"></i>
+								<div class="message-content">
+									<div class='title'><?php echo LNG('admin.install.installSuccess'); ?></div>
+									<div class='desc'></div>
+								</div>
+							</div>
+						</div>
+						<div class="link hidden">
+							<?php echo str_replace('5s', '<em class="delay">5</em>s', sprintf(LNG('explorer.jumpAfterWhile', 5, './'))); ?>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="common-footer aero"></div>
+		</div>
+	</div>
+	
+	
+	<!--[if lt IE 11]>
+	<script src="<?php echo STATIC_PATH;?>app/vender/es5-shim.min.js"></script>
+	<script src="<?php echo STATIC_PATH;?>app/vender/es5-sham.min.js"></script>
+    <![endif]-->
+	<script type="text/javascript"> window.API_HOST = './index.php?';</script>
+	<script src="<?php echo STATIC_PATH;?>app/dist/vendor.js"></script>
+	<script src="<?php echo STATIC_PATH;?>app/dist/api.js"></script>
+	<script>requireAsync("<?php echo $installPath;?>static/index.js");</script>
+</body>
+</html>

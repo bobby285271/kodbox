@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+	<meta http-equiv="Cache-Control" content="no-transform">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+	<meta name="renderer" content="webkit">
+	
+	<meta name="description" itemprop="description" content="<?php echo LNG('common.copyright.desc');?>">
+	<meta name="keywords" content="<?php echo LNG('common.copyright.metaKeywords');?>" />
+	<meta name="generator" content="<?php echo LNG('common.copyright.metaName').' '.KOD_VERSION;?>"/>
+	<meta name="author" content="<?php echo LNG('common.copyright.name');?>" />
+	<meta name="copyright" content="<?php echo LNG('common.copyright.name');?>" />
+	<meta itemprop="image" content="<?php echo STATIC_PATH;?>images/common/ico.png" />
+	<link href="<?php echo STATIC_PATH;?>images/common/ico.png?v=<?php echo KOD_VERSION;?>" rel="Shortcut Icon" type="image/x-icon">
+	<link href="<?php echo STATIC_PATH;?>images/common/ico.png?v=<?php echo KOD_VERSION;?>" rel="icon" type="image/x-icon">
+	<title><?php echo LNG('common.copyright.name')." - ".LNG('common.copyright.powerBy');?></title>
+	<?php if(STATIC_DEV){?>
+	<link href="<?php echo STATIC_PATH;?>style/lib/index.css" rel="stylesheet" />
+	<link href='<?php echo STATIC_PATH;?>style/skin_dev/index.less' rel='stylesheet/less' type='text/css'>
+	<script src='<?php echo STATIC_PATH;?>app/vender/less.min.js' data-env="development"></script>
+	<?php }else{?>
+	<link href="<?php echo STATIC_PATH;?>style/lib/main.css?v=<?php echo KOD_VERSION;?>" rel="stylesheet">
+	<link href='<?php echo STATIC_PATH;?>style/dist/main.css?v=<?php echo KOD_VERSION;?>' rel='stylesheet'>
+	<?php } ?>
+</head>
+
+
+<body>
+	<div id="app"></div>
+	<!--[if lt IE 11]>
+	<script src="<?php echo STATIC_PATH;?>app/vender/es5-shim.min.js"></script>
+	<script src="<?php echo STATIC_PATH;?>app/vender/es5-sham.min.js"></script>
+	<![endif]-->
+	<script type="text/javascript"> window.API_HOST = "<?php echo APP_HOST.'?';?>";</script>
+	<script src="<?php echo STATIC_PATH;?>app/dist/main.js?v=<?php echo KOD_VERSION;?>"></script>
+</body>
+</html>

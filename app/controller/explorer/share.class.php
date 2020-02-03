@@ -1,0 +1,298 @@
+<?php 
+/*
+* @link http://kodcloud.com/
+* @author warlee | e-mail:kodcloud@qq.com
+* @copyright warlee 2014.(Shanghai)Co.,Ltd
+* @license http://kodcloud.com/tools/license/license.txt
+*/
+
+class explorerShare extends Controller{
+	private $model;
+	function __construct(){
+		parent::__construct();
+		$this->model  = Model('Share');
+		$notCheck = array('link','file','pathParse');
+		// 检测并处理分享信息
+		if( equal_not_case(ST,'share') && !in_array_not_case(ACT,$notCheck)){
+			$this->initShare($this->in['shareID']); 
+			if(equal_not_case(MOD.'.'.ST,'explorer.share')){
+				$this->authCheck();
+			}
+		}
+	}
+
+	// 通用生成外链
+	public function link($path){
+		if(!$path || !$info = IO::info($path)) return;
+		$pass = Model('SystemOption')->get('systemPassword');
+		$hash = Mcrypt::encode($info['path'],$pass);
+		return APP_HOST . "index.php?explorer/share/file&hash={$hash}&name=".$info['name'];
+	}
+	public function linkOut($path,$token=false){
+		$parse  = KodIO::parse($path);
+		if($parse['type'] == KodIO::KOD_SHARE_LINK){
+			$url = APP_HOST . "index.php?explorer/share/fileOut&shareID={$parse['id']}&path={$path}";
+		}else{
+			$url = APP_HOST . "index.php?explorer/index/fileOut&path={$path}";
+		}
+		if($token) $url .= '&accessToken='.Action('user.index')->accessToken();
+		return $url;
+	}
+	
+	public function file(){
+		if(!$this->in['hash']) return;
+		$pass = Model('SystemOption')->get('systemPassword');
+		$path = Mcrypt::decode($this->in['hash'],$pass);
+		if(!$path){
+			show_json(LNG('common.pathNotExists'),false);
+		}
+		IO::fileOut($path);
+	}
+	
+	/**
+	 * 其他业务通过分享路径获取文档真实路径; 文件打开构造的路径 hash/xxx/xxx; 
+	 * 解析路径,检测分享存在,过期时间,下载次数,密码检测;
+	 */
+	public function sharePathInfo($path){
+		$parse = KodIO::parse($path);
+		if(!$parse || $parse['type'] != KodIO::KOD_SHARE_LINK){
+			return false;
+		}
+		$check = ActionCallHook('explorer.share.initShare',$parse['id']);
+		if(is_array($check)) return false; // 不存在,时间过期,下载次数超出,需要登录,需要密码;
+		if($this->share['options']['notView'] == '1'){//
+			return false;
+		}
+
+		$truePath = $this->parsePath($path);
+		// $result = $this->itemInfo(IO::info($truePath));
+		$result = IO::infoWithChildren($truePath);
+		return $result;
+	}
+
+	/**
+	 * 通过分享hash获取分享信息；
+	 * 提交分享密码
+	 */
+	public function get($get=false){
+		$field = array(
+			'shareHash','title','isLink','timeTo','numView','numDownload',
+			'options','createTime','sourceInfo',
+		);
+		$data  = array_field_key($this->share,$field);
+		$data['sourceInfo'] = $this->itemInfo($data['sourceInfo']);
+		if($get) return $data;
+		show_json($data);
+	}
+	
+	/**
+	 * 分享信息初始化；
+	 * 拦截相关逻辑
+	 * 
+	 * 过期拦截
+	 * 下载次数限制拦截
+	 * 登录用户拦截
+	 * 密码检测拦截：如果参数有密码则检测并存储；错误则提示 
+	 * 下载次数，预览次数记录
+	 */
+	public function initShare($hash=''){
+		$this->share = $share = $this->model->getInfoByHash($hash);
+		if(!$share || $share['isLink'] != '1'){
+			show_json(LNG('explorer.share.notExist'),30100);
+		}
+		//检测是否过期
+		if($share['timeTo'] && $share['timeTo'] < time()){
+			show_json(LNG('explorer.share.expiredTips'),30101,$this->get(true));
+		}
+
+		//检测下载次数限制
+		if( $share['options'] && 
+			$share['options']['downloadNumber'] && 
+			$share['options']['downloadNumber'] <= $share['numDownload'] ){
+			show_json(LNG('explorer.share.downExceedTips'),30102,$this->get(true));
+		}
+		//检测是否需要登录
+		$user = Session::get("kodUser");
+		if( $share['options'] && 
+			$share['options']['onlyLogin'] == '1' && 
+			!is_array($user)){
+			show_json(LNG('explorer.share.loginTips'),30103,$this->get(true));
+		}
+		//检测密码
+		$passKey  = 'Share_password_'.$share['shareID'];
+		if( $share['password'] ){
+			if( isset($this->in['password']) ){
+				$pass = trim($this->in['password']);
+				if($pass == $share['password']){
+					Session::set($passKey,$pass);
+				}else{
+					show_json(LNG('explorer.share.errorPwd'),false);
+				}
+			}
+			// 检测密码
+			if( Session::get($passKey) != $share['password'] ){
+				show_json(LNG('explorer.share.needPwd'),30104,$this->get(true));
+			}
+		}
+	}
+
+	/**
+	 * 权限检测
+	 * 下载次数，预览次数记录
+	 */
+	private function authCheck(){
+		$share = $this->share;
+		$where = array("shareID"=>$share['shareID']);
+		if( equal_not_case(ACT,'get') ){
+			$this->model->where($where)->setAdd('numView');
+		}
+		//权限检测；是否允许下载、预览、上传;
+		if( $share['options'] && 
+			$share['options']['notDownload'] == '1' && 
+			((equal_not_case(ACT,'fileOut') && $this->in['download']=='1') || 
+			equal_not_case(ACT,'zipDownload')) ){
+			show_json(LNG('explorer.share.noDownTips'),false);
+		}
+		if( $share['options'] && 
+			$share['options']['notView'] == '1' && 
+			equal_not_case(ACT,'fileOut') ){
+			show_json(LNG('explorer.share.noViewTips'),false);
+		}
+		if( $share['options'] && 
+			$share['options']['canUpload'] != '1' && 
+			equal_not_case(ACT,'fileUpload') ){
+			show_json(LNG('explorer.share.noUploadTips'),false);
+		}
+		if((equal_not_case(ACT,'fileOut') && $this->in['download']=='1') ||
+			equal_not_case(ACT,'zipDownload')){
+			$this->model->where($where)->setAdd('numDownload');
+		}
+	}
+	/**
+	 * 检测并获取真实路径;
+	 */
+	private function parsePath($path){
+		$rootSource = $this->share['sourceInfo']['path'];
+		$parse = KodIO::parse($path);
+		if(!$parse || $parse['type']  != KodIO::KOD_SHARE_LINK ||
+			$this->share['shareHash'] != $parse['id'] ){
+			show_json(LNG('explorer.dataError'),false);
+		}
+		
+		$pathInfo = IO::infoFull($rootSource.$parse['param']);
+		if(!$pathInfo){
+			show_json(LNG('explorer.pathError'),false);
+		}
+		return $pathInfo['path'];
+	}
+	
+	public function pathInfo(){
+		$fileList = json_decode($this->in['dataArr'],true);
+		if(!$fileList) show_json(LNG('explorer.error'),false);
+
+		if(count($fileList) == 1){
+			$path 	= $this->parsePath($fileList[0]['path']);
+			$data 	= $this->itemInfo(IO::infoWithChildren($path));
+			show_json($data);
+		}
+		$result = array();
+		for ($i=0; $i < count($fileList); $i++) {
+			$path 	= $this->parsePath($fileList[$i]['path']);
+			$result[] = $this->itemInfo(IO::infoWithChildren($path));
+		}
+		show_json($result);		
+	}
+
+	//输出文件
+	public function fileOut(){
+		$path = $this->in['path'];
+		if(request_url_safe($path)) {
+			header('Location:' . $path);
+			exit;
+		} 
+		$path = $this->parsePath($path);
+		$isDownload = $this->in['download'] == 1;
+		IO::fileOut($path,$isDownload);
+	}
+	public function fileUpload(){
+		$this->in['path'] = $this->parsePath($this->in['path']);
+		Action("explorer.upload")->fileUpload();
+	}
+	public function fileGet(){
+		$this->in['path'] = $this->parsePath($this->in['path']);
+		$result = ActionCallHook("explorer.editor.fileGet");
+		if($result['code']){
+			$result['data'] = $this->itemInfo($result['data']);
+		}
+		show_json($result['data'],$result['code'],$result['info']);
+	}
+	
+	public function pathList(){
+		$path = $this->parsePath($this->in['path']);
+		$data = IO::listPath($path);
+		$this->dataParse($data,$path);
+		show_json($data);
+	}
+
+	/**
+	 * 分享压缩下载
+	 * 压缩和下载合并为同一方法
+	 * @return void
+	 */
+	public function zipDownload(){
+		if($path = Input::get('path',null,null)){
+			$name = Action('explorer.index')->pathCrypt($path,false);
+			$path = TEMP_FILES . $name;
+			if(!$name || !@file_exists($path)) {
+				show_json(LNG('common.pathNotExists'), false);
+			}
+			IO::fileOut($path, 1);
+			return del_dir(get_path_father($path));
+		}
+		// 压缩
+		$dataArr = json_decode($this->in['dataArr'],true);
+		foreach($dataArr as $i => $item){
+			$dataArr[$i]['path'] = $this->parsePath($item['path']);
+		}
+		$this->in = array('dataArr'	=> json_encode($dataArr));
+		Action('explorer.index')->zipDownload();
+	}
+
+	/**
+	 * 递归处理数据；自动加入打开等信息
+	 * 如果是纯数组: 处理成 {folderList:[],fileList:[],thisPath:xxx,current:''}
+	 */
+	private function dataParse(&$data,$path){
+		$data['current']  = IO::info($path,false);
+		$data['thisPath'] = $this->in['path'];
+		$data['targetSpace'] = Action('explorer.list')->targetSpace($data['current']);
+		foreach ($data as $key =>&$listData) {
+			if($key == 'current'){
+				$listData = $this->itemInfo($listData);
+			}
+			if($key == 'fileList' || $key == 'folderList'){
+				foreach ($listData as &$item) {
+					$item = $this->itemInfo($item);
+				}
+			}
+		}
+	}
+
+	private function itemInfo($item){
+		$rootPath = $this->share['sourceInfo']['pathDisplay'];
+		$field = array(
+			'name','path','type','size','ext',
+			'createUser','modifyUser','createTime','modifyTime',
+			'hasChildFolder','hasChildFile','children','targetType','targetID',			
+			'base64','content','charset',
+		);
+		$theItem = array_field_key($item,$field);
+		$path 	 = KodIO::makePath(KodIO::KOD_SHARE_LINK,$this->share['shareHash']);
+		$theItem['pathDisplay'] = '/'.substr($item['pathDisplay'],strlen($rootPath));
+		$theItem['path'] = rtrim($path,'/').$theItem['pathDisplay'];
+		if($theItem['type'] == 'folder'){
+			$theItem['ext'] = 'folder';
+		}
+		return $theItem;
+	}
+}

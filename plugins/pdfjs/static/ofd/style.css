@@ -1,0 +1,266 @@
+body {
+	margin: 0 auto;
+	background-color: #3C3C3C;
+}
+
+.viewerToolbar {
+	white-space: nowrap;
+	background: #4C4C4C;
+	height: 30px;
+	user-select: none;
+	position: fixed;
+	margin-top: 0px;
+	width: 100%;
+	z-index: 100000;
+	min-width: 600px;
+}
+
+.toolbar-right,
+.toolbar-left,
+.toolbar-center {
+	white-space: nowrap;
+	display: inline-block;
+	height: 30px;
+	line-height: 30px;
+	vertical-align: middle;
+	margin-top: -2px
+}
+
+.rotate {
+	width: 16px;
+	height: 16px;
+	display: inline-block;
+	background: url(img/rotate.png) no-repeat;
+	cursor: hand;
+	vertical-align: middle;
+	margin-right: 5px;
+}
+
+.pageUp {
+	width: 16px;
+	height: 16px;
+	display: inline-block;
+	background: url(img/toolbarButton-pageUp.png) no-repeat;
+	cursor: hand;
+	vertical-align: middle;
+}
+
+.pageDown {
+	margin-left: 2px;
+	margin-right: 2px;
+	width: 16px;
+	height: 16px;
+	display: inline-block;
+	background: url(img/toolbarButton-pageDown.png) no-repeat;
+	cursor: hand;
+	vertical-align: middle;
+}
+
+.zoomIn {
+	width: 16px;
+	height: 16px;
+	display: inline-block;
+	background: url(img/toolbarButton-zoomIn.png) no-repeat;
+	vertical-align: middle;
+}
+
+.zoomOut {
+	margin-left: 2px;
+	width: 16px;
+	height: 16px;
+	display: inline-block;
+	background: url(img/toolbarButton-zoomOut.png) no-repeat;
+	cursor: hand;
+	vertical-align: middle;
+}
+
+.zoomValue {
+	min-width: 80px;
+	font-size: 12px;
+	color: hsl(0, 0%, 95%);
+	margin-right: 18px;
+	padding: 2px 2px 2px;
+	background: #4C4C4C;
+	border: none;
+	outline: none;
+	vertical-align: middle;
+	/* -moz-appearance: none;
+	-webkit-appearance: none;
+	appearance: none;*/
+	border: 1px solid hsla(0, 0%, 0%, .35);
+	border-color: hsla(0, 0%, 0%, .32) hsla(0, 0%, 0%, .38) hsla(0, 0%, 0%, .42);
+}
+
+.cropButton {
+	width: 16px;
+	height: 16px;
+	display: inline-block;
+	background: url(img/crop.png) no-repeat;
+	vertical-align: middle;
+	margin-right: 5px;
+}
+
+.openFile {
+	width: 16px;
+	height: 16px;
+	display: inline-block;
+	background: url(img/toolbarButton-openFile.png) no-repeat;
+	margin-right: 5px;
+	vertical-align: middle;
+	margin-right: 5px;
+}
+
+.pageNumb {
+	width: 60px;
+	padding: 3px 6px;
+	margin: 4px 0 4px 0;
+	border: 1px solid transparent;
+	border-radius: 2px;
+	background-color: hsla(0, 0%, 100%, .09);
+	background-image: linear-gradient(hsla(0, 0%, 100%, .05), hsla(0, 0%, 100%, 0));
+	background-clip: padding-box;
+	border: 1px solid hsla(0, 0%, 0%, .35);
+	border-color: hsla(0, 0%, 0%, .32) hsla(0, 0%, 0%, .38) hsla(0, 0%, 0%, .42);
+	box-shadow: 0 1px 0 hsla(0, 0%, 0%, .05) inset, 0 1px 0 hsla(0, 0%, 100%, .05);
+	color: hsl(0, 0%, 95%);
+	font-size: 12px;
+	line-height: 14px;
+	outline-style: none;
+	transition-property: background-color, border-color, box-shadow;
+	transition-duration: 150ms;
+	transition-timing-function: ease;
+	vertical-align: middle;
+	text-align: center;
+}
+
+.pageTotalNum {
+	font-size: 12px;
+	color: #fff;
+	vertical-align: middle;
+	margin-right: 18px;
+}
+
+.printButton {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	background: url(img/print.png) no-repeat;
+	vertical-align: middle;
+}
+
+.contentContainer {
+	background-color: #3C3C3C;
+	margin: 0 auto;
+}
+
+.printContainer {
+	background-color: #3C3C3C;
+	margin: 0 auto;
+	margin-top: 0px;
+}
+
+.showSideViewButton {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	margin-left: 6px;
+	background: url(img/bookmark.png) no-repeat;
+	vertical-align: middle;
+}
+
+.showTagsButton {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	margin-left: 5px;
+	background: url(img/tag.png) no-repeat;
+	vertical-align: middle;
+}
+
+.sideviewcontainer {
+	overflow-y: auto;
+	overflow-x: auto;
+	width: 250px;
+	height: 100%;
+	border: 1px solid white;
+	position: fixed;
+	top: 30px;
+	left: 0px;
+	background-color: rgb(106, 106, 106);
+	opacity: 0.9;
+}
+
+.cancelButton {
+	width: 50px;
+	height: 30px;
+	margin-bottom: 50px;
+	margin-left: 75px
+}
+
+.search {
+	width: 80px;
+	padding: 3px 6px;
+	margin: 4px 0 4px 0;
+	border: 1px solid transparent;
+	border-radius: 2px;
+	background-color: hsla(0, 0%, 100%, .09);
+	background-image: linear-gradient(hsla(0, 0%, 100%, .05), hsla(0, 0%, 100%, 0));
+	background-clip: padding-box;
+	border: 1px solid hsla(0, 0%, 0%, .35);
+	border-color: hsla(0, 0%, 0%, .32) hsla(0, 0%, 0%, .38) hsla(0, 0%, 0%, .42);
+	box-shadow: 0 1px 0 hsla(0, 0%, 0%, .05) inset, 0 1px 0 hsla(0, 0%, 100%, .05);
+	color: hsl(0, 0%, 95%);
+	font-size: 12px;
+	line-height: 14px;
+	outline-style: none;
+	transition-property: background-color, border-color, box-shadow;
+	transition-duration: 150ms;
+	transition-timing-function: ease;
+	vertical-align: middle;
+	text-align: left;
+}
+
+.searchImage {
+	display: inline-block;
+	vertical-align: middle;
+	margin-left: 5px;
+}
+
+@page {
+	margin: 0 0 0 0;
+}
+
+@media print and (orientation:portrait) {
+	.page {
+		max-width: 210mm;
+		max-height: 297mm;
+		margin: 0;
+		page-break-after: always;
+	}
+	.pagecontent {
+		max-width: 210mm;
+		max-height: 296mm;
+		margin: 0;
+	}
+}
+
+@media print and (orientation:landscape) {
+	.page {
+		max-width: 297mm;
+		max-height: 210mm;
+		margin: 0;
+		page-break-after: always;
+	}
+	.pagecontent {
+		max-width: 297mm;
+		max-height: 209mm;
+		margin: 0;
+	}
+}
+
+/*add by kod*/
+#toolbar-right{position: absolute;right: 10px;}
+#cropButton,.cropButton{background:none;display:none;}
+.viewerToolbar{top:0;}
+.contentContainer{padding-top:10px;}
+
