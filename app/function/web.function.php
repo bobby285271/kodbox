@@ -662,7 +662,7 @@ function select_var($array){
  * @return array array
  */
 function parse_url_query($url){
-	$arr = parse_url($url);
+	$arr = mb_parse_url($url);
 	$queryParts = explode('&',$arr['query']);
 	$params = array();
 	foreach ($queryParts as $param) {
@@ -672,6 +672,27 @@ function parse_url_query($url){
         $params[$key] = implode('=', $item);
 	}
 	return $params;
+}
+
+function mb_parse_url($url, $component = -1) {
+	$encodedUrl = preg_replace_callback(
+		'%[^:/?#&=\.]+%usD',
+		function ($matches) {
+			return urlencode($matches[0]);
+		},
+		$url
+	);
+	$components = parse_url($encodedUrl, $component);
+	if (is_array($components)) {
+		foreach ($components as &$part) {
+			if (is_string($part)) {
+				$part = urldecode($part);
+			}
+		}
+	} else if (is_string($components)) {
+		$components = urldecode($components);
+	}
+	return $components;
 }
 
 function stripslashes_deep($value){
@@ -725,6 +746,14 @@ function parse_incoming(){
     $router = join('',$arr[0]);
     $router = str_replace('/','.',$router);
 	$remote = explode('.',$router);
+
+	// 微信等追加到根地址后面参数情况处理;  domain.com/?a=1&b=2; 
+	if( count($remote) == 1 && 
+		$remote[0] == $router &&
+		$return[$router] !='' ){
+		$router = '';
+		$remote = array('');
+	}
 	
 	$return['URLrouter'] = $router;
 	$return['URLremote'] = $remote;
@@ -1059,7 +1088,8 @@ function get_file_mime($ext){
 		"fif" => "application/fractals",
 		"flr" => "x-world/x-vrml",
 		"flv" => "video/x-flv",
-		"f4v" => "application/octet-stream",
+		"f4v" => "video/x-flv",
+		// "f4v" => "application/octet-stream",
 		"gif" => "image/gif",
 		"gtar" => "application/x-gtar",
 		"gz" => "application/x-gzip",
@@ -1099,6 +1129,8 @@ function get_file_mime($ext){
 		"mht" => "message/rfc822",
 		"mhtml" => "message/rfc822",
 		"mid" => "audio/mid",
+		"mka" => "audio/x-matroska",
+		"mkv" => "video/x-matroska",
 		"mny" => "application/x-msmoney",
 		"mov" => "video/quicktime",
 		"movie" => "video/x-sgi-movie",

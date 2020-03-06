@@ -21,13 +21,15 @@ class adminAutoRun extends Controller {
             return $this->log($data);
         }
         Hook::bind('show_json','admin.AutoRun.log');
+        Hook::bind('explorer.fileDownload','admin.AutoRun.log');
     }
 
     public function log($data){
-        if(!$data || !$data['code']) return false;
+        if(isset($data['code']) && !$data['code']) return false;
         if(empty($data['data']) || !is_array($data['data'])){
             $data['data'] = array('data' => $data['data']);
         }
-        ActionCall('admin.log.log',$data['data']);
+        $info = isset($data['info']) ? $data['info'] : null;
+        ActionCall('admin.log.log',$data['data'], $info);
     }
 }

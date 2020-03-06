@@ -83,7 +83,8 @@
                 'php_bit':      lng.php_bit+'<br/><span class="bit-desc">('+lng.php_bitdesc+')</span>'
             },
             texts: {
-                'file_get_contents': lng.must_open, 
+                // 'file_get_contents': lng.must_open, 
+                'allow_url_fopen': lng.must_open, 
                 'path_list':    lng.sugst_close
             }
         };
@@ -120,7 +121,8 @@
         var mustOpenList = {
             'path_writable': lng.dir_right, 
             'php_version': lng.php_version, 
-            'file_get_contents': lng.must_open, 
+            // 'file_get_contents': lng.must_open, 
+            'allow_url_fopen': lng.must_open, 
         };
         // 载入页面内容
         var errList = [];
@@ -164,7 +166,9 @@
             var _this = this;
             data = $.extend({}, {action: 'db'}, data);
             Tips.loading(LNG['explorer.loading']);
+            $(".step-box.db .form-save-button").prop('disabled', true);
             request('install/index/save', data, function(result){
+                $(".step-box.db .form-save-button").prop('disabled', false);
                 // 是否删除已存在数据库
                 if(result.info && result.info == '10001'){
                     $.dialog.confirm(result.data,function(){
@@ -248,7 +252,9 @@
             var _this = this;
             data = $.extend({}, {action: 'user'}, data);
             Tips.loading(LNG['explorer.loading']);
+            $(".step-box.user .form-save-button").prop('disabled', true);
             request('install/index/save', data, function(result){
+                $(".step-box.user .form-save-button").prop('disabled', false);
                 var delay = !result.code ? 5000 : null;
                 Tips.close(result.data, result.code, delay);
                 if(!result.code) return;

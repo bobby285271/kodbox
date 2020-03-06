@@ -1069,14 +1069,14 @@ class OOS {
 	public function getAuthenticatedURL($bucket, $uri, $lifetime, $hostBucket = false, $https = false, $subResource = array()){
 		$expires = self::__getTime() + $lifetime;
 		$uri = str_replace(array('%2F', '%2B'), array('/', '+'), rawurlencode($uri));
-		$ext = '?'.http_build_query($subResource);
+		$ext = http_build_query($subResource);
 		$url = sprintf(
 			($https ? 'https' : 'http') . '://%s/%sAWSAccessKeyId=%s&Expires=%u&Signature=%s', 
 			$hostBucket ? $bucket : self::$endpoint . '/' . $bucket, 
-			$uri . $ext . ($ext == '?' ? '' : '&'), 
+			$uri . '?' . $ext . ($ext ? '&' : ''),
 			self::$__accessKey, 
 			$expires, 
-			urlencode(self::__getHash("GET\n\n\n{$expires}\n/{$bucket}/{$uri}".urldecode($ext)))
+			urlencode(self::__getHash("GET\n\n\n{$expires}\n/{$bucket}/{$uri}".($ext ? '?' . urldecode($ext) : '')))
 		);
 		return $url;
 	}
@@ -1228,6 +1228,8 @@ class OOS {
 	 * @return string
 	 */
 	private static function __getMIMEType(&$file) {
+		return get_file_mime(get_path_ext($file));
+		
 		static $exts = array(
 			'jpg'	 => 'image/jpeg', 'jpeg'	 => 'image/jpeg', 'gif'	 => 'image/gif',
 			'png'	 => 'image/png', 'ico'	 => 'image/x-icon', 'pdf'	 => 'application/pdf',

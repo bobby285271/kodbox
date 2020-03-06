@@ -20,7 +20,10 @@ class explorerAuth extends Controller {
 		$this->isShowError = true; //检测时输出报错;
 		$this->actionPathCheck = array(
 			'show'		=> array("explorer.list"=>'path'),
-			'view'		=> array('explorer.index'=>'fileOut,fileView,fileThumb','explorer.editor' =>'fileGet'),
+			'view'		=> array(
+				'explorer.index'=>'fileOut,fileOutBy,fileView,fileThumb',
+				'explorer.editor' =>'fileGet'
+			),
 			'download'	=> array(''),// 下载/复制;下载/复制/文件预览打印
 			'upload'	=> array('explorer.upload'=>'fileUpload,serverDownload'),
 			'edit'		=> array(

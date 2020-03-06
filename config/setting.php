@@ -42,7 +42,7 @@ if(strstr($_SERVER['SERVER_SOFTWARE'],'-IIS')){
 // database/file/redis/memcached
 $config['cache'] = array(
 	'sessionType'	=> 'file',	//缓存方式 database/file/redis/memcached
-	'sessionTime'	=> 3600,
+	'sessionTime'	=> 3600*4,	//session失效时间 
     'cacheType'		=> 'file',	//缓存方式 database/file/redis/memcached
 	'lockTimeout'	=> 5,		//并发锁获取超时时间
 	'cacheTime'		=> 3600*5,	//缓存默认时间;
@@ -54,12 +54,13 @@ $config['cache'] = array(
 		// 'timeout'  => 20, 		// 连接超时时间
 		// 'auth' 	  => '',  		// 密码
 		// 'pconnect' => true,  	// 是否持久链接;
-		// 'servers'  => array('10.10.10.1:8001','10.10.10.2:8001'), //集群方式连接;有则忽略host/port
+		// 'server'  => array('10.10.10.1:8001','10.10.10.2:8001'), //集群方式连接;有则忽略host/port
+		// 'mode'	  => 'slave',	// slave、sentinel(暂不支持)、cluster
     ),
     'memcached' => array(
         'host' 	   => '127.0.0.1',
 		'port' 	   => 11211,
-		// 'servers'=> array('10.10.10.1:8001','10.10.10.2:8001'), // 集群方式连接;有则忽略host/port
+		// 'server'=> array('10.10.10.1:8001','10.10.10.2:8001'), // 集群方式连接;有则忽略host/port
     ),
 );
 $config['databaseDefault'] = array(
@@ -333,7 +334,11 @@ $config['authAllowAction'] = array(
 $config['authRoleAction']= array(
 	'explorer.add'			=> array('explorer.index'=>'mkdir,mkfile'),
 	'explorer.upload'		=> array('explorer.upload'=>'fileUpload'),
-	'explorer.view'			=> array('explorer.index'=>'fileOut,unzipList','explorer.editor'=>'fileGet','explorer.fileView'=>'index,open'),
+	'explorer.view'			=> array(
+		'explorer.index'=>'fileOut,unzipList,fileOutBy',
+		'explorer.editor'=>'fileGet',
+		'explorer.fileView'=>'index,open'
+	),
 	'explorer.download'		=> array('explorer.index'=>'zipDownload,fileDownloadRemove'),
 	'explorer.share'		=> array('explorer.userShare'=>'add,edit,del'),
 	'explorer.remove'		=> array('explorer.index'=>'pathDelete,recycleDelete,recycleRestore'),

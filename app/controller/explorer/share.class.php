@@ -13,12 +13,30 @@ class explorerShare extends Controller{
 		$this->model  = Model('Share');
 		$notCheck = array('link','file','pathParse');
 		// 检测并处理分享信息
-		if( equal_not_case(ST,'share') && !in_array_not_case(ACT,$notCheck)){
-			$this->initShare($this->in['shareID']); 
+		if( equal_not_case(ST,'share') && 
+			!in_array_not_case(ACT,$notCheck) ){
+			$shareID = $this->parseShareID();
+			$this->initShare($shareID); 
 			if(equal_not_case(MOD.'.'.ST,'explorer.share')){
 				$this->authCheck();
 			}
 		}
+	}
+
+	// 自动解析分享id; 通过path或多选时dataArr;
+	private function parseShareID(){
+		$shareID = $this->in['shareID'];
+		if($shareID) return $shareID;
+		$thePath = $this->in['path'];
+		if(!$thePath && isset($this->in['dataArr'])){
+			$fileList = json_decode($this->in['dataArr'],true);
+			$thePath  = $fileList[0]['path'];
+		}
+		$parse = KodIO::parse($thePath);
+		if($parse['type'] == KodIO::KOD_SHARE_LINK){
+			$shareID = $parse['id'];
+		}
+		return $shareID;
 	}
 
 	// 通用生成外链
@@ -31,7 +49,7 @@ class explorerShare extends Controller{
 	public function linkOut($path,$token=false){
 		$parse  = KodIO::parse($path);
 		if($parse['type'] == KodIO::KOD_SHARE_LINK){
-			$url = APP_HOST . "index.php?explorer/share/fileOut&shareID={$parse['id']}&path={$path}";
+			$url = APP_HOST . "index.php?explorer/share/fileOut&path={$path}";
 		}else{
 			$url = APP_HOST . "index.php?explorer/index/fileOut&path={$path}";
 		}
@@ -230,8 +248,25 @@ class explorerShare extends Controller{
 	public function pathList(){
 		$path = $this->parsePath($this->in['path']);
 		$data = IO::listPath($path);
+		$this->dataParseOexe($data['fileList']);
 		$this->dataParse($data,$path);
 		show_json($data);
+	}
+	private function dataParseOexe(&$list){
+		$maxSize = 1024*1024*2;
+		$index = 0;
+		$maxLoad = 50;	//获取内容上限；
+		if(count($list) >= 100){ //当列表过多时，获取少量应用内容；
+			$maxLoad = 5;
+		}
+		foreach ($list as &$item) {
+			if( $item['ext'] != 'oexe' || $item['size'] > $maxSize){
+				continue;
+			}
+			if($index++ >= $maxLoad) break;
+			$content = IO::getContent($item['path']);
+			$item['oexeContent'] = json_decode($content);
+		}
 	}
 
 	/**
@@ -240,10 +275,12 @@ class explorerShare extends Controller{
 	 * @return void
 	 */
 	public function zipDownload(){
+		//禁用分享文件夹压缩;
+		return show_json(LNG('explorer.share.actionNotSupport'),false);
+		
 		if($path = Input::get('path',null,null)){
-			$name = Action('explorer.index')->pathCrypt($path,false);
-			$path = TEMP_FILES . $name;
-			if(!$name || !@file_exists($path)) {
+			$path = Action('explorer.index')->pathCrypt($path,false);
+			if(!$path || !IO::exist($path)) {
 				show_json(LNG('common.pathNotExists'), false);
 			}
 			IO::fileOut($path, 1);
@@ -284,7 +321,7 @@ class explorerShare extends Controller{
 			'name','path','type','size','ext',
 			'createUser','modifyUser','createTime','modifyTime',
 			'hasChildFolder','hasChildFile','children','targetType','targetID',			
-			'base64','content','charset',
+			'base64','content','charset','oexeContent',
 		);
 		$theItem = array_field_key($item,$field);
 		$path 	 = KodIO::makePath(KodIO::KOD_SHARE_LINK,$this->share['shareHash']);

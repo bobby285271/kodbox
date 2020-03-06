@@ -37,7 +37,7 @@ class adminLog extends Controller{
      * @param boolean $data
      * @return void
      */
-    public function log($data=false){
+    public function log($data=false,$info=null){
         $actionList = array(
             'user.index.logout',
             'user.index.loginSubmit'
@@ -47,7 +47,8 @@ class adminLog extends Controller{
         if(!in_array(ACTION, $actionList)){
             $params = $this->in;
             unset($params['URLremote'], $params[str_replace(".", "/", ACTION)]);
-            if(ACTION == 'explorer.upload.fileUpload' && !empty($params['chunk'])) return;  // 分片上传只记录一次
+            // 上传只记录系统存储上传
+            if(ACTION == 'explorer.upload.fileUpload' && empty($data['info'])) return;
             $params['ip'] = $ip;
             return $this->model->addLog(ACTION, $params);
         }

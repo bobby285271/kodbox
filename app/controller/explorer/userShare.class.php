@@ -72,17 +72,38 @@ class explorerUserShare extends Controller{
 	public function sharePathInfo($shareID,$sourceID){
 		$shareInfo	= $this->model->getInfo($shareID);
 		$sourceInfo = Model('Source')->pathInfo($sourceID);
+		if(!$this->shareIncludeCheck($shareInfo,$sourceInfo)) return false;
 		$sourceInfo = $this->_shareItemeParse($sourceInfo,$shareInfo);
 		return $sourceInfo;
 	}
-
+	
+	// 检测附带文档是否归属于该分享;
+	private function shareIncludeCheck($shareInfo,$sourceInfo){
+		// pr_trace($shareInfo,$sourceInfo);exit;
+		if(!$shareInfo || !$sourceInfo) return false;
+		
+		$shareSource = $shareInfo['sourceInfo'];
+		// 分享目标为文件,追加字内容必须是自己;
+		if( $shareSource['type'] == 'file' &&
+			$shareSource['sourceID'] != $sourceInfo['sourceID']){
+			return false; 
+		}
+		if( $shareSource['type'] == 'folder' &&
+			strpos($sourceInfo['parentLevel'],$shareSource['parentLevel']) !== 0 ){
+			return false; 
+		}
+		return true;
+	}
+	
+	
 	public function sharePathList($parseInfo){
 		$shareID  	= $parseInfo['id'];
 		$param    	= explode('/',trim($parseInfo['param'],'/'));
 		$sourceID 	= $param[0];
 		$shareInfo	= $this->model->getInfo($shareID);
-			
-		if(!$shareInfo) return array();
+		$sourceInfo = Model('Source')->pathInfo($sourceID);
+		if(!$this->shareIncludeCheck($shareInfo,$sourceInfo)) return false;
+		
 		$list  = Model('Source')->listSource(array('parentID' => $sourceID));
 		foreach ($list as $key => &$keyList) {
 			if($key != 'folderList' && $key != 'fileList' ) continue;
@@ -90,9 +111,8 @@ class explorerUserShare extends Controller{
 				$source = $this->_shareItemeParse($source,$shareInfo);
 			}
 		}
-		
-		$parent = Model('Source')->pathInfo($sourceID);
-		$list['current'] = $this->_shareItemeParse($parent,$shareInfo);
+
+		$list['current'] = $this->_shareItemeParse($sourceInfo,$shareInfo);
 		// pr($parent,$shareInfo,$list);exit;
 		return $list;
 	}

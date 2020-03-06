@@ -124,7 +124,8 @@ class installIndex extends Controller {
         $env = array(
             'path_writable'     => array(),
             'php_version'       => phpversion(),
-            'file_get_contents' => function_exists('file_get_contents') || false,
+            // 'file_get_contents' => function_exists('file_get_contents') || false,
+            'allow_url_fopen'   => ini_get('allow_url_fopen') || false,
             'php_bit'           => phpBuild64() ? 64 : 32,
             'iconv'             => function_exists('iconv') || false,
             'mb_string'         => function_exists('mb_convert_encoding') || false,
@@ -260,13 +261,16 @@ class installIndex extends Controller {
         $file = BASIC_PATH . 'config/setting_user.php';
         if(!@file_exists($file)) @touch($file);
         $content = file_get_contents($file);
-		if(stripos(trim($content),"<?php") > -1) unset($text[0]);
-		
+		$pre = '';
+		if(stripos(trim($content),"<?php") > -1) {
+            $pre = PHP_EOL;
+            unset($text[0]);
+        }
 		$content = implode(PHP_EOL, $text);
 		$replaceFrom = "'DB_NAME' => '".USER_SYSTEM;
 		$replaceTo   = "'DB_NAME' => USER_SYSTEM.'";
 		$content = str_replace($replaceFrom,$replaceTo,$content);		
-        if(!file_put_contents($file,$content, FILE_APPEND)) {
+        if(!file_put_contents($file,$pre.$content, FILE_APPEND)) {
             $msg = LNG('admin.install.dbSetError');
             $tmp = explode('<br/>', LNG('common.env.pathPermissionError'));
             $msg .= "<br/>" . $tmp[0];
@@ -419,8 +423,7 @@ class installIndex extends Controller {
         define('USER_ID',1);
         Cache::deleteAll();
         $this->systemDefault();
-        $this->storageDefault();
-        $this->systemDefaultPath();
+		$this->storageDefault();
         $this->initLightApp();
         $this->initPluginList();
 
@@ -428,7 +431,8 @@ class installIndex extends Controller {
         $this->addGroup();
         $this->addAuth();
         $this->roleID = $this->getRoleID();
-        $this->addUser();
+		$this->addUser();
+		KodIO::initSystemPath();
         $GLOBALS['SHOW_JSON_NOT_EXIT'] = 0;
 
         @touch($this->installLock);
@@ -465,26 +469,8 @@ class installIndex extends Controller {
         );
         $res = Model('Storage')->add($data);
         if(!$res) show_json(LNG('admin.install.defStoreError'), false);
-    }
-
-    /**
-     * 系统目录设置
-     */
-    public function systemDefaultPath(){
-        KodIO::initSystemPath();
-
-        $defList = array(
-            'IO_PATH_SYSTEM_SOURCE', 
-            'IO_PATH_SYSTEM_TEMP', 
-            'IO_PATH_SYSTEM_RECYCLE'
-        );
-        foreach($defList as $define){
-            if(!defined($define)){
-                show_json(LNG('admin.install.defPathError'), false);
-            }
-        }
-    }
-
+	}
+	
     /**
      * 轻应用列表初始化
      */
@@ -571,7 +557,7 @@ class installIndex extends Controller {
      */
     private function roleDefault(){
         $administrator = array (
-            'name' => 'Administrator',
+            'name' => '系统管理员',
             'display' => 1,
             'system' => 1,
             'administrator' => 1,
@@ -581,7 +567,7 @@ class installIndex extends Controller {
         );
 
         $default = array (
-            'name' => 'default',
+            'name' => '普通用户',
             'display' => 1,
             'system' => 1,
             'auth' => 'explorer.add,explorer.upload,explorer.view,explorer.download,explorer.share,explorer.remove,explorer.edit,explorer.move,explorer.serverDownload,explorer.search,explorer.unzip,explorer.zip,user.edit,user.fav',
@@ -601,7 +587,7 @@ class installIndex extends Controller {
         $this->in = array(
             "userID"    => 1,
 			"name" 		=> !empty($this->admin['name']) ? $this->admin['name'] : 'admin',
-			"nickName" 	=> 'Administrator',
+			"nickName" 	=> '管理员',
 			"password" 	=> !empty($this->admin['password']) ? $this->admin['password'] : 'admin',
             "roleID"	=> $this->roleID,
             "groupInfo" => json_encode(array('1'=>'1')),

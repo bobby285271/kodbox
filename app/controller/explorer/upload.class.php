@@ -17,6 +17,17 @@ class explorerUpload extends Controller{
 		return str_replace($notAllow,'_',$path);
 	}
 	
+	
+	public function fileUploadTemp(){
+		$this->in["chunkSize"] = '0';
+		$this->in["size"] = '0';
+		
+		$uploader  = new Uploader();
+		$localFile = $uploader->upload();
+		$uploader->statusSet(false);
+		return $localFile;
+	}
+	
 	/**
 	 * 上传,三个阶段
 	 * checkMd5:上传前;秒传处理、前端上传处理

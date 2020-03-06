@@ -18,17 +18,18 @@ class userIndex extends Controller {
 	// 进入初始化
 	public function init() {
 		if( !file_exists(USER_SYSTEM . 'install.lock') ){
-			ActionCall('install.index.check');
+			return ActionCall('install.index.check');
 		}
 		$this->initSetting();   //10ms;
 		$this->initSession();   //
 		$this->loginCheck();    //5-15ms session读取写入
+		KodIO::initSystemPath();
 		Model('Plugin')->init();//5-10ms
 		Hook::bind('beforeShutdown','user.index.shutdownEvent');
 	}
 	public function shutdownEvent(){
-		http_close();
 		CacheLock::unlockRuntime();// 清空异常时退出,未解锁的加锁;
+		
 	}
 
 	private function initSetting(){
@@ -59,7 +60,7 @@ class userIndex extends Controller {
 			$pass = substr(md5('kodbox_'.$pass),0,15);
 			$sessionSign = Mcrypt::decode($_REQUEST['accessToken'],$pass);
 			if(!$sessionSign){
-				show_json('accessToken ' . LNG('common.error'),false);
+				show_json(LNG('common.loginTokenError'),false);
 			}
 			Session::sign($sessionSign);
 		}
@@ -108,7 +109,6 @@ class userIndex extends Controller {
 		define('USER_ID',$this->user['userID']);
 		define('MY_HOME',KodIO::make($this->user['sourceInfo']['sourceID']));
 		define('MY_DESKTOP',KodIO::make($this->user['sourceInfo']['desktop']));
-		KodIO::initSystemPath();
 	}
 
 	public function accessToken(){
@@ -173,7 +173,7 @@ class userIndex extends Controller {
 		) {
 			return show_json('API 接口参数错误!', false);
 		}
-		$name = urlencode(base64_decode($param[0]));
+		$name = base64_decode($param[0]);
 		$user = Model('User')->where(array('name' => $name))->find();
 		if ( !is_array($user) ) {
 			return show_json(LNG('user.pwdError'),false);

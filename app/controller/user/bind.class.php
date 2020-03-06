@@ -512,7 +512,7 @@ class userBind extends Controller {
 		);
 		$post['sign'] = $this->makeSign($kodid, $post);
 		$url = $this->config['settings']['kodApiServer'] . 'plugin/platform/';
-		$response = url_request($url, 'POST', http_build_query($post));
+		$response = url_request($url, 'GET', $post);
 		if ($response['status']) {
 			return json_decode($response['data'], true);
 		}
@@ -565,9 +565,10 @@ class userBind extends Controller {
 	 */
 	public function oauth() {
 		$data = Input::getArray(array(
-				'type'	 => array('check' => 'require'),
-				'action' => array('check' => 'require'),
-				'client' => array('default' => 1),
+			'type'	 	=> array('check'   => 'require'),
+			'action' 	=> array('check'   => 'require'),
+			'client' 	=> array('default' => 1),
+			'platform'	=> array('default' => 'open'),
 		));
 		if (!isset(self::$TYPE_LIST[$data['type']])) {
 			show_json(LNG('common.invalidParam'), false);
@@ -590,14 +591,14 @@ class userBind extends Controller {
 		// 获取微信appid
 		$appId = '';
 		if($data['type'] == 'weixin'){
-			if(!$appId = $this->appid($data['type'])) show_json(LNG('user.bindWxConfigError'), false);
+			if(!$appId = $this->appid($data['platform'])) show_json(LNG('user.bindWxConfigError'), false);
 		}
 		show_json(http_build_query($post), true, $appId);
 	}
 
 	// 获取应用appid
-	private function appid(){
-		$res = $this->apiRequest('appid', array('type' => 'weixin'));
+	private function appid($platform){
+		$res = $this->apiRequest('appid', array('type' => 'weixin', 'platform' => $platform));
 		return $res['code'] ? $res['data'] : '';
 	}
 

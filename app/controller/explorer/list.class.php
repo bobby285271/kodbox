@@ -17,7 +17,7 @@ class explorerList extends Controller{
 		$pathInfo = KodIO::parse($path);
 		$pathID   = $pathInfo['id'];		
 		switch($pathInfo['type']){
-			case KodIO::KOD_USER_FAV:			$data = Model('UserFav')->listView();break;
+			case KodIO::KOD_USER_FAV:			$data = Action('explorer.fav')->get();break;
 			case KodIO::KOD_USER_RECYCLE:		$data = $this->model->listUserRecycle();break;
 			case KodIO::KOD_USER_FILE_TAG:		$data = $this->model->listUserTag($pathID);break;
 			case KodIO::KOD_USER_FILE_TYPE:		$data = $this->model->listPathType($pathID);break;
@@ -272,10 +272,8 @@ class explorerList extends Controller{
 					show_json(LNG("explorer.pathInRecycle"),false);
 				}
 				break;
-			case false:
-			case KodIO::KOD_IO:
-				$exist = !!$data['current'];
-				break;
+			case KodIO::KOD_SHARE_ITEM:
+			case KodIO::KOD_IO:$exist = !!$data['current'];break;
 			default:break;
 		}
 		if(!$exist){

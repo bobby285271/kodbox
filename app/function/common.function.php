@@ -611,6 +611,25 @@ function array_to_keyvalue($array,$key='',$contentKey=false){
 	return $result;
 }
 /**
+ * 根据parentid获取家谱树列表
+ * @param [type] $array
+ * @param [type] $id
+ * @return void
+ */
+function array_tree($array, $id){
+	$tree = array();
+	while($id != 0){
+		foreach ($array as $v) {
+			if($v['id'] == $id){
+				$tree[] = $v;
+				$id = $v['parentid'];
+				break;
+			}
+		}
+	}
+	return $tree;
+}
+/**
  * 将数组的元素的某个key作为key生成新的数组;值为数组形式；
  * [{"id":34,"type":1},{"id":78,"type":2},{"id":45,"type":1}]
 

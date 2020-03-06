@@ -1,5 +1,3 @@
-
-// 移动端点击延迟优化; https://github.com/ftlabs/fastclick
 ;(function () {
 	'use strict';
 
@@ -602,7 +600,7 @@
 		}
 
 		// Prevent the actual click from going though - unless the target node is marked as requiring
-		// real clicks or if it is in the whitelist in which case only non-programmatic clicks are permitted.
+		// real clicks or if it is in the allowlist in which case only non-programmatic clicks are permitted.
 		if (!this.needsClick(targetElement)) {
 			event.preventDefault();
 			this.sendClick(targetElement, event);
@@ -841,4 +839,3 @@
 		window.FastClick = FastClick;
 	}
 }());
-

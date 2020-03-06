@@ -17,7 +17,12 @@ class explorerFav extends Controller{
 	 */
 	public function get() {
 		$result = $this->model->listView();
-		show_json($result);
+		// 管理员首次; 添加物理路径管理;
+		if( $GLOBALS['isRoot'] && count($result) == 0){
+			$this->model->addFav(WEB_ROOT,"wwwroot (admin)",'folder');
+			$result = $this->model->listView();
+		}
+		return $result;
 	}
 
 	/**

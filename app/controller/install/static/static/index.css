@@ -199,6 +199,7 @@
     border-radius: 50%;
     line-height: 20px;
     font-size: 12px;
+    line-height: inherit!important;
 }
 .icon.icon-loading{
     -webkit-animation: moveCircleLoopRight 1.4s infinite linear;

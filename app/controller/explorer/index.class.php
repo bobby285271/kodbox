@@ -286,7 +286,7 @@ class explorerIndex extends Controller{
 			}
 		}
 		$msg= $copyType == 'copy'?LNG('explorer.pastSuccess').$error:LNG('explorer.cutePastSuccess').$error;
-		$code = ($error ==''?true:false);
+		$code = $error =='' ?true:false;
 		show_json($msg,$code,$result);
 	}
 
@@ -296,13 +296,15 @@ class explorerIndex extends Controller{
 	 */
 	public function fileDownloadRemove(){
 		$path = Input::get('path', 'require');
-		$name = $this->pathCrypt($path,false);
-		if(!$name || !@file_exists(TEMP_FILES.$name)) {
+		$path = $this->pathCrypt($path,false);
+		if(!$path || !IO::exist($path)) {
 			show_json(LNG('common.pathNotExists'), false);
 		}
-		$this->in = array('path' => TEMP_FILES.$name,'download' => 1);
-		$this->fileOut();
-		del_dir(get_path_father(TEMP_FILES.$name));
+		IO::fileOut($path,true);
+		$dir = get_path_father($path);
+		if(strstr($dir,TEMP_FILES)){
+		    del_dir($dir);
+		}
 	}
 
 	private function tmpZipName($dataArr){
@@ -334,34 +336,22 @@ class explorerIndex extends Controller{
 	 */
 	public function zipDownload(){	
 		ignore_timeout();
-		$dataArr = json_decode($this->in['dataArr'],true);
+		$dataArr  = json_decode($this->in['dataArr'],true);
 		$downName = $this->tmpZipName($dataArr);
-		$zipCache = TEMP_FILES;
-		mk_dir($zipCache);
+		$zipCache = TEMP_FILES;mk_dir($zipCache);
 
-		$zipname = Cache::get($downName);
-		if($zipname && @file_exists($zipname) ){
-			show_json(LNG('explorer.zipSuccess'),true,$this->pathCrypt($downName . '/' . $zipname));
+		$zipPath = Cache::get($downName);
+		if($zipPath && IO::exist($zipPath) ){
+			show_json(LNG('explorer.zipSuccess'),true,$this->pathCrypt($zipPath));
 		}
 
-		$downFile = $this->zip($zipCache . $downName . '/');
-		$zipname  = get_path_this($downFile);
-		Cache::set($downName, $zipname, 3600*6);
-		// 3.删除临时目录下（非压缩）文件
-		$dirs = $files = array();
-		recursion_dir($zipCache . $downName, $dirs, $files, 0);
-		foreach($dirs as $dir){
-			del_dir($dir);
-		}
-		foreach($files as $file){
-			if($file == $downFile) continue;
-			del_file($file);
-		}
-		show_json(LNG('explorer.zipSuccess'),true,$this->pathCrypt($downName . '/' . $zipname));
+		$zipPath = $this->zip($zipCache.$downName . '/');
+		Cache::set($downName, $zipPath, 3600*6);
+		show_json(LNG('explorer.zipSuccess'),true,$this->pathCrypt($zipPath));
 	}
 	// 文件名加解密
 	public function pathCrypt($path, $en=true){
-		$pass = Model('SystemOption')->get('systemPassword');
+		$pass = Model('SystemOption')->get('systemPassword').'encode';
 		return $en ? Mcrypt::encode($path,$pass) : Mcrypt::decode($path,$pass);
 	}
 
@@ -427,8 +417,33 @@ class explorerIndex extends Controller{
 		if(isset($this->in['type']) && $this->in['type'] == 'image'){
 			return IO::fileOutImage($path,$this->in['width']);
 		}
+		if($isDownload) Hook::trigger('explorer.fileDownload', $path);
 		$this->updateLastOpen($path);
 		IO::fileOut($path,$isDownload);
+	}
+	/*
+	相对某个文件访问其他文件; 权限自动处理;支持source,分享路径,io路径,物理路径;
+	path={source:1138926}/&add=images/as.png; path={source:1138926}/&add=as.png
+	path={shareItem:123}/1138934/&add=images/as.png
+	*/
+	public function fileOutBy(){
+		if(!$this->in['path']) return; 
+		
+		// 拼接转换相对路径;
+		$io = IO::init($this->in['path']);
+		$parent = $io->getPathOuter($io->pathFather($io->path));
+		$find   = $parent.'/'.$this->in['add'];
+		$find   = KodIO::clear(str_replace('./','/',$find));
+		$info   = IO::infoFull($find);
+		// pr($parent,$find,$info,IO::info($this->in['path']));exit;
+		if(!$info || $info['type'] != 'file'){
+			return show_json(LNG('common.pathNotExists'),false);
+		}
+
+		$dist = $info['path'];
+		ActionCall('explorer.auth.canView',$dist);
+		$this->updateLastOpen($dist);
+		IO::fileOut($dist,false);
 	}
 	
 	/**

@@ -57,8 +57,33 @@ class userView extends Controller{
 			$options['kod']['WEB_ROOT']   = WEB_ROOT;
 			$options['kod']['BASIC_PATH'] = BASIC_PATH;
 		}
-		$options = Hook::filter('user.view.options.before',$options);
+		
+		$optionsGet = Hook::filter('user.view.options.before',$options);
+		$options 	= is_array($optionsGet) ? $optionsGet : $options;
+		$optionsGet = Hook::filter('user.view.options.after',$options);
+		$options 	= is_array($optionsGet) ? $optionsGet : $options;
+		$options    = $this->parseMenu($options);
 		show_json($options);
+	}
+	
+	/**
+	 * 根据权限设置筛选菜单;
+	 */
+	private function parseMenu($options){
+		$menus  = &$options['system']['options']['menu'];
+		$result = array();
+		foreach ($menus as $item) {
+			if(!isset($item['pluginAuth'])){
+				$allow = true;
+			}else{
+				$allow = ActionCall("user.authPlugin.checkAuthValue",$item['pluginAuth']);
+			}
+			if($allow){
+				$result[] = $item;
+			}
+		}
+		$menus = $result;
+		return $options;
 	}
 	
 	public function lang(){
@@ -115,8 +140,17 @@ class userView extends Controller{
 			header('location: http://qr.topscan.com/api.php?text=' . rawurlencode($url));
 		}
 	}
-	public function sess2(){
-        $res = Session::get('abc');
-        var_dump($res);exit;
-    }
+	public function manifest(){
+		$json   = file_get_contents(LIB_DIR.'template/user/manifest.json');
+		$name   = stristr(I18n::getType(),'zh') ? '可道云':'kodcloud';
+		$static = STATIC_PATH == './static/' ? APP_HOST.'static/':STATIC_PATH;
+		$assign = array(
+			"{{name}}"		=> $name,
+			"{{appDesc}}"	=> LNG('common.copyright.name'),
+			"{{static}}"	=> $static,
+		);
+		$json = str_replace(array_keys($assign),array_values($assign),$json);
+		header("Content-Type: application/javascript; charset=utf-8");
+		echo $json;
+	}
 }

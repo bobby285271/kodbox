@@ -82,7 +82,7 @@ class adminGroup extends Controller{
 	public function edit() {
 		$data = Input::getArray(array(
 			"name" 		=> array("check"=>"require"),
-			"sizeMax" 	=> array("check"=>"float"),
+			"sizeMax" 	=> array("check"=>"float","default"=>null),
 			"groupID" 	=> array("check"=>"int"),
 			"parentID"	=> array(),
 		));
