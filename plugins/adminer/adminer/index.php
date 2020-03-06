@@ -8,4 +8,6 @@
 // $sso->checkAuthPlugin('adminer');
 
 // echo "hello";
+// X-Frame-Options 去除;
+// https://github.com/pematon/adminer-plugins
 include('./adminer.php.txt');

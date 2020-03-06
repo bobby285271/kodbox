@@ -90,6 +90,18 @@ define(function(require, exports) {
 		});
 		gallery.init();
 	};
+	
+	var bindCloseTag = false;
+	var bindClose = function(){
+		if(bindCloseTag) return;
+		bindCloseTag = true;
+		$(document).delegate('.pswp__item','touchend',function(e){
+			var needClose = !$(e.target).existParent('.pswp__zoom-wrap');
+			if(needClose){
+				$(".pswp__button--close").trigger("click");
+			}
+		});
+	}
 
 	//http://dimsemenov.com/plugins/royal-slider/gallery/
 	//http://photoswipe.com/documentation/faq.html
@@ -101,6 +113,7 @@ define(function(require, exports) {
 			appStatic+'PhotoSwipe/photoswipe.css',
 			appStatic+'PhotoSwipe/default-skin/default-skin.css',
 		],function(photoSwipeTpl){
+			bindClose();
 			initView(path,ext,name,photoSwipeTpl);
 		});
 	};

@@ -54,11 +54,13 @@ kodReady.push(function(){
 			icon:'{{pluginHost}}static/images/icon.png',
 			callback:function(path,ext,name){
 				var music = ['mp3','wav','aac','m4a','oga','ogg','webma','m3u8a','m3ua','flac'];
-				if(browserIsWap && $.inArray(ext, music) == -1){ //移动端，非视频文件分享页面用跳转方式打开
-					return core.openWindow(core.path2url(path));
+				//移动端，非视频文件分享页面用跳转方式打开
+				var link = core.path2url(path,true);
+				if(browserIsWap && $.inArray(ext, music) == -1){ 
+					return core.openWindow(link);
 				}
 				var list = [{
-					url:core.path2url(path),
+					url:link,
 					name:name,//zip内文件播放
 					ext:ext
 				}];
@@ -102,7 +104,7 @@ kodReady.push(function(){
 					var ext = ui.fileLight.type($(this));
 					if ( kodApp.appSupportCheck('jPlayer',ext) ) {
 						var path = ui.fileLight.path($(this));
-						var url = core.path2url(path,false);
+						var url = core.path2url(path,true);
 						list.push({
 							url:url,
 							name:core.pathThis(path),

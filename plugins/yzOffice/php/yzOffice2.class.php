@@ -145,7 +145,7 @@ class yzOffice2{
 	public function upload(){
 		ignore_timeout();
 		// 上传文件至cad服务器，先下载至本地，地址入缓存（进度和重启需要）
-		$path = $this->plugin->pluginLocalFile($this->filePath);
+		$path = IO::tempLocalFile($this->filePath);
 		Cache::set($this->cacheTask . '_localFile', $path);
 		$post = array(
 			"file"			=> "@".$path,
@@ -153,7 +153,7 @@ class yzOffice2{
 		);
 		curl_progress_bind($path,$this->task['taskUuid']);//上传进度监听id
 		$result = url_request($this->api['upload'],'POST',$post,false,false,true,3600);
-		del_file($path);
+		IO::tempLocalFileRemove($path);
 		return is_array($result) && $result['data'] ? $result : false;
 	}
 	public function convert($tempFile=false){

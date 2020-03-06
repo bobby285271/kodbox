@@ -8,8 +8,11 @@ kodReady.push(function(){
 			icon:'{{pluginHost}}static/images/icon.png',
 			callback:function(path,ext,name){
 				var vedio = {
-					url:core.path2url(path),
-					name:name,path:path,ext:ext
+					url:core.path2url(path,true),
+					name:name,
+					path:path,
+					ext:ext,
+					autoSubtitle:"{{config.subtitle}}",
 				};
 				var appStatic = "{{pluginHost}}static/";
 				requireAsync(appStatic+'page.js',function(play){
@@ -18,5 +21,4 @@ kodReady.push(function(){
 			}
 		});
 	});
-	window.DplayerSubtitle = parseInt("{{config.subtitle}}");
 });

@@ -21,6 +21,9 @@ define(function(require, exports) {
 				url:vedioInfo.url,
 				type:type
 			},
+			pluginOptions: {
+				flvjs: {},
+			},
 			contextmenu: [
 				{
 					text: 'kodcloud官网',
@@ -28,8 +31,32 @@ define(function(require, exports) {
 				}
 			]
 		};
-		new DPlayer(playerOption);
+		loadSubtitle(playerOption,vedioInfo);
+		
+		var player = new DPlayer(playerOption);
+		var play = function(){player.play();};
+		//移动端;微信,safari等屏蔽了自动播放;首次点击页面触发播放;
+		$target.find('video').attr('autoplay','autoplay').attr('muted','');
+		document.addEventListener("WeixinJSBridgeReady",play,false);  
+		document.addEventListener('YixinJSBridgeReady',play,false);  
+		$(document).one("touchstart mousedown",play);
 	}
+	var loadSubtitle = function(playerOption,vedioInfo){
+		var pathModel = _.get(window,'kodApp.pathAction.pathModel');
+		// console.log(101,subtitle,vedioInfo,pathModel);
+		if(vedioInfo.autoSubtitle != '1' || !pathModel) return;
+		
+		var fileName = vedioInfo.name+'.vtt'
+		var subtitle = pathModel.fileOutBy(vedioInfo.path,fileName);
+		playerOption.subtitle = {
+			url: subtitle,
+			type: 'webvtt',
+			fontSize: '20px',
+			bottom: '10%',
+			color: '#b7daff',
+		};
+	}
+	
 	var createDialog = function(title,ext){
 		var size  = {width:'70%',height:'60%'};
 		if(ext == 'mp3'){
