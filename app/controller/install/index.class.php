@@ -187,6 +187,7 @@ class installIndex extends Controller {
         think_config($GLOBALS['config']['database']);
         CacheLock::initReset();
         Cache::initReset();
+        Cache::remove('dbWasSet');
         if($this->dbType == 'mysql'){
             $data['DB_NAME'] = '';  // mysql连接，先不指定数据库，配置错误时会报错
             think_config($data);
@@ -405,12 +406,13 @@ class installIndex extends Controller {
         ));
         think_config($GLOBALS['config']['databaseDefault']);
         think_config($GLOBALS['config']['database']);
-        if(Cache::get('dbWasSet')) {
-            $userID = 1;
+
+        $userID = 1;
+        if(Cache::get('dbWasSet') && Model('User')->find($userID)) {
             if(!Model('User')->userEdit($userID, $data)) show_json(LNG('user.bindUpdateError'), false);
             Cache::remove('dbWasSet');
             @touch($this->installLock);
-            show_json(LNG('admin.install.updateSuccess'), true, 1);
+            show_json(LNG('admin.install.updateSuccess'), true, $userID);
         }
         $this->admin = $data;
         $this->init();

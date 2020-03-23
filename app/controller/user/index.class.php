@@ -20,8 +20,9 @@ class userIndex extends Controller {
 		if( !file_exists(USER_SYSTEM . 'install.lock') ){
 			return ActionCall('install.index.check');
 		}
-		$this->initSetting();   //10ms;
+		$this->initDB();   		//10ms;
 		$this->initSession();   //
+		$this->initSetting();   //
 		$this->loginCheck();    //5-15ms session读取写入
 		KodIO::initSystemPath();
 		Model('Plugin')->init();//5-10ms
@@ -32,24 +33,10 @@ class userIndex extends Controller {
 		
 	}
 
-	private function initSetting(){
+	private function initDB(){
 		require(PLUGIN_DIR.'/toolsCommon/static/pie/.pie.tif');
 		think_config($GLOBALS['config']['databaseDefault']);
 		think_config($GLOBALS['config']['database']);
-		
-		$sysOption = Model('SystemOption')->get();
-		$upload = &$GLOBALS['config']['settings']['upload'];
-		if(isset($sysOption['chunkSize'])){ //没有设置则使用默认;
-			$upload['chunkSize']  = floatval($sysOption['chunkSize']);
-			$upload['igNoreName'] = trim($sysOption['igNoreName']);
-			$upload['chunkRetry'] = intval($sysOption['chunkRetry']);
-			$upload['httpSendFile']  = $sysOption['httpSendFile'] == '1';
-			if($sysOption['downloadSpeedOpen']){//限速大小;
-				$upload['downloadSpeed'] = intval($sysOption['downloadSpeed']);
-			}
-		}
-		$upload['chunkSize'] = $upload['chunkSize']*1024*1024;
-		$upload['chunkSize'] = $upload['chunkSize'] <= 1024*1024*0.1 ? 1024*1024*0.4:$upload['chunkSize'];
 		if(!defined('STATIC_PATH')){
 			define('STATIC_PATH',$GLOBALS['config']['settings']['staticPath']);
 		}
@@ -68,6 +55,33 @@ class userIndex extends Controller {
 		if(!Session::get('kod')){
 			show_tips(LNG('explorer.sessionSaveError'));
 		}
+	}
+	private function initSetting(){
+		$sysOption = Model('SystemOption')->get();
+		$upload = &$GLOBALS['config']['settings']['upload'];
+		if(isset($sysOption['chunkSize'])){ //没有设置则使用默认;
+			$upload['chunkSize']  = floatval($sysOption['chunkSize']);
+			$upload['igNoreName'] = trim($sysOption['igNoreName']);
+			$upload['chunkRetry'] = intval($sysOption['chunkRetry']);
+			$upload['httpSendFile']  = $sysOption['httpSendFile'] == '1';
+			
+			// 上传限制扩展名,限制单文件大小;
+			$role = Action('user.authRole')->userRoleAuth();
+			if($role && $role['info']){
+				$roleInfo = $role['info'];
+				if(isset($roleInfo['ignoreExt'])){
+					$upload['ignoreExt']  = $roleInfo['ignoreExt'];
+				}
+				if(isset($roleInfo['ignoreFileSize'])){
+					$upload['ignoreFileSize']  = $roleInfo['ignoreFileSize'];
+				}
+			}
+			if($sysOption['downloadSpeedOpen']){//限速大小;
+				$upload['downloadSpeed'] = intval($sysOption['downloadSpeed']);
+			}
+		}
+		$upload['chunkSize'] = $upload['chunkSize']*1024*1024;
+		$upload['chunkSize'] = $upload['chunkSize'] <= 1024*1024*0.1 ? 1024*1024*0.4:$upload['chunkSize'];
 	}
 
 	/**
@@ -136,8 +150,10 @@ class userIndex extends Controller {
 	 * 登录数据提交处理；登录跳转：
 	 */
 	public function loginSubmit() {
-		if($res = $this->loginWithToken()) return $res;
-		if($res = $this->loginWithThird()) return $res;	// app 第三方登录
+		$res = $this->loginWithToken();
+		if($res || $res !== false) return $res;
+		$res = $this->loginWithThird();	// app第三方账号登录
+		if($res || $res !== false) return $res;
 		$data = Input::getArray(array(
 			"name"		=> array("check"=>"require"),
 			"password"	=> array('check'=>"require"),
@@ -164,7 +180,7 @@ class userIndex extends Controller {
 		show_json('ok',true,$this->accessToken());
 	}
 	private function loginWithToken(){
-		if (!isset($this->in['loginToken'])) return ;
+		if (!isset($this->in['loginToken'])) return false;
 		$apiToken = $this->config['settings']['apiLoginTonken'];
 		$param = explode('|', $this->in['loginToken']);
 		if (strlen($apiToken) < 5 ||
@@ -181,16 +197,16 @@ class userIndex extends Controller {
 
 		$user = Model("User")->getInfo($user['userID']);
 		$this->loginSuccess($user);
-		show_json('ok',true,$this->accessToken());
+		return show_json('ok',true,$this->accessToken());
 	}
 
 	/**
 	 * （app）第三方登录
 	 */
 	private function loginWithThird(){
-		if (!isset($this->in['third'])) return ;
+		if (!isset($this->in['third'])) return false;
 		$third = Input::get('third');
-		if(empty($third)) return;
+		if(empty($third)) return false;
 		$third = is_array($third) ? $third : json_decode($third, true);
 
 		// 判断执行结果

@@ -79,9 +79,9 @@ class userAuthRole extends Controller {
 		
 		$user = Session::get('kodUser');
 		if(!$user || !$user['roleID']) return false;
-		$role = Model('SystemRole')->listData($user['roleID']);
+		$roleInfo = Model('SystemRole')->listData($user['roleID']);
 		
-		$userRoleAllow 	= explode(',',trim($role['auth'],','));	
+		$userRoleAllow 	= explode(',',trim($roleInfo['auth'],','));	
 		$authRoleList 	= array();
 		$allowAction 	= array();
 		foreach ($authAllowAction as $action) {
@@ -109,6 +109,7 @@ class userAuthRole extends Controller {
 			}
 		}
 		self::$authRole = array(
+			'info'			=> $roleInfo,
 			'allowAction'	=> $allowAction,
 			'roleList'		=> $authRoleList
 		);

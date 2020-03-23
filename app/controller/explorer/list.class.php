@@ -294,12 +294,13 @@ class explorerList extends Controller{
 				"folderList" 	=> $listTemp ? $listTemp : array(),
 				'fileList'		=> array()
 			);
-		}		
-		if(!isset($data['current']) || !$data['current']){
-			$data['current']  = IO::info($path,false);
 		}
+		
 		$data['thisPath'] = $path;
 		$data['targetSpace'] = $this->targetSpace($data['current']);
+		$data['current']  = IO::info($path,false);
+		$data['current'] = Model('SourceAuth')->authOwnerApply($data['current']);
+						
 		foreach ($data['folderList'] as &$item) {
 			if( isset($item['children']) ){
 				$item['isParent'] = true;

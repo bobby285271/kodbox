@@ -60,7 +60,7 @@ class adminGroup extends Controller{
 		$this->folderDefault($sourceID);
 		
 		$msg = $groupID ? LNG('explorer.success') : LNG('explorer.error');
-		return show_json($msg,!!$groupID);
+		return show_json($msg,!!$groupID,$groupID);
 	}
 
 	/**
@@ -91,7 +91,7 @@ class adminGroup extends Controller{
 		}
 		$res = $this->model->groupEdit($data['groupID'],$data);
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.error');
-		return show_json($msg,!!$res);
+		return show_json($msg,!!$res,$data['groupID']);
 	}
 
 	/**

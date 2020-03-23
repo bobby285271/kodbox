@@ -19,8 +19,12 @@ class explorerFav extends Controller{
 		$result = $this->model->listView();
 		// 管理员首次; 添加物理路径管理;
 		if( $GLOBALS['isRoot'] && count($result) == 0){
-			$this->model->addFav(WEB_ROOT,"wwwroot (admin)",'folder');
-			$result = $this->model->listView();
+			$isAdd = Model('UserOption')->get('initAdminFav') ;
+			if($isAdd != '1'){
+				$this->model->addFav(WEB_ROOT,"wwwroot (admin)",'folder');
+				$result = $this->model->listView();
+				Model('UserOption')->set('initAdminFav','1');
+			}
 		}
 		return $result;
 	}

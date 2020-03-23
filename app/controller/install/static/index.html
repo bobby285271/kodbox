@@ -79,9 +79,12 @@
 	<script src="<?php echo STATIC_PATH;?>app/vender/es5-shim.min.js"></script>
 	<script src="<?php echo STATIC_PATH;?>app/vender/es5-sham.min.js"></script>
     <![endif]-->
-	<script type="text/javascript"> window.API_HOST = './index.php?';</script>
-	<script src="<?php echo STATIC_PATH;?>app/dist/vendor.js"></script>
+	<script type="text/javascript"> 
+		window.API_HOST = "<?php echo APP_HOST.'?';?>";
+		window.STATIC_PATH = "<?php echo STATIC_PATH;?>";
+	</script>
 	<script src="<?php echo STATIC_PATH;?>app/dist/api.js"></script>
+	<script src="<?php echo STATIC_PATH;?>app/dist/vendor.js"></script>
 	<script>requireAsync("<?php echo $installPath;?>static/index.js");</script>
 </body>
 </html>

@@ -9,15 +9,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
-	<meta http-equiv="Cache-Control" content="no-transform">
-	<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+	<meta http-equiv="Cache-Control" content="no-transform" />
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover" />
 	<meta name="renderer" content="webkit">
-	<meta name="format-detection" content="telephone=no"/>
-	<meta name="format-detection" content="email=no"/>
+	<meta name="format-detection" content="telephone=no" />
+	<meta name="format-detection" content="email=no" />
 
-	<meta name="description" itemprop="description" content="<?php echo LNG('common.copyright.desc');?>">
+	<meta name="description" itemprop="description" content="<?php echo LNG('common.copyright.desc');?>" />
 	<meta name="keywords" content="<?php echo LNG('common.copyright.metaKeywords');?>" />
 	<meta name="generator" content="<?php echo LNG('common.copyright.metaName').' '.KOD_VERSION;?>"/>
 	<meta name="author" content="<?php echo LNG('common.copyright.name');?>" />
@@ -25,27 +25,33 @@
 	<title><?php echo LNG('common.copyright.name')." - ".LNG('common.copyright.powerBy');?></title>
 	<?php if(STATIC_DEV){?>
 	<link href="<?php linkHref('style/lib/index.css',1);?>" rel="stylesheet" />
-	<link href="<?php linkHref('style/skin_dev/index.less',1);?>" rel='stylesheet/less' type='text/css'>
+	<link href="<?php linkHref('style/skin_dev/index.less',1);?>" rel='stylesheet/less' type='text/css' />
 	<script>var lessENV = "development";var less={useFileCache:false,env:lessENV};</script>
 	<script src="<?php linkHref('app/vender/less.min.js',1);?>"></script>
 	<?php }else{?>
-	<link href="<?php linkHref('style/lib/main.css');?>" rel="stylesheet">
-	<link href="<?php linkHref('style/dist/main.css');?>" rel='stylesheet'>
+	<link href="<?php linkHref('style/lib/main.css');?>" rel="stylesheet" />
+	<link href="<?php linkHref('style/dist/main.css');?>" rel='stylesheet' />
 	<?php } ?>
 
-	<link rel="manifest" href="./?user/view/manifest">
+	<link rel="manifest" href="./?user/view/manifest" />
 	<meta itemprop="image" content="<?php linkHref('images/icon/icon_512.png');?>" />
-	<link href="<?php linkHref('images/icon/fav.png');?>" rel="Shortcut Icon" type="image/x-icon">
-	<link href="<?php linkHref('images/icon/fav.png');?>" rel="icon" type="image/x-icon">
-	<link rel="apple-touch-icon" href="<?php linkHref('images/icon/icon_512.png');?>">
-	<link rel="mask-icon" href="<?php linkHref('images/icon/icon_512.png');?>" color="#F3F3F3">
+	<link href="<?php linkHref('images/icon/fav.png');?>" rel="Shortcut Icon" type="image/x-icon" />
+	<link href="<?php linkHref('images/icon/fav.png');?>" rel="icon" type="image/x-icon" />
+	<link rel="apple-touch-icon" href="<?php linkHref('images/icon/icon_512.png');?>" />
+	<link rel="mask-icon" href="<?php linkHref('images/icon/icon_512.png');?>" color="#F3F3F3" />
 	
-	<meta name="theme-color" content="#1b6de1">
-	<meta name="apple-mobile-web-app-capable" content="yes">
-	<meta name="apple-mobile-web-app-status-bar-style" content="default">
-	<meta name="apple-mobile-web-app-title" content="<?php echo LNG('common.copyright.metaName');?>">
-	<meta name="msapplication-TileImage" content="<?php linkHref('images/icon/icon_512.png');?>">
-	<meta name="msapplication-TileColor" content="#1b6de1">
+	<meta name="theme-color" content="#1b6de1" />
+	<meta name="apple-touch-fullscreen" content="yes" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+	<meta name="apple-mobile-web-app-title" content="<?php echo LNG('common.copyright.metaName');?>" />
+	<meta name="msapplication-TileImage" content="<?php linkHref('images/icon/icon_512.png');?>" />
+	<meta name="msapplication-TileColor" content="#1b6de1" />
+	
+	<meta name="browsermode" content="application" />
+	<meta name="full-screen" content="yes" />
+	<meta name="x5-page-mode" content="app" />
+	<meta name="x5-fullscreen" content="true" />
 </head>
 
 <body>

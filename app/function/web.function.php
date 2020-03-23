@@ -1042,8 +1042,9 @@ function mime_support($mime){
 function get_file_mime($ext){
 	$mimetypes = array(
 		"323" => "text/h323",
+		"3gp" => "video/3gpp",
 		"acx" => "application/internet-property-stream",
-		"ai" => "application/postscript",
+		"ai"  => "application/postscript",
 		"aif" => "audio/x-aiff",
 		"aifc" => "audio/x-aiff",
 		"aiff" => "audio/x-aiff",
@@ -1137,7 +1138,7 @@ function get_file_mime($ext){
 		"mp2" => "video/mpeg",
 		"mp3" => "audio/mpeg",
 		"mp4" => "video/mp4",
-		"mp4v" => "video/mp4",
+		"mp4v" => "video/x-m4v",
 		"mpa" => "video/mpeg",
 		"mpe" => "video/mpeg",
 		"mpeg" => "video/mpeg",

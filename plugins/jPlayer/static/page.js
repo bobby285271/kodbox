@@ -118,12 +118,15 @@ define(function(require, exports) {
 		player.jPlayer("play");
 		jPlayerBindControl($playerBox);
 
-		var play = function(){player.jPlayer("play");};
+		var isFirstPlay = false;
+		var play = function(){
+			if(isFirstPlay) return;
+			player.jPlayer("play");
+			isFirstPlay = true;
+		};
 		//移动端;微信,safari等屏蔽了自动播放;首次点击页面触发播放;
 		$playerBox.find('audio').attr('autoplay','autoplay').attr('muted','');
-		document.addEventListener("WeixinJSBridgeReady",play,false);  
-		document.addEventListener('YixinJSBridgeReady',play,false);  
-		$(document).one("touchstart mousedown",play);
+		$playerBox.find('.aui-content').one("touchstart mousedown",play);
 		
 		setTimeout(function(){
 			var name = $playerBox.parents('.dialog-simple').find('.aui-title-bar').attr('id');

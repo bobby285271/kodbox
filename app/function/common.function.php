@@ -616,13 +616,21 @@ function array_to_keyvalue($array,$key='',$contentKey=false){
  * @param [type] $id
  * @return void
  */
-function array_tree($array, $id){
+/**
+ * 根据parentid获取家谱树列表
+ * @param [type] $array
+ * @param [type] $id
+ * @param string $idKey		// id名称
+ * @param string $pidKey	// pid名称
+ * @return void
+ */
+function array_tree($array, $id, $idKey = 'id', $pidKey = 'parentid'){
 	$tree = array();
-	while($id != 0){
+	while($id != '0'){
 		foreach ($array as $v) {
-			if($v['id'] == $id){
+			if($v[$idKey] == $id){
 				$tree[] = $v;
-				$id = $v['parentid'];
+				$id = $v[$pidKey];
 				break;
 			}
 		}

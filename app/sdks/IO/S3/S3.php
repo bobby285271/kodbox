@@ -1090,7 +1090,7 @@ class S3 {
 	 * @param type $preview
 	 * @return string
 	 */
-	public static function getObjectUrl($access_key, $secret_key, $bucket, $canonical_uri, $expires = 0, $region = 'us-east-1', $extra_headers = array(), $preview = true) {
+	public static function getObjectUrl($access_key, $secret_key, $bucket, $canonical_uri, $expires = 0, $region = 'us-east-1', $extra_headers = array(), $preview = true,$paramsAdd=array()) {
 		$encoded_uri = '/' . str_replace('%2F', '/', rawurlencode($canonical_uri));
 		$signed_headers = array();
 		foreach ($extra_headers as $key => $value) {
@@ -1116,6 +1116,7 @@ class S3 {
 			'X-Amz-Date'					 => $time_text,
 			'X-Amz-SignedHeaders'			 => $signed_headers_string,
 		);
+		$x_amz_params = array_merge($x_amz_params,$paramsAdd);
 		if ($expires > 0) {
 			$x_amz_params['X-Amz-Expires'] = $expires;
 		}

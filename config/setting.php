@@ -6,6 +6,11 @@
 * @license http://kodcloud.com/tools/license/license.txt
 */
 
+header('Access-Control-Allow-Origin:*');    		// 允许的域名来源;
+header('Access-Control-Allow-Methods:GET'); 		// 允许请求的类型
+header('Access-Control-Allow-Credentials: true'); 	// 设置是否允许发送 cookies
+header('Access-Control-Allow-Headers: Content-Type,Content-Length,Accept-Encoding,X-Requested-with, Origin');
+
 //配置数据,可在setting_user.php中添加变量覆盖,升级后不会被替换
 $config['settings'] = array(
 	'downloadUrlTime'	=> 0,			 //下载地址生效时间，按秒计算，0代表不限制
@@ -15,12 +20,14 @@ $config['settings'] = array(
 	'upload' => array(
 		'chunkSize'			=> 0.5,			 // MB 分片上传大小设定;需要小于php.ini上传限制的大小
 		'threads'			=> 10,			 // 上传并发数;部分低配服务器上传失败则将此设置为1
-		'igNoreName'		=> '',			 // 忽略的文件名,不区分大小写; 逗号隔开,例如: .DS_Store,Thumb.db
+		'ignoreName'		=> '',			 // 忽略的文件名,不区分大小写; 逗号隔开,例如: .DS_Store,Thumb.db
 		'chunkRetry'		=> 5,			 // 分片上传失败,重传次数;针对每个分片;
 		'sendAsBinary'		=> 0,			 // 以二进制方式上传;后端服务器以php://input接收;0则为传统方式上传 $_FILE;
 		'httpSendFile'		=> false,		 //调用webserver下载 http://www.laruence.com/2012/05/02/2613.html; 
 											//https://www.lovelucy.info/x-sendfile-in-nginx.html	
-		'downloadSpeed'		=> 0,			// 下载限速;MB/s*1024*1024; 0代表不限制	
+		'downloadSpeed'		=> 0,			// 下载限速;MB/s*1024*1024; 0代表不限制
+		'ignoreExt'			=> '',          // 限制的扩展名; 扩展名在该说明中则自动不上传;
+		'ignoreFileSize'	=> 0			// 允许单个文件上传最大值,0则不限制; 单位GB;
 	),
 	
 	'staticPath'		=> "./static/",	//静态文件目录,可以配置到cdn;

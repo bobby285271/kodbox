@@ -23,6 +23,7 @@ class explorerIndex extends Controller{
 		}
 		if(count($fileList) == 1){
 			$result = $result[0];
+			$result = Model('SourceAuth')->authOwnerApply($result);
 		}
 		$data = !!$result ? $result : LNG('common.pathNotExists');
 		show_json($data,!!$result);
