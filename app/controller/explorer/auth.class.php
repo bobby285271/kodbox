@@ -59,12 +59,13 @@ class explorerAuth extends Controller {
 		if($theMod !== 'explorer') return;
 
 		$this->targetSpaceCheck();//空间大小检测
+		Action('explorer.listGroup')->pathRootCheck($theAction);
+		
 		//直接检测；定义在actionPathCheck中的方法；参数为path，直接检测
 		$actionParse = $this->actionParse();
 		if(isset($actionParse[$theAction])){
 			return $this->can($this->in['path'],$actionParse[$theAction]);
 		}
-
 		// 多个请求或者包含来源去向的，分别进行权限判别；
 		switch ($theAction) {//小写
 			case 'explorer.index.pathinfo':$this->checkAuthArray('show');break;
@@ -136,6 +137,7 @@ class explorerAuth extends Controller {
 	
 	// 外部获取文件读写权限; Action("explorer.auth")->fileCanRead($path);
 	public function fileCanRead($file){
+		if(request_url_safe($file)) return true;
 		$this->isShowError = false;
 		$result = $this->canView($file) && $this->canRead($file);
 		$this->isShowError = true;
@@ -144,6 +146,13 @@ class explorerAuth extends Controller {
 	public function fileCanWrite($file){
 		$this->isShowError = false;
 		$result = $this->canWrite($file);
+		$this->isShowError = true;
+		return $result;
+	}
+	public function fileCan($file,$action){
+		if(request_url_safe($file)) return true;
+		$this->isShowError = false;
+		$result = $this->can($file,$action);
 		$this->isShowError = true;
 		return $result;
 	}
@@ -175,6 +184,11 @@ class explorerAuth extends Controller {
 		
 		//个人挂载目录；跨空间移动复制根据身份处理；
 		if( $ioType == KodIO::KOD_USER_DRIVER ) return true;
+		if( $ioType == KodIO::KOD_SHARE_LINK){
+			$info = Action('explorer.share')->sharePathInfo($path);
+			if($info) return true;
+			return $this->errorMsg(LNG('explorer.pathNotSupport'),1108);
+		}
 
 		// 如果是获取列表动作，排除只有读取列表权限
 		// 虚拟目录检测;只能查看列表，不能做其他任何操作(新建重命名等)
@@ -202,6 +216,7 @@ class explorerAuth extends Controller {
 		if($GLOBALS['isRoot'] && $this->config["ADMIN_ALLOW_SOURCE"]) return true;
 		$pathInfo 	= IO::infoAuth($parse['pathBase']);
 		$targetType = $pathInfo['targetType'];
+		if(!$pathInfo) return true; //不存在,不判断文档权限;
 		if( $targetType != 'user' && $targetType != 'group' ){
 			return $this->errorMsg(LNG('explorer.noPermissionAction'),1003);
 		}

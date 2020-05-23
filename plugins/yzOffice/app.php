@@ -32,27 +32,18 @@ class yzOfficePlugin extends PluginBase{
 		}
 
 		//获取页面
-		$result = $app->task['steps'][count($app->task['steps']) - 1]['result'];
-		if( $result['errorcode'] || !is_array($result['data']) ){
-			// 直接clearCache会导致死循环
-			$url = this_url();
-			$referer = refer_url();
-			if(stripos($url, $referer) === 0 && $url != $referer) {
-				$app->clearChche();
-				$this->index();exit;
-			}
-			show_tips($result['message']);
+		$step     = count($app->task['steps']) - 1;
+		$infoData = $app->task['steps'][$step]['result'];
+		if( !is_array($infoData['data']) ){
+			$app->clearChche();
+			show_tips($infoData['message']);
 		}
-		// 直接输出
-		header('Location:'.$result['data']['viewUrl']);exit;
-
-		$html = $result['data']['viewUrl'];
-		$name = md5($html).'.'.get_path_ext($result['data']['srcFileName']);
-		$destFileName = $result['data']['destFileName'];
+		$link = $infoData['data'][0];
+		$name = md5($link).'.html.temp';
 		if($sourceID = IO::fileNameExist($this->cachePath, $name)){
 			$content = IO::getContent(KodIO::make($sourceID));
 		}else{
-			$result = url_request($html,'GET');
+			$result = url_request($link,'GET');
 			if($result['code'] == 200){
 				$title = '<title>永中文档转换服务</title>';
 				$content = str_replace($title,'<title>'.$fileName.'</title>',$result['data']);
@@ -62,18 +53,25 @@ class yzOfficePlugin extends PluginBase{
 				show_tips($result);
 			}
 		}
+		if(strstr($content,'location.href = ')){
+			$app->clearChche();
+			show_tips("请求转换异常，请重试！");
+		}
 
 		//替换内容
 		$config = $this->getConfig();
-		$pagePath = get_path_father($html);
-		$fileName = substr($destFileName, 0, -strlen(get_path_ext($destFileName)) - 1);
-		$pageID = './' . $fileName .'.files/';
-		$urlTo = $pagePath . get_path_this($html) . '/'.$fileName .'.files/';
-		if($config['cacheFile']){ //始终使用缓存
-			$urlTo = $this->pluginApi.'getFile&path='.rawurlencode($app->filePath).'&file='.rawurlencode($urlTo);
+		if(!$config['cacheFile']){ 
+			header("Location: ".$html);
+			exit;
 		}
-		$content = str_replace($pageID,$urlTo,$content);
-		$content = str_replace('./http','http',$content);
+		$name  = str_replace(".html",'',get_path_this($link));
+		$urlReplaceFrom   = './'.$name.".files";
+		$urlReplaceTo     = $this->pluginApi.'getFile&path='.rawurlencode($this->in['path']).
+		$urlReplaceTo 	 .= '&file='.rawurlencode($urlReplaceFrom);
+		// show_json(array($result,$urlReplaceFrom,$urlReplaceTo),false);
+		
+		$content = str_replace($urlReplaceFrom,$urlReplaceTo,$content);
+		$content = str_replace('"'.$name.'.files','"'.$urlReplaceTo,$content);
 		$content = str_replace(array('<!DOCTYPE html>','<html>','<head>','</html>'),'',$content);
 		include('php/assign/header.php');
 		echo $content;
@@ -100,8 +98,8 @@ class yzOfficePlugin extends PluginBase{
 		//官网用户demo;
 		//http://www.yozodcs.com/examples.html     2M上传限制;
 		//http://dcs.yozosoft.com/examples.html
-		require_once($this->pluginPath.'php/yzOffice2.class.php');
-		return new yzOffice2($this,$path);
+		require_once($this->pluginPath.'php/yzOffice.class.php');
+		return new yzoffice($this,$path);
 	}
 
 	public function restart(){

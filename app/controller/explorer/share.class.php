@@ -64,7 +64,8 @@ class explorerShare extends Controller{
 		if(!$path){
 			show_json(LNG('common.pathNotExists'),false);
 		}
-		IO::fileOut($path);
+		$isDownload = isset($this->in['download']) && $this->in['download'] == 1;
+		IO::fileOut($path,$isDownload);
 	}
 	
 	/**
@@ -225,8 +226,7 @@ class explorerShare extends Controller{
 	public function fileOut(){
 		$path = $this->in['path'];
 		if(request_url_safe($path)) {
-			header('Location:' . $path);
-			exit;
+			header('Location:' . $path);exit;
 		} 
 		$path = $this->parsePath($path);
 		$isDownload = $this->in['download'] == 1;
@@ -246,12 +246,32 @@ class explorerShare extends Controller{
 	}
 	
 	public function pathList(){
+		$pathInfo = KodIO::parse($this->in['path']);
+		if($pathInfo['type'] == KodIO::KOD_SEARCH){
+			return $this->pathSearch($pathInfo);
+		}
+		
 		$path = $this->parsePath($this->in['path']);
 		$data = IO::listPath($path);
 		$this->dataParseOexe($data['fileList']);
 		$this->dataParse($data,$path);
 		show_json($data);
 	}
+	private function pathSearch($pathInfo){
+		$pathInfo['param'] = trim($pathInfo['param'],'/');
+		$search = ActionCall('explorer.listSearch.parseSearch',$pathInfo['param']);
+		$param = array(
+			'words' 	=> $search['words'],
+			'parentID'	=> $this->share['sourceID'],
+		);
+		$data = Model("Source")->listSearch($param);
+		$this->dataParseOexe($data['fileList']);
+		$this->dataParse($data,$this->in['path']);
+		$data['current'] = false;
+		$data['searchParam'] = $search;
+		show_json($data);
+	}
+	
 	private function dataParseOexe(&$list){
 		$maxSize = 1024*1024*2;
 		$index = 0;
@@ -330,6 +350,7 @@ class explorerShare extends Controller{
 		if($theItem['type'] == 'folder'){
 			$theItem['ext'] = 'folder';
 		}
+		$theItem['targetType'] = 'folder';
 		return $theItem;
 	}
 }

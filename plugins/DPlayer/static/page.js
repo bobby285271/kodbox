@@ -32,17 +32,12 @@ define(function(require, exports) {
 			]
 		};
 		loadSubtitle(playerOption,vedioInfo);
-		
 		var player = new DPlayer(playerOption);
-		var isFirstPlay = false;
-		var play = function(){
-			if(isFirstPlay) return;
-			player.play();
-			isFirstPlay = true;
-		};
-		//移动端;微信,safari等屏蔽了自动播放;首次点击页面触发播放;
+		player.play();
 		$target.find('video').attr('autoplay','autoplay').attr('muted','');
-		$target.find('.dplayer-video-wrap').one("touchstart mousedown",play);
+		
+		//移动端;微信,safari等屏蔽了自动播放;首次点击页面触发播放;
+		// $target.find('.dplayer-video-wrap').one("touchstart mousedown",play);
 	}
 	var loadSubtitle = function(playerOption,vedioInfo){
 		var pathModel = _.get(window,'kodApp.pathAction.pathModel');

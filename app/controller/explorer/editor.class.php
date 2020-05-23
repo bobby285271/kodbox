@@ -14,6 +14,7 @@ class explorerEditor extends Controller{
 	public function fileGet(){
 		$data = Input::getArray(array(
 			'path'		=> array('check'=>'require'),
+			'base64'	=> array('default'=>''),
 			'charset'	=> array('check'=>'require','default'=>''),
 		));
 		$this->urlFileGet($data);
@@ -30,10 +31,9 @@ class explorerEditor extends Controller{
 			function_exists("mb_convert_encoding") ){
 			$content = @mb_convert_encoding($content,'utf-8',$charset);
 		}
-
-		$base64  = false;
-		$content = $base64 ? base64_encode($content):$content;
-		$pathInfo['base64'] 	= $base64;
+		// $data['base64'] = '1';//
+		$content = $data['base64']=='1' ? base64_encode($content):$content;
+		$pathInfo['base64'] 	= $data['base64'];
 		$pathInfo['content'] 	= $content;
 		$pathInfo['charset'] 	= $charset;
 		show_json($pathInfo);
@@ -62,7 +62,7 @@ class explorerEditor extends Controller{
 			'path'			=> '',
 			'pathDisplay'	=> "[" . trim($displayName, '/') . "]",
 			'charset'		=> $charset,
-			'base64'		=> true,// 部分防火墙编辑文件误判问题处理
+			'base64'		=> '1',// 部分防火墙编辑文件误判问题处理
 			'content'		=> base64_encode($fileContents)
 		);
 		show_json($data);
@@ -81,7 +81,7 @@ class explorerEditor extends Controller{
 		
 		//支持二进制文件读写操作（base64方式）
 		$content = $data['content'];
-		if($data['base64'] == 1){
+		if($data['base64'] == '1'){
 			$content = base64_decode($content);
 		}
 

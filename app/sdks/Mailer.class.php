@@ -3,10 +3,8 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 class Mailer {
-
 	function __construct() {
 		$rootPath = dirname(__FILE__);
-
 		require_once $rootPath . '/Mailer/src/Exception.class.php';
 		require_once $rootPath . '/Mailer/src/PHPMailer.class.php';
 		require_once $rootPath . '/Mailer/src/POP3.class.php';
@@ -62,8 +60,6 @@ class Mailer {
 		    }
 		    // // 附件
 		    // $mail->addAttachment('/tmp/image.jpg', 'new.jpg');    // Optional name
-
-		    // Content
 		    $mail->Subject = $data['subject'];
 		    if(!empty($data['html'])){
 		    	$mail->isHTML(true);				// Set email format to HTML
@@ -71,7 +67,7 @@ class Mailer {
 		    }else{
 		    	$mail->AltBody = $data['content'];
 		    }
-
+			// $mail->Body = "test";pr($mail);exit;			
 			if($mail->send()) return array('code' => true);
 			return array('code' => false, 'data' => LNG('User.Regist.sendFail'));
         } catch (Exception $e) {

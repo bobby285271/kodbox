@@ -610,12 +610,7 @@ function array_to_keyvalue($array,$key='',$contentKey=false){
 	}
 	return $result;
 }
-/**
- * 根据parentid获取家谱树列表
- * @param [type] $array
- * @param [type] $id
- * @return void
- */
+
 /**
  * 根据parentid获取家谱树列表
  * @param [type] $array
@@ -628,6 +623,7 @@ function array_tree($array, $id, $idKey = 'id', $pidKey = 'parentid'){
 	$tree = array();
 	while($id != '0'){
 		foreach ($array as $v) {
+			if(!isset($v[$pidKey])) $v[$pidKey] = '0';
 			if($v[$idKey] == $id){
 				$tree[] = $v;
 				$id = $v[$pidKey];
@@ -637,6 +633,28 @@ function array_tree($array, $id, $idKey = 'id', $pidKey = 'parentid'){
 	}
 	return $tree;
 }
+
+/**
+ * 迭代获取子孙树
+ * @param [type] $rows
+ * @param string $pid
+ * @return void
+ */
+function array_sub_tree($rows, $pid = 'parentid') {
+	$rows = array_column ( $rows, null, 'id' );
+	foreach ( $rows as $key => $val ) {
+		if ( $val[$pid] ) {
+			if ( isset ( $rows[$val[$pid]] )) {
+				$rows[$val[$pid]]['children'][] = &$rows[$key];
+			}
+		}
+	}
+	foreach ( $rows as $key => $val ) {
+		if ( $val[$pid] ) unset ( $rows[$key] );
+	}
+	return $rows;
+}
+
 /**
  * 将数组的元素的某个key作为key生成新的数组;值为数组形式；
  * [{"id":34,"type":1},{"id":78,"type":2},{"id":45,"type":1}]

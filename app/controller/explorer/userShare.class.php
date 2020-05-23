@@ -37,7 +37,10 @@ class explorerUserShare extends Controller{
 		$sourceShare = array_to_keyvalue($list['list'],'sourceID');
 		if(!$sourceArray) return;
 		
-		$where = array('sourceID' => array('in',$sourceArray));
+		$where = array(
+			'sourceID' => array('in',$sourceArray),
+			'isDelete' => 0,
+		);
 		$listSource  = Model('Source')->listSource($where);
 		foreach ($listSource as $key => &$keyList) {
 			if($key != 'folderList' && $key != 'fileList' ) continue;
@@ -45,7 +48,6 @@ class explorerUserShare extends Controller{
 				$source['shareInfo'] = $sourceShare[$source['sourceID']];
 			}
 		}
-		$listSource['pageInfo'] = $list['pageInfo'];//分页信息；
 		return $listSource;
 	}
 	
@@ -55,7 +57,10 @@ class explorerUserShare extends Controller{
 		$sourceShare = array_to_keyvalue($list['list'],'sourceID');
 		if(!$sourceArray) return;
 		
-		$where = array('sourceID' => array('in',$sourceArray));
+		$where = array(
+			'sourceID' => array('in',$sourceArray),
+			'isDelete' => 0,
+		);
 		$listSource  = Model('Source')->listSource($where);//权限检测
 		foreach ($listSource as $key => &$keyList) {
 			if($key != 'folderList' && $key != 'fileList' ) continue;
@@ -64,8 +69,6 @@ class explorerUserShare extends Controller{
 				$source = $this->_shareItemeParse($source,$shareInfo);
 			}
 		}
-		$listSource['pageInfo'] = $list['pageInfo'];//分页信息；
-		// pr($listSource,$sourceShare,$list);exit;
 		return $listSource;
 	}
 	
@@ -121,12 +124,14 @@ class explorerUserShare extends Controller{
 	 * 处理source到分享列表
 	 * 去除无关字段；处理parentLevel，pathDisplay
 	 */
-	private function _shareItemeParse($source,$share){
+	public function _shareItemeParse($source,$share){
+		$user = Model('User')->getInfoSimpleOuter($share['userID']);
 		$source['auth']			= Model("SourceAuth")->authMake($share['authList']);//覆盖原来文档权限;每次进行计算
-		$source['shareUser']	= Model('User')->getInfoSimpleOuter($share['userID']);
+		$source['shareUser']	= $user;
 		$source['path'] 		= KodIO::makeShare($share['shareID'],$source['sourceID']);
 		$source['shareCreateTime'] 	= $share['createTime'];
 		$source['shareModifyTime'] 	= $share['modifyTime'];
+		$source['shareID'] = $share['shareID'];
 		
 		$parentLevel = explode(',',trim($source['parentLevel'],','));
 		$pathDisplay = explode('/',trim($source['pathDisplay'],'/'));
@@ -137,8 +142,16 @@ class explorerUserShare extends Controller{
 		$pathDisplay = array_slice($pathDisplay,$index-1);
 		$pathDisplay[0] = _get($share,'sourceInfo.name');
 
+		
+		// 分享者名字;
+		$displayUser = $user['nickName'] ? $user['nickName']:$user['name'];
+		$displayUser = '['.$displayUser.']'.LNG('common.share').'-';
+		if($share['userID'] == USER_ID){
+			$displayUser = '['.LNG('explorer.toolbar.myShare').']-';
+		}
+		
 		$source['parentLevel'] = implode(',',$parentLevel);
-		$source['pathDisplay'] = '/'.implode('/',$pathDisplay);
+		$source['pathDisplay'] = $displayUser.implode('/',$pathDisplay);
 		if($index == false){
 			$source['parentLevel'] = $share['sourceID'];
 		}

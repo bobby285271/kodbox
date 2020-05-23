@@ -416,7 +416,14 @@ class explorerIndex extends Controller{
 			show_json(LNG('explorer.noPermissionAction'),false);
 		}
 		if(isset($this->in['type']) && $this->in['type'] == 'image'){
-			return IO::fileOutImage($path,$this->in['width']);
+			$info = IO::info($path);
+			$imageThumb = array('jpg','png','jpeg','bmp');
+			if ($info['size'] >= 1024*50 &&
+				function_exists('imagecolorallocate') &&
+				in_array($info['ext'],$imageThumb) 
+			){
+				return IO::fileOutImage($path,$this->in['width']);
+			}
 		}
 		if($isDownload) Hook::trigger('explorer.fileDownload', $path);
 		$this->updateLastOpen($path);

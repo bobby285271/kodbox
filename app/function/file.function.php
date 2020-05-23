@@ -459,15 +459,15 @@ function del_dir($dir){
 		if ($file =='.' || $file =='..') continue;
 		$fullpath = $dir . '/' . $file;
 		if (!is_dir($fullpath)) {
-			if (!unlink($fullpath)) { // 删除不了，尝试修改文件权限
-				chmod($fullpath, 0777);
-				if (!unlink($fullpath)) {
+			if (!@unlink($fullpath)) { // 删除不了，尝试修改文件权限
+				@chmod($fullpath, 0777);
+				if (!@unlink($fullpath)) {
 					return false;
 				}
 			}
 		} else {
 			if (!del_dir($fullpath)) {
-				chmod($fullpath, 0777);
+				@chmod($fullpath, 0777);
 				if (!del_dir($fullpath)) return false;
 			}
 		}

@@ -65,7 +65,6 @@ class userAuthRole extends Controller {
 		$userRole = $this->userRoleAuth();
 		$allowAction = $userRole['allowAction'];
 		// pr($allowAction[$theAction],$theAction,$user,$userRole);exit;
-		
 		if(!$allowAction[$theAction]){ //不存在该方法或
 			show_json(LNG('explorer.noPermissionAction'),false);
 		}

@@ -26,8 +26,8 @@ class adminAutoRun extends Controller {
 
     public function log($data){
         if(isset($data['code']) && !$data['code']) return false;
-        if(empty($data['data']) || !is_array($data['data'])){
-            $data['data'] = array('data' => $data['data']);
+        if(!isset($data['data']) || !is_array($data)){
+            $data = array('data' => $data);
         }
         $info = isset($data['info']) ? $data['info'] : null;
         ActionCall('admin.log.log',$data['data'], $info);

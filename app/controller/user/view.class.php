@@ -18,6 +18,7 @@ class userView extends Controller{
 				'ENV_DEV'		=> !!STATIC_DEV,
 				'staticPath'	=> STATIC_PATH,
 				'version'		=> KOD_VERSION,
+				'build'			=> KOD_VERSION_BUILD,
 				'channel'		=> INSTALL_CHANNEL,
 			),
 			"user"	=> array(

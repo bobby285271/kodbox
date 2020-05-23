@@ -5,32 +5,41 @@
 * @copyright warlee 2014.(Shanghai)Co.,Ltd
 * @license http://kodcloud.com/tools/license/license.txt
 */
-// 文档分享预览
-// http://yozodoc.com/
-class yzOffice{
-	public $cachePath = 'yzOffice/';
+//官网用户demo
+//http://www.yozodcs.com/examples.html
+class yzoffice{
 	public $plugin;
 	public $filePath;
 	public $task;
 	public $taskFile;
-	public function __construct($plugin,$filePath){
+	public $api;
+
+	public $cachePath;	// 缓存文件目录
+	public $cacheTask;	// 任务信息缓存名称
+	public function __construct($plugin,$filePath,$oldVersion=true){
 		$this->plugin = $plugin;
 		$this->filePath = $filePath;
-		if($filePath === -1) return;
-		if(!$filePath || !file_exists($filePath)){
-			show_json('path '.LNG('explorer.error'),false);
-		}
 
-		$config = $plugin->getConfig();
-		$mode = $config['preview'];
-		$this->cachePath = TEMP_PATH.'plugin/'.$this->cachePath.hash_path($this->filePath).$mode.'/';
-		$this->taskFile  = $this->cachePath.'info.json';
-		mk_dir($this->cachePath);
-		if(file_exists($this->taskFile)){
-			$task_has = json_decode(file_get_contents($this->taskFile),true);
-			$this->task = is_array($task_has)?$task_has:false;
+		$this->api = array(
+			'upload'	=> "http://dcs.yozosoft.com/testUpload",
+			'convert'	=> "http://dcs.yozosoft.com/convert",
+		);
+
+		// $config = $plugin->getConfig();
+		// $mode = $config['preview'];
+		$this->cachePath = $this->plugin->cachePath;
+		$this->cacheTask = md5($this->cachePath . $this->filePath);
+
+		// 任务信息，如有缓存直接读取；否则读任务文件内容，存入缓存
+		$this->taskFile = $this->cachePath.'info.json';
+		if($this->task = Cache::get($this->cacheTask)) return;
+		if($info = IO::infoFull($this->taskFile)){
+			$this->taskFile = $info['path'];
+			$taskHas = json_decode(IO::getContent($this->taskFile),true);
+			$this->task = $taskHas;
+			return Cache::set($this->cacheTask, $taskHas);
 		}
-		//show_json($this->upload(),false);
+		return $this->task = false;
 	}
 	public function runTask(){
 		$task = array(
@@ -40,7 +49,7 @@ class yzOffice{
 			'hideData'		=> array(),
 			'steps'	=> array(
 				array('name'=>'upload','process'=>'uploadProcess','status'=>0,'result'=>''),
-				// array('name'=>'convert','process'=>'convert','status'=>0,'result'=>''),
+				array('name'=>'convert','process'=>'convert','status'=>0,'result'=>''),
 			)
 		);
 		if(is_array($this->task)){
@@ -59,14 +68,11 @@ class yzOffice{
 			$this->saveData();
 			$function = $item['name'];
 			$result = $this->$function();
-			if(is_array($result['data'])){
+			if(isset($result['data'])){
 				$item['result'] = $result['data'];
 				$item['status'] = 2;
 				$task['currentStep'] += 1;
 
-				if( $item['name'] == $item['process'] && !$result['data']['success']){//转换完成
-					$item['status'] = 0;//自我检测步骤没完成
-				}
 				//最后一步完成
 				if( $item['status'] == 2 &&  $task['currentStep'] > count($task['steps'])-1 ){
 					$task['success'] = 1;
@@ -89,7 +95,6 @@ class yzOffice{
 			if($function){
 				$item['result'] = $this->$function();
 				if($item['name'] == 'upload' && !$item['result']){
-					//del_file($taskFile);//下载终止
 					show_json($item['result'],false);
 				}
 				$this->saveData();
@@ -99,62 +104,90 @@ class yzOffice{
 		show_json($task);
 	}
 	public function saveData(){
-		$data = json_encode_force($this->task);
-		file_put_contents($this->taskFile,$data);
+		Cache::set($this->cacheTask, $this->task);
+		if($this->taskSuccess($this->task)){
+			$data = json_encode_force($this->task);
+			return $this->plugin->pluginCacheFileSet($this->taskFile, $data);
+		}
+	}
+	// 是否转换成功
+	public function taskSuccess($taskHas){
+		if(!is_array($taskHas)) return false;
+		$lastStep = end($taskHas['steps']);
+		return $lastStep['status'] == 2 ? $taskHas : false;
 	}
 
 	private function convertMode(){
 		$config = $this->plugin->getConfig();
-		$ext  = get_path_ext($this->filePath);
+		$ext = get_path_ext($this->plugin->fileInfo['name']);
 		$mode = $config['preview'];
-		if(in_array($ext,array("xls","xlsb","xlsx","xlt","xlsm","csv"))){
+		if(in_array($ext,array("xls","xlsb","xlsx","xlt","xlsm","csv",'ppt','pptx'))){
 			$mode = '1';//excle不支持高清模式，自动切换
 		}
 		return $mode;
 	}
+
 	//非高清预览【返回上传后直接转换过的文件】
 	public function upload(){
-		$api = "http://yozodoc.com/upload";
+		ignore_timeout();
+		// 上传文件至cad服务器，先下载至本地，地址入缓存（进度和重启需要）
+		// $path = IO::tempLocalFile($this->filePath);
+		$path = $this->plugin->pluginLocalFile($this->filePath);
+		Cache::set($this->cacheTask . '_localFile', $path);
 		$post = array(
-			"file"			=> "@".$this->filePath,
+			"file"			=> "@".$path,
 			"convertType"	=> $this->convertMode(),
-			"isShowTitle"	=> "0"
 		);
-		curl_progress_bind($this->filePath,$this->task['taskUuid']);//上传进度监听id
-		$result = url_request($api,'POST',$post,false,false,true,3600);
+		curl_progress_bind($path,$this->task['taskUuid']);//上传进度监听id
+		$result = url_request($this->api['upload'],'POST',$post,false,false,true,3600);
+		// IO::tempLocalFileRemove($path);
+		return is_array($result) && $result['data'] ? $result : false;
+	}
+	public function convert($tempFile=false){
+		$headers = array("Content-Type: application/x-www-form-urlencoded; charset=UTF-8");
+		$tempFile = $tempFile?$tempFile:$this->task['steps'][0]['result']['data'];
+		$postArr = array(
+			"inputDir"		=> $tempFile,
+			"sourceFolder" 	=> rtrim(get_path_father($tempFile),'/'),
+			"convertType"	=> $this->convertMode(),
+			"isAsync"		=> 1,
+			"isDownload"	=> 0,
+			"isSignature"	=> 0,
+		);
+		$post = http_build_query($postArr);//post默认用array发送;content-type为x-www-form-urlencoded时用key=1&key=2的形式
+		$result = url_request($this->api['convert'],'POST',$post,$headers,false,true,3600);
 		if(is_array($result) && is_array($result['data'])){
 			return $result;
 		}
 		return false;
 	}
-	public function convert(){
-		del_dir($this->cachePath);
-	}
+
 	public function clearChche(){
-		del_dir($this->cachePath);
+		IO::remove($this->cachePath, false);
+		Cache::remove($this->cacheTask);
+		Cache::remove($this->cacheTask . '_localFile');
+		// show_json('success');
 	}
 
 	public function uploadProcess(){
-		return curl_progress_get($this->filePath,$this->task['taskUuid']);
+		$localFile = Cache::get($this->cacheTask . '_localFile');
+		return curl_progress_get($localFile,$this->task['taskUuid']);
 	}
 	public function getFile($file){
 		ignore_timeout();
 		$ext = unzip_filter_ext(get_path_ext($file));
 		$cacheFile = $this->cachePath.md5($file.'file').'.'.$ext;
-		if(file_exists($cacheFile)){
-			IO::fileOut($cacheFile,false);
-			return;
+		if($info = IO::infoFull($cacheFile)){
+			return IO::fileOut($info['path']);
 		}
-		$result = url_request($file,'GET');
+		$step     = count($this->task['steps']) - 1;
+		$infoData = $this->task['steps'][$step]['result'];
+		$link = $infoData['data'][0];
+		$linkFile = get_path_father($link) . str_replace('./','',$file);
+		$result = url_request($linkFile,'GET',false);
 		if($result['code'] == 200){
-			if($ext == 'svg'){
-				$result['data'] = str_replace('永中DCS','',$result['data']);
-				$from = '/clip-path="url\(#clipPath\d+\)" width="18\d+" xlink:href="/';
-				$result['data'] = preg_replace($from,'sr="',$result['data']);
-			}
-			file_put_contents($cacheFile, $result['data']);
-			IO::fileOut($cacheFile,false);
+			$cacheFile = $this->plugin->pluginCacheFileSet($cacheFile, $result['data']);
+			IO::fileOut($cacheFile);
 		}
 	}
 }
-

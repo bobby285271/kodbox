@@ -117,17 +117,10 @@ define(function(require, exports) {
 		player.jPlayer("setMedia",media);
 		player.jPlayer("play");
 		jPlayerBindControl($playerBox);
-
-		var isFirstPlay = false;
-		var play = function(){
-			if(isFirstPlay) return;
-			player.jPlayer("play");
-			isFirstPlay = true;
-		};
-		//移动端;微信,safari等屏蔽了自动播放;首次点击页面触发播放;
 		$playerBox.find('audio').attr('autoplay','autoplay').attr('muted','');
-		$playerBox.find('.aui-content').one("touchstart mousedown",play);
-		
+
+		//移动端;微信,safari等屏蔽了自动播放;首次点击页面触发播放;
+		//$playerBox.find('.aui-content').one("touchstart mousedown",play);
 		setTimeout(function(){
 			var name = $playerBox.parents('.dialog-simple').find('.aui-title-bar').attr('id');
 			var dialog = $.dialog.list[name];

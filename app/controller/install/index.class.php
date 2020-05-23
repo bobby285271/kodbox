@@ -10,6 +10,7 @@ class installIndex extends Controller {
     public $admin = array();
     public $installLock; 
     public $dbType;
+    public $dbWasSet = 'dbWasSet';
 	public function __construct() {
 		parent::__construct();
 		$this->checkAuth();
@@ -72,14 +73,14 @@ class installIndex extends Controller {
     }
     // 获取数据库默认配置信息
     public function dbDefault($return=false){
-        Cache::remove('dbWasSet');
+        Cache::remove($this->dbWasSet);
         $data = array();
         // 1.获取文件数据
         if(!$dbConfig = $this->config['database']) return $data;
         if(!$dbConfig['DB_TYPE']) return $data;
         if($return) return $dbConfig;
 
-        Cache::set('dbWasSet', 1);
+        Cache::set($this->dbWasSet, 1);
         // 2.解析为form表单数据
         $database = array();
         unset($dbConfig['DB_SQL_LOG'],$dbConfig['DB_FIELDS_CACHE'],$dbConfig['DB_SQL_BUILD_CACHE']);
@@ -172,7 +173,7 @@ class installIndex extends Controller {
      * 1. 数据库配置
      */
     private function saveDb(){
-        if(Cache::get('dbWasSet')) show_json(LNG('explorer.success'));
+        if(Cache::get($this->dbWasSet)) show_json(LNG('explorer.success'));
         // 1.1 获取db配置信息
         $data = $this->dbConfig();
         $dbName = $data['DB_NAME'];
@@ -181,13 +182,13 @@ class installIndex extends Controller {
         // 1.2 连接数据库
         // 如果用include引入配置文件，$config的值会是上次请求的（？），所以直接用$data赋值
         $GLOBALS['config']['database'] = $data;
-        $GLOBALS['config']['cache']['sessionType'] = $cacheType;
-        $GLOBALS['config']['cache']['cacheType'] = $cacheType;
+        // $GLOBALS['config']['cache']['sessionType'] = $cacheType;
+        // $GLOBALS['config']['cache']['cacheType'] = $cacheType;
         think_config($GLOBALS['config']['databaseDefault']);
         think_config($GLOBALS['config']['database']);
         CacheLock::initReset();
         Cache::initReset();
-        Cache::remove('dbWasSet');
+        Cache::remove($this->dbWasSet);
         if($this->dbType == 'mysql'){
             $data['DB_NAME'] = '';  // mysql连接，先不指定数据库，配置错误时会报错
             think_config($data);
@@ -199,7 +200,7 @@ class installIndex extends Controller {
         // 判断所需缓存配置是否有效——redis、memcached
         if(in_array($cacheType, array('redis', 'memcached'))){
             if(!extension_loaded($cacheType)){
-                show_json("[{$cacheType}]" . LNG('common.env.invalidExt'), false);
+                show_json(sprintf(LNG('common.env.invalidExt'), "[{$cacheType}]"), false);
             }
             $type = ucfirst($cacheType);
             $handle = new $type();
@@ -211,9 +212,9 @@ class installIndex extends Controller {
                 }else{
                     $conn = $handle->addServer($host, $port);
                 }
-                if(!$conn) show_json(LNG('admin.install.cacheError'), false);
+                if(!$conn) show_json(sprintf(LNG('admin.install.cacheError'),"[{$cacheType}]"), false);
             }catch(Exception $e){
-                show_json(LNG('admin.install.cacheConnectError'), false);
+                show_json(sprintf(LNG('admin.install.cacheConnectError'),"[{$cacheType}]"), false);
             }
         }
 
@@ -221,9 +222,9 @@ class installIndex extends Controller {
         if($this->dbType == 'mysql'){
             if(!$dbexist){
                 // host=localhost时，root空密码默认没有权限，会创建失败
-                $db->execute("create database {$dbName}");
+                $db->execute("create database `{$dbName}`");
             }
-            $db->execute("use {$dbName}");
+            $db->execute("use `{$dbName}`");
             $tableCnt = $db->execute("show tables from `{$dbName}`");
             if(!empty($tableCnt)){
                 if(empty($this->in['del_table'])){
@@ -361,7 +362,7 @@ class installIndex extends Controller {
             (isset($data['db_dsn']) && stripos($data['db_dsn'], 'sqlite') === 0)) {
                 del_file($data['db_name']);
             }
-            show_json(LNG('admin.install.dbTypeError'), false);
+            show_json(sprintf(LNG('admin.install.dbTypeError'),$dbType), false);
         }
         if($init['db_type'] != 'pdo') $init['db_type'] = $dbType;
 
@@ -408,9 +409,9 @@ class installIndex extends Controller {
         think_config($GLOBALS['config']['database']);
 
         $userID = 1;
-        if(Cache::get('dbWasSet') && Model('User')->find($userID)) {
+        if(Cache::get($this->dbWasSet) && Model('User')->find($userID)) {
             if(!Model('User')->userEdit($userID, $data)) show_json(LNG('user.bindUpdateError'), false);
-            Cache::remove('dbWasSet');
+            Cache::remove($this->dbWasSet);
             @touch($this->installLock);
             show_json(LNG('admin.install.updateSuccess'), true, $userID);
         }

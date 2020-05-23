@@ -1066,7 +1066,7 @@ class S3 {
 	 *
 	 * @return string
 	 */
-	public static function getAuthenticatedURL($bucket, $uri, $lifetime, $hostBucket = false, $https = false, $preview = false) {
+	public static function getAuthenticatedURLX($bucket, $uri, $lifetime, $hostBucket = false, $https = false, $preview = false) {
 		$expires = self::__getTime() + $lifetime;
 		$uri = str_replace(array('%2F', '%2B'), array('/', '+'), rawurlencode($uri));
 		if ($preview) {
@@ -1076,6 +1076,32 @@ class S3 {
 		return sprintf(($https ? 'https' : 'http') . '://%s/%s?AWSAccessKeyId=%s&Expires=%u&Signature=%s',
 			// $hostBucket ? $bucket : $bucket.'.s3.amazonaws.com', $uri, self::$__accessKey, $expires,
 			$hostBucket ? $bucket : self::$endpoint . '/' . $bucket, $uri, self::$__accessKey, $expires, urlencode(self::__getHash("GET\n\n\n{$expires}\n/{$bucket}/{$uri}")));
+	}
+
+	/**
+	 * Get a query string authenticated URL.
+	 * https://oos-cn.ctyunapi.cn/docs/oos/S3%E5%BC%80%E5%8F%91%E8%80%85%E6%96%87%E6%A1%A3-v6.pdf
+	 * @param string $bucket     Bucket name
+	 * @param string $uri        Object URI
+	 * @param int    $lifetime   Lifetime in seconds
+	 * @param bool   $hostBucket Use the bucket name as the hostname
+	 * @param bool   $https      Use HTTPS ($hostBucket should be false for SSL verification)
+	 *
+	 * @return string
+	 */
+	public function getAuthenticatedURL($bucket, $uri, $lifetime, $hostBucket = false, $https = false, $subResource = array()){
+		$expires = self::__getTime() + $lifetime;
+		$uri = str_replace(array('%2F', '%2B'), array('/', '+'), rawurlencode($uri));
+		$ext = http_build_query($subResource);
+		$url = sprintf(
+			($https ? 'https' : 'http') . '://%s/%sAWSAccessKeyId=%s&Expires=%u&Signature=%s', 
+			$hostBucket ? $bucket : self::$endpoint . '/' . $bucket, 
+			$uri . '?' . $ext . ($ext ? '&' : ''),
+			self::$__accessKey, 
+			$expires, 
+			urlencode(self::__getHash("GET\n\n\n{$expires}\n/{$bucket}/{$uri}".($ext ? '?' . urldecode($ext) : '')))
+		);
+		return $url;
 	}
 
 	/**
@@ -1090,7 +1116,7 @@ class S3 {
 	 * @param type $preview
 	 * @return string
 	 */
-	public static function getObjectUrl($access_key, $secret_key, $bucket, $canonical_uri, $expires = 0, $region = 'us-east-1', $extra_headers = array(), $preview = true,$paramsAdd=array()) {
+	public static function getObjectUrl($access_key, $secret_key, $bucket, $canonical_uri, $expires = 0, $region = 'us-east-1', $extra_headers = array(), $preview = true, $paramsAdd=array()) {
 		$encoded_uri = '/' . str_replace('%2F', '/', rawurlencode($canonical_uri));
 		$signed_headers = array();
 		foreach ($extra_headers as $key => $value) {
@@ -1226,6 +1252,8 @@ class S3 {
 	 * @return string
 	 */
 	private static function __getMIMEType(&$file) {
+		return get_file_mime(get_path_ext($file));
+
 		static $exts = array(
 			'jpg'	 => 'image/jpeg', 'jpeg'	 => 'image/jpeg', 'gif'	 => 'image/gif',
 			'png'	 => 'image/png', 'ico'	 => 'image/x-icon', 'pdf'	 => 'application/pdf',
@@ -1766,6 +1794,7 @@ final class S3Request {
 		// Parse body into XML
 		if ($this->response->error === false && isset($this->response->headers['type']) &&
 			$this->response->headers['type'] == 'application/xml' && isset($this->response->body)) {
+			if(stripos($this->response->body, '<?xml')) $this->response->body = stristr($this->response->body,'<?xml');
 			$this->response->body = simplexml_load_string($this->response->body);
 
 			// Grab S3 errors

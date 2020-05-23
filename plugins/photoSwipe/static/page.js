@@ -44,11 +44,14 @@ define(function(require, exports) {
 			bgOpacity:0.8,
 			maxSpreadZoom:5,
 			closeOnScroll:false,
-			shareEl: true,
-			shareButtons: [
-				{id:'open', label:"查看原图", url:'{{raw_image_url}}', download:false},
-				{id:'download', label:LNG['common.download'], url:'{{raw_image_url}}&download=1', download:true}
-			],
+			
+			shareEl: false,
+			// shareEl: true,
+			// shareButtons: [
+			// 	{id:'open', label:"查看原图", url:'{{raw_image_url}}', download:false},
+			// 	{id:'download', label:LNG['common.download'], url:'{{raw_image_url}}&download=1', download:true}
+			// ],
+			
 			getImageURLForShare: function( shareButtonData ) {
 				return gallery.currItem.trueImage || '';
 			},

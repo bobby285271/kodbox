@@ -16,6 +16,7 @@ $config['settings'] = array(
 	'downloadUrlTime'	=> 0,			 //下载地址生效时间，按秒计算，0代表不限制
 	'apiLoginTonken'	=> '',			 //设定则认为开启服务端api通信登录，同时作为加密密匙
 	'paramRewrite'		=> false,		 //开启url 去除? 直接跟参数
+	'ioDisabled'		=> 'moss',		 //不显示的io类型，多个以','分隔
 	
 	'upload' => array(
 		'chunkSize'			=> 0.5,			 // MB 分片上传大小设定;需要小于php.ini上传限制的大小
@@ -143,7 +144,6 @@ $config['settingSystemDefault'] = array(
 	'newUserApp'		=> "trello,一起写office,微信,365日历,石墨文档,ProcessOn,计算器,icloud,OfficeConverter",
 	'newUserFolder'		=> "我的文档,我的图片,我的音乐,其他",
 	'newGroupFolder'	=> "共享资源,文档,其他",	// 新建分组默认建立文件夹
-	'desktopFolder'		=> '桌面',					// 桌面文件夹别名
 	'groupRootName'		=> '企业网盘',				// 企业组织架构根节点
 	
 	'versionType'		=> "A",			// 版本
@@ -231,10 +231,12 @@ $config['documentType'] = array(
 		"name"		=> '压缩包',
 		"ext"		=> "zip,gz,rar,iso,tar",
 	),
+	
 	"others" => array(
 		"name"		=> '其他',
 		"ext"		=> "",
 	),
+	// "psd" => array("name" => '设计稿',"ext"=> "psd,ai"),
 );
 
 // 多选项总配置	
@@ -263,29 +265,6 @@ $config['settingAll'] = array(
 		"tr"	=>	array("Türkçe","土耳其语","Turkish"),
 		"uk"	=>	array("Українська","乌克兰语","Ukrainian"),
 		"vi"	=>	array("Tiếng Việt","越南语","Vietnamese"),
-				
-		//"bg"	=>	array("Български","保加利亚语","Bulgarian"),
-		// "ca"	=>	array("Català","加泰罗尼亚语","Catalan"),
-		// "cs"	=>	array("Čeština","捷克语","Czech"),
-		// "da"	=>	array("Dansk","丹麦语","Danish"),//
-		// "el"	=>	array("Ελληνικά","希腊语","Greek"),
-		// "et"	=>	array("Eesti","爱沙尼亚语","Estonian"),
-		// "fi"	=>	array("suomen","芬兰语","Finnish"),
-		// "fa"	=>	array("فارسی","波斯语","Persian"),
-		// "gl"	=>	array("Galego","加利西亚语","Galician"),
-		// "hr"	=>	array("Hrvatski","克罗地亚语","Croatian"),
-		// "hu"	=>	array("Magyar","匈牙利语","Hungarian"),
-		// "lt"	=>	array("Lietuvių","立陶宛语","Lithuanian"),
-		// "mn"	=>	array("mn","蒙古","Mongolia"),
-		// "nl"	=>	array("Nederlands","荷兰语","Dutch"),
-		// "no"	=>	array("Norsk","挪威语","Norwegian"),
-		// "ro"	=>	array("Limba Română","罗马尼亚语","Romanian"),
-		// "si"	=>	array("සිංහල","僧伽罗语","Sinhala"),
-		// "sk"	=>	array("Slovenčina","捷克斯洛伐克语","Czechoslovakia"),
-		// "sl"	=>	array("Slovenski","斯洛文尼亚语'","Slovenian"),
-		// "sr"	=>	array("Српски","塞尔维亚语","Serbian"),
-		// "sv"	=>	array("Svenska","瑞典语","Swedish"),
-		// "uz"	=>	array("O'zbekiston","乌兹别克语","Uzbek-cyrillic"),
 	),//de el fi fr nl pt	d/m/Y H:i
 	
 	'theme'		=> "mac,win10,win7,metro,metro_green,metro_purple,metro_pink,metro_orange,alpha_image,alpha_image_sun,alpha_image_sky,diy",

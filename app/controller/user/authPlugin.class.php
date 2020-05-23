@@ -57,7 +57,7 @@ class userAuthPlugin extends Controller{
 		if( is_string($auth) ){
 			$auth = @json_decode($auth, true);
 		}
-		// pr($auth,$user);
+		// pr($auth,Session::get('kodUser'));
 		if ($auth['all'] == '1') return true; // 全部则无需登录也可以访问;
 		$user = Session::get('kodUser');
 		if (!$auth || !$user || !is_array($auth)) return false;
