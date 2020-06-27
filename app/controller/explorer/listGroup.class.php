@@ -52,7 +52,7 @@ class explorerListGroup extends Controller{
 			}
 			
 			$groupList[] = array(
-				'name'      		=> $val['name'],
+				'name'      		=> '['.$val['name'].']',
 				'path' 				=> $groupSource[$groupID],
 				'isParent'			=> true,
 				"sourceRoot"		=> 'groupPath',	//为部门根目录
@@ -149,6 +149,10 @@ class explorerListGroup extends Controller{
 			}
 			$path .= '['.$item['name'].']';
 			$item['pathDisplay'] = str_replace('//','/',$path);
+			if($item['auth']){
+				$item['isWriteable'] = AuthModel::authCheckEdit($item['auth']['authValue']);
+				$item['isReadable']  = AuthModel::authCheckView($item['auth']['authValue']);
+			}
 		}
 		// pr($list,$needSelectID,$pathNameArray);exit;
 	}

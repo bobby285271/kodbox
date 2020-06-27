@@ -43,9 +43,7 @@ class userAuthPlugin extends Controller{
 		$config = $plugin['config'];
 		if (isset($config['pluginAuthOpen']) && $config['pluginAuthOpen']) return true;
 		if (Action("user.authRole")->isRoot())   return true; //系统管理员
-		
-		$allow = $this->checkAuthValue($config['pluginAuth']);
-		return $allow;
+		return $this->checkAuthValue($config['pluginAuth']);
 	}
 
 	/**

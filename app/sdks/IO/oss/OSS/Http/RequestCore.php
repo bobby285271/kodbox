@@ -657,14 +657,17 @@ class RequestCore
         curl_setopt($curl_handle, CURLOPT_HEADERFUNCTION, array($this, 'streaming_header_callback'));
         curl_setopt($curl_handle, CURLOPT_READFUNCTION, array($this, 'streaming_read_callback'));
 
-        // Verification of the SSL cert
-        if ($this->ssl_verification) {
-            curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, true);
-            curl_setopt($curl_handle, CURLOPT_SSL_VERIFYHOST, 2);
-        } else {
-            curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($curl_handle, CURLOPT_SSL_VERIFYHOST, false);
-        }
+        // // Verification of the SSL cert
+        // if ($this->ssl_verification) {
+        //     curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, true);
+        //     curl_setopt($curl_handle, CURLOPT_SSL_VERIFYHOST, 2);
+        // } else {
+        //     curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, false);
+        //     curl_setopt($curl_handle, CURLOPT_SSL_VERIFYHOST, false);
+		// }
+		// 默认不验证https证书;
+		curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($curl_handle, CURLOPT_SSL_VERIFYHOST, false);
 
         // chmod the file as 0755
         if ($this->cacert_location === true) {

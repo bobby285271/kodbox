@@ -2,11 +2,12 @@
 <html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-	<link href="<?php echo STATIC_PATH;?>images/icon/fav.png" rel="icon" type="image/x-icon">
-	<title>kodbox-<?php echo LNG('common.install'); ?></title>
+	<link head-type='kod' href="<?php echo STATIC_PATH;?>images/icon/fav.png" rel="icon" type="image/x-icon">
+	<title><?php echo LNG('common.copyright.name');?>-<?php echo LNG('common.install'); ?></title>
 	<link href="<?php echo STATIC_PATH;?>style/lib/main.css" rel='stylesheet'>
 	<link href="<?php echo STATIC_PATH;?>style/dist/main.css" rel='stylesheet'>
 	<link href="<?php echo $installPath;?>static/static/index.css" rel='stylesheet'>
+	<?php Hook::trigger('templateCommonHeader');?>
 </head>
 
 <body>
@@ -14,7 +15,7 @@
 		<div class="install-box">
 			<div class="content-main-message">
 				<div class="header">
-					<img src="<?php echo $installPath;?>static/static/logo.png" alt="kodbox">
+					<img src="<?php echo $installPath;?>static/static/logo.png">
 				</div>
 				<div class="body">
 					<div class="content-main">
@@ -73,18 +74,15 @@
 			<div class="common-footer aero"></div>
 		</div>
 	</div>
-	
-	
-	<!--[if lt IE 11]>
-	<script src="<?php echo STATIC_PATH;?>app/vender/es5-shim.min.js"></script>
-	<script src="<?php echo STATIC_PATH;?>app/vender/es5-sham.min.js"></script>
-    <![endif]-->
+
 	<script type="text/javascript"> 
 		window.API_HOST = "<?php echo APP_HOST.'?';?>";
 		window.STATIC_PATH = "<?php echo STATIC_PATH;?>";
 	</script>
-	<script src="<?php echo STATIC_PATH;?>app/dist/api.js"></script>
+	<script src="<?php echo STATIC_PATH;?>app/vender/es3-profill.js"></script>
 	<script src="<?php echo STATIC_PATH;?>app/dist/vendor.js"></script>
+	<script src="<?php echo STATIC_PATH;?>app/dist/api.js"></script>
 	<script>requireAsync("<?php echo $installPath;?>static/index.js");</script>
+	<?php Hook::trigger('templateCommonFooter');?>
 </body>
 </html>

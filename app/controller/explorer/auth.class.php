@@ -13,7 +13,6 @@
  * 其他拦截：path为虚拟目录只支持列表模式 explorer.list.path;
  */
 class explorerAuth extends Controller {
-	private $actions;
 	private $actionPathCheck;
 	function __construct() {
 		parent::__construct();
@@ -24,13 +23,13 @@ class explorerAuth extends Controller {
 				'explorer.index'=>'fileOut,fileOutBy,fileView,fileThumb',
 				'explorer.editor' =>'fileGet'
 			),
-			'download'	=> array(''),// 下载/复制;下载/复制/文件预览打印
+			'download'	=> array('explorer.index'=>'fileDownload',),// 下载/复制;下载/复制/文件预览打印
 			'upload'	=> array('explorer.upload'=>'fileUpload,serverDownload'),
 			'edit'		=> array(
 				'explorer.index'	=>'mkdir,mkfile,setDesc,fileSave,pathRename,pathPast,pathCopyTo,pathCuteTo',
 				'explorer.editor' 	=>'fileSave'
 			),
-			'remove'	=> array('explorer.index'=>''),	//批量中处理
+			// 'remove'	=> array('explorer.index'=>'pathDelete'),	//批量中处理
 			'share'		=> array('explorer.userShare'=>'add'),
 			'comment'	=> array('explorer.index'=>''),
 			'event'		=> array('explorer.index'=>'pathLog'),
@@ -42,13 +41,6 @@ class explorerAuth extends Controller {
 			'explorer.editor' 	=> 'fileSave',
 			'explorer.share'	=> 'fileUpload',
 		);
-		$this->actions = array(
-			'list'		=> 'explorer.list.path',
-			'delete'	=> 'explorer.index.pathDelete',
-		);	
-		foreach ($this->actions as &$val) {
-			$val = strtolower($val);
-		}
 		Hook::bind('SourceModel.createBefore','explorer.auth.checkSpaceOnCreate');
 	}
 
@@ -103,21 +95,18 @@ class explorerAuth extends Controller {
 			}
 		}
 		if(!in_array(strtolower(ACTION),$actions)) return;
-		$parse  = KodIO::parse($this->in['path']);
+		if(!$this->spaceAllow($this->in['path'])){
+			show_json(LNG('explorer.spaceIsFull'),false);
+		}
+	}
+	public function spaceAllow($path){
+		$parse  = KodIO::parse($path);
 		$info 	= IO::infoAuth($parse['pathBase']);//目标存储;
 		$space  = Action("explorer.list")->targetSpace($info);
-		if(!$space || $space['sizeMax']==0 ) return; // 没有大小信息,或上限为0则放过;
-		if($space['sizeMax'] <= $space['sizeUse']){
-			show_json(LNG('explorer.spaceIsFull'),false);
-		}
+		if(!$space || $space['sizeMax']==0 ) return true; // 没有大小信息,或上限为0则放过;
+		return $space['sizeMax'] > $space['sizeUse'];
 	}
-	
-	public function pathSpaceCheck($space){
-		if(!$space || $space['sizeMax']==0 ) return; // 没有大小信息,或上限为0则放过;
-		if($space['sizeMax'] <= $space['sizeUse']){
-			show_json(LNG('explorer.spaceIsFull'),false);
-		}
-	}
+
 	public function checkSpaceOnCreate($sourceInfo){
 		if($sourceInfo['targetType'] == SourceModel::TYPE_GROUP){
 			$space = Model('User')->getInfo($sourceInfo['targetID']);
@@ -139,12 +128,14 @@ class explorerAuth extends Controller {
 	public function fileCanRead($file){
 		if(request_url_safe($file)) return true;
 		$this->isShowError = false;
+		if(!ActionCall('user.authRole.authCanRead')) return false;
 		$result = $this->canView($file) && $this->canRead($file);
 		$this->isShowError = true;
 		return $result;
 	}
 	public function fileCanWrite($file){
 		$this->isShowError = false;
+		if(!ActionCall('user.authRole.authCanEdit')) return false;
 		$result = $this->canWrite($file);
 		$this->isShowError = true;
 		return $result;
@@ -172,7 +163,6 @@ class explorerAuth extends Controller {
 	 * 操作屏蔽：remove不支持根目录：用户根目录，部门根目录，分享根目录；
 	 */
 	public function can($path,$action){
-		$theAction 	= strtolower(ACTION);
 		$parse  = KodIO::parse($path);
 		$ioType = $parse['type'];
 		// 物理路径 io路径拦截；只有管理员且开启了访问才能做相关操作;
@@ -185,25 +175,14 @@ class explorerAuth extends Controller {
 		//个人挂载目录；跨空间移动复制根据身份处理；
 		if( $ioType == KodIO::KOD_USER_DRIVER ) return true;
 		if( $ioType == KodIO::KOD_SHARE_LINK){
-			$info = Action('explorer.share')->sharePathInfo($path);
-			if($info) return true;
+			if(Action('explorer.share')->sharePathInfo($path)) return true;
 			return $this->errorMsg(LNG('explorer.pathNotSupport'),1108);
 		}
 
-		// 如果是获取列表动作，排除只有读取列表权限
-		// 虚拟目录检测;只能查看列表，不能做其他任何操作(新建重命名等)
-		// 此类型io可以新建重命名等操作；其他的都是纯虚拟路径只能列表查看
-		$allowAction = array( 
-			KodIO::KOD_IO,
-			KodIO::KOD_SOURCE,
-			KodIO::KOD_SHARE_ITEM,
-		);
-		if(!in_array($ioType,$allowAction)){
-			if($theAction == $this->actions['list']){
-				return true;//其他虚拟目录只允许列目录
-			}else{
-				return $this->errorMsg(LNG('explorer.pathNotSupport'),1002);
-			}
+		// 纯虚拟路径只能列表; 不支持其他任何操作;
+		if( $this->pathOnlyShow($path) ){
+			if($action == 'show') return true;
+			return $this->errorMsg(LNG('explorer.pathNotSupport'),1002);
 		}
 
 		//分享内容;分享子文档所属分享判别，操作分享权限判别；
@@ -232,18 +211,29 @@ class explorerAuth extends Controller {
 			return $this->checkAuthMethod($auth,$action);
 		}
 		// 删除操作：拦截根文件夹；用户根文件夹，部门根文件夹
-		if( $pathInfo['parentID'] == '0' && 
-			$theAction == $this->actions['delete'] ){
+		if( $pathInfo['parentID'] == '0' && $action=='remove' ){
 			return $this->errorMsg(LNG('explorer.noPermissionAction'),1100);	
 		}
 		return true;
+	}
+
+	// 路径类型中: 检测目录是否可操作(属性,重命名,新建上传等); 纯虚拟路径只能列表;
+	public function pathOnlyShow($path){
+		$parse  = KodIO::parse($path);
+		$truePath = array( // 可以操作的目录类型;
+			KodIO::KOD_IO,
+			KodIO::KOD_SOURCE,
+			KodIO::KOD_SHARE_ITEM,
+		);
+		$canAction = in_array($parse['type'],$truePath);
+		return $canAction? false:true;
 	}
 	
 	private function errorMsg($msg,$code=false){
 		if($this->isShowError){
 			return show_json($msg,false,$code);	
 		}
-		$this->lastError = $msg;
+		$this->lastError = $msg.$code;
 		return false;
 	}
 	
@@ -294,7 +284,7 @@ class explorerAuth extends Controller {
 		if(!$shareInfo || !$shareInfo['sourceInfo'] ){
 			return $this->errorMsg(LNG('explorer.share.notExist'));
 		}
-		if( $sharePath == $sourceID && ACTION == $this->actions['delete'] ){
+		if( $sharePath == $sourceID && $method =='remove' ){
 			return $this->errorMsg("source share root can't remove !");
 		}
 

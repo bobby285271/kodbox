@@ -43,18 +43,38 @@ function think_var_cache($name, $value = '', $path = TEMP_PATH) {
  * @return void
  */
 function think_exception($msg) {
-    $e = get_caller_info();
-    $e[] = $msg;
+	if(is_object($msg)){ //系统错误或警告;
+		$filePath = get_path_this(get_path_father($msg->getFile()));
+		$fileLine = '../'.$filePath.'/'.get_path_this($msg->getFile()).'['.$msg->getLine().'];  ';
+		$callTrace = $msg->getTrace();
+		$last = $callTrace[0];
+		$desc = $last['function'].'(); ';
+		if($last['class']){
+			$desc = $last['class'].'->'.$desc;
+		}
+		$desc  = $fileLine.$desc;
+		$error = $msg->getMessage();
+	}else{
+		$callTrace = debug_backtrace();
+		$last = $callTrace[1];
+		$desc = $last['function'].'(); ';
+		if($last['class']){
+			$desc = $last['class'].'->'.$desc;
+		}
+		$error = $msg;
+	}
+	
     if(defined('GLOBAL_DEBUG') && !GLOBAL_DEBUG ){
-        $last = $e[count($e)-1];
-        if(is_array($last)){
-            $last = $last[count($last)-1];
-        }
-        $message = is_string($last) ? $last:"Error!";
-        write_log($e,'error');
-        show_tips($message,'',0,'',false);
+		$error = "<div class='desc'>$desc</div>".$error;
+        show_tips($error,'',0,'',false);
     }else{
-		pr($e);
+		if(is_object($msg)){ //系统错误或警告;
+			$trace =  get_caller_trace($msg->getTrace());
+			$trace[] = $desc.$error;
+			pr($trace);
+		}else{
+			pr_trace($desc.$error);
+		}
 	}
 	exit;
 }

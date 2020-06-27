@@ -20,7 +20,7 @@ class adminAnalysis extends Controller{
     }
 
     // 列表：用户空间、部门空间
-    public function listData(){
+    public function table(){
 		$type = Input::get('type','in',null,array('user', 'group'));
         $result = $this->model->listTable($type);
         show_json($result);

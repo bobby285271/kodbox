@@ -38,10 +38,14 @@ class installIndex extends Controller {
             $options = array(
                 "kod"	=> array(
                     'systemOS'		=> $this->config['systemOS'],
-					'phpVersion'	=> PHP_VERSION,
-					'appApi'		=> rtrim(APP_HOST,'/').'/index.php?',
-					'staticPath'	=> STATIC_PATH,
-					'version'		=> KOD_VERSION,
+                    'phpVersion'	=> PHP_VERSION,
+                    'appApi'		=> rtrim(APP_HOST,'/').'/index.php?',
+                    'APP_HOST'		=> APP_HOST,
+                    'ENV_DEV'		=> !!STATIC_DEV,
+                    'staticPath'	=> STATIC_PATH,
+                    'version'		=> KOD_VERSION,
+                    'build'			=> KOD_VERSION_BUILD,
+                    'channel'		=> INSTALL_CHANNEL,
                 ),
                 "user"	=> array('config' => array()),
                 "io"	=> array(),
@@ -602,5 +606,4 @@ class installIndex extends Controller {
             show_json($res['data'], false);
         }
     }
-
 }

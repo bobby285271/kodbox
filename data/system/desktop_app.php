@@ -34,6 +34,7 @@ $desktopApps = array(
 	'appStore' => array(
 		"name"		=> LNG('explorer.app.app'),
 		"type"		=> "js",
+		"rootNeed"	=> 1,
 		"value"		=> "kodApp.pathAction.root.doAction('appInstall');",
 		"icon"		=> STATIC_PATH."images/file_icon/icon_others/appStore.png",
 		"menuType"	=> "menu-default-open",

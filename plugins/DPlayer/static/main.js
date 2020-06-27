@@ -20,5 +20,5 @@ kodReady.push(function(){
 				});
 			}
 		});
-	});
+	});	
 });

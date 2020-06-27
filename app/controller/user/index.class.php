@@ -17,6 +17,7 @@ class userIndex extends Controller {
 	}
 	// 进入初始化
 	public function init() {
+		Hook::trigger('globalRequestBefore');
 		if( !file_exists(USER_SYSTEM . 'install.lock') ){
 			return ActionCall('install.index.check');
 		}
@@ -30,7 +31,6 @@ class userIndex extends Controller {
 	}
 	public function shutdownEvent(){
 		CacheLock::unlockRuntime();// 清空异常时退出,未解锁的加锁;
-		
 	}
 
 	private function initDB(){
@@ -61,7 +61,7 @@ class userIndex extends Controller {
 		$upload = &$GLOBALS['config']['settings']['upload'];
 		if(isset($sysOption['chunkSize'])){ //没有设置则使用默认;
 			$upload['chunkSize']  = floatval($sysOption['chunkSize']);
-			$upload['igNoreName'] = trim($sysOption['igNoreName']);
+			$upload['ignoreName'] = trim($sysOption['ignoreName']);
 			$upload['chunkRetry'] = intval($sysOption['chunkRetry']);
 			$upload['httpSendFile']  = $sysOption['httpSendFile'] == '1';
 			
@@ -89,7 +89,7 @@ class userIndex extends Controller {
 	 * 通过session或kodToken检测登录
 	 */
 	public function loginCheck() {
-		if (Session::get('kodUser')) {
+		if( is_array(Session::get('kodUser')) ){
 			return $this->userDataInit();
 		}
 		$userID 	= Cookie::get('kodUserID');
@@ -104,7 +104,12 @@ class userIndex extends Controller {
 	private function userDataInit() {
 		$this->user = Session::get('kodUser');
 		if($this->user){
-			$this->user = Model('User')->getInfo($this->user['userID']);
+			$findUser = Model('User')->getInfo($this->user['userID']);
+			// 用户账号hash对比; 账号密码修改自动退出处理;
+			if($findUser['userHash'] != $this->user['userHash']){
+				Session::destory();
+				show_json('user data error!',ERROR_CODE_LOGOUT);
+			}
 			Session::set('kodUser',$this->user);
 		}
 		if (!$this->user) {
@@ -136,13 +141,31 @@ class userIndex extends Controller {
 	}
 
 	/**
+	 * 根据用户名密码获取用户信息
+	 * @param [type] $name
+	 * @param [type] $password
+	 */
+	public function userInfo($name, $password){
+		$result = Action('user.check')->loginBefore($name,$password);
+		if($result !== true) return $result;
+		$user = Model("User")->userLoginCheck($name,$password);
+		if(!is_array($user)) {
+			$theUser = Hook::trigger("user.index.userInfo",$name, $password);
+			if(is_array($theUser)){
+				$user = $theUser? $theUser:false;
+			}
+		}
+		Action('user.check')->loginAfter($name,$user);
+		return $user;
+	}
+	
+	/**
 	 * 退出处理
 	 */
 	public function logout() {
 		Session::destory();
 		Cookie::remove(SESSION_ID,true); //保持
 		Cookie::remove('kodToken');
-		Cookie::remove('X-CSRF-TOKEN');
 		show_json('ok');
 	}
 
@@ -169,10 +192,12 @@ class userIndex extends Controller {
 			$key = substr($data['password'], 0, 5) . "2&$%@(*@(djfhj1923";
 			$data['password'] = Mcrypt::decode(substr($data['password'], 5), $key);
 		}
-		$user = Model("User")->userLoginCheck($data['name'],$data['password']);
-		if ( !is_array($user) ) {
-			show_json(LNG('user.pwdError'),false);
-		}		
+		$user = $this->userInfo($data['name'],$data['password']);
+		if (!is_array($user)){
+			$error = UserModel::errorLang($user);
+			$error = $error ? $error:LNG('user.pwdError');
+			show_json($error,false);
+		}
 		if(!$user['status']){
 			show_json(LNG('user.userEnabled'), ERROR_CODE_USER_INVALID);
 		}
@@ -197,6 +222,7 @@ class userIndex extends Controller {
 
 		$user = Model("User")->getInfo($user['userID']);
 		$this->loginSuccess($user);
+		Model('User')->userEdit($user['userID'],array("lastLogin"=>time()));	// 更新登录时间
 		return show_json('ok',true,$this->accessToken());
 	}
 
@@ -248,11 +274,8 @@ class userIndex extends Controller {
 	}
 	
 	public function loginSuccess($user) {
-		$csrfToken = rand_string(20);
 		Session::set('kodUser', $user);
 		Cookie::set('kodUserID', $user['userID']);
-		Cookie::setSafe('X-CSRF-TOKEN',$csrfToken);
-
 		$kodToken = Cookie::get('kodToken');
 		if($kodToken){//已存在则延期
 			Cookie::setSafe('kodToken',$kodToken);

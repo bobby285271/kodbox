@@ -13,7 +13,7 @@ class pdfjsPlugin extends PluginBase{
 		$this->echoFile('static/app/main.js');
 	}
 	public function index(){
-		$fileUrl  = $this->filePathLink($this->in['path']).'&name=/'.$this->in['name'];
+		$fileUrl  = $this->filePathLink($this->in['path']).'&name=/'.rawurlencode($this->in['name']);
 		$fileName = $this->in['name'].' - '.LNG('common.copyright.name').LNG('common.copyright.powerBy');
 		if( in_array($this->in['ext'],array('pdf','djvu','ofd')) ){
 			include($this->pluginPath.'/php/'.$this->in['ext'].'.php');

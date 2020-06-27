@@ -6,33 +6,33 @@
 * @license http://kodcloud.com/tools/license/license.txt
 */
 
-header('Access-Control-Allow-Origin:*');    		// 允许的域名来源;
-header('Access-Control-Allow-Methods:GET'); 		// 允许请求的类型
-header('Access-Control-Allow-Credentials: true'); 	// 设置是否允许发送 cookies
-header('Access-Control-Allow-Headers: Content-Type,Content-Length,Accept-Encoding,X-Requested-with, Origin');
+// header('Access-Control-Allow-Origin:*');    		// 允许的域名来源;
+// header('Access-Control-Allow-Methods:GET'); 		// 允许请求的类型
+// header('Access-Control-Allow-Credentials: true'); 	// 设置是否允许发送 cookies
+// header('Access-Control-Allow-Headers: Content-Type,Content-Length,Accept-Encoding,X-Requested-with, Origin');
 
 //配置数据,可在setting_user.php中添加变量覆盖,升级后不会被替换
 $config['settings'] = array(
-	'downloadUrlTime'	=> 0,			 //下载地址生效时间，按秒计算，0代表不限制
-	'apiLoginTonken'	=> '',			 //设定则认为开启服务端api通信登录，同时作为加密密匙
-	'paramRewrite'		=> false,		 //开启url 去除? 直接跟参数
-	'ioDisabled'		=> 'moss',		 //不显示的io类型，多个以','分隔
+	'downloadUrlTime'	=> 0,			 	//下载地址生效时间，按秒计算，0代表不限制
+	'apiLoginTonken'	=> '',			 	//设定则认为开启服务端api通信登录，同时作为加密密匙
+	'paramRewrite'		=> false,		 	//开启url 去除? 直接跟参数
+	'ioDisabled'		=> 'moss,eos',		//不显示的io类型，多个以','分隔
 	
 	'upload' => array(
-		'chunkSize'			=> 0.5,			 // MB 分片上传大小设定;需要小于php.ini上传限制的大小
-		'threads'			=> 10,			 // 上传并发数;部分低配服务器上传失败则将此设置为1
-		'ignoreName'		=> '',			 // 忽略的文件名,不区分大小写; 逗号隔开,例如: .DS_Store,Thumb.db
-		'chunkRetry'		=> 5,			 // 分片上传失败,重传次数;针对每个分片;
-		'sendAsBinary'		=> 0,			 // 以二进制方式上传;后端服务器以php://input接收;0则为传统方式上传 $_FILE;
-		'httpSendFile'		=> false,		 //调用webserver下载 http://www.laruence.com/2012/05/02/2613.html; 
+		'chunkSize'			=> 0.5,			// MB 分片上传大小设定;需要小于php.ini上传限制的大小
+		'threads'			=> 10,			// 上传并发数;部分低配服务器上传失败则将此设置为1
+		'ignoreName'		=> '',			// 忽略的文件名,不区分大小写; 逗号隔开,例如: .DS_Store,Thumb.db
+		'chunkRetry'		=> 5,			// 分片上传失败,重传次数;针对每个分片;
+		'sendAsBinary'		=> 0,			// 以二进制方式上传;后端服务器以php://input接收;0则为传统方式上传 $_FILE;
+		'httpSendFile'		=> false,		//调用webserver下载 http://www.laruence.com/2012/05/02/2613.html; 
 											//https://www.lovelucy.info/x-sendfile-in-nginx.html	
 		'downloadSpeed'		=> 0,			// 下载限速;MB/s*1024*1024; 0代表不限制
 		'ignoreExt'			=> '',          // 限制的扩展名; 扩展名在该说明中则自动不上传;
 		'ignoreFileSize'	=> 0			// 允许单个文件上传最大值,0则不限制; 单位GB;
 	),
 	
-	'staticPath'		=> "./static/",	//静态文件目录,可以配置到cdn;
-	'kodApiServer'		=> "https://api.kodcloud.com/?", //QQ微信登陆/邮件发送/插件-列表等
+	'staticPath'		=> APP_HOST."static/",	//静态文件目录,可以配置到cdn;
+	'kodApiServer'		=> "https://api.kodcloud.com/?", //QQ微信登陆/邮件发送/插件-列表等 
 );
 
 $config["ADMIN_ALLOW_IO"] = 1;		//其他部门or用户目录操作开关，仅限管理员
@@ -52,7 +52,7 @@ $config['cache'] = array(
 	'sessionType'	=> 'file',	//缓存方式 database/file/redis/memcached
 	'sessionTime'	=> 3600*4,	//session失效时间 
     'cacheType'		=> 'file',	//缓存方式 database/file/redis/memcached
-	'lockTimeout'	=> 5,		//并发锁获取超时时间
+	'lockTimeout'	=> 5,		//并发锁获取超时时间 5s;
 	'cacheTime'		=> 3600*5,	//缓存默认时间;
 	    
     'file'	=> array('path' => TEMP_PATH.'_cache/'),
@@ -119,7 +119,7 @@ $config['settings']['appType'] = array(
 
 $config['defaultPlugins'] = array(
 	'adminer','DPlayer','imageExif','jPlayer','officeLive','photoSwipe','picasa','pdfjs',
-	'simpleClock','toolsCommon','VLCPlayer','webodf','yzOffice',
+	'simpleClock','toolsCommon','VLCPlayer','webodf','yzOffice','webdav',
 );
 
 //初始化系统配置
@@ -141,17 +141,23 @@ $config['settingSystemDefault'] = array(
 	'globalCss'			=> "",
 	'globalHtml'		=> "",
 
-	'newUserApp'		=> "trello,一起写office,微信,365日历,石墨文档,ProcessOn,计算器,icloud,OfficeConverter",
-	'newUserFolder'		=> "我的文档,我的图片,我的音乐,其他",
+	'newUserApp'		=> "trello,一起写office,微信,石墨文档,ProcessOn,计算器,高德地图,icloud,OfficeConverter",
+	'newUserFolder'		=> "我的文档,我的图片,我的音乐",
 	'newGroupFolder'	=> "共享资源,文档,其他",	// 新建分组默认建立文件夹
 	'groupRootName'		=> '企业网盘',				// 企业组织架构根节点
 	
 	'versionType'		=> "A",			// 版本
 	'rootListUser'		=> 0,			// 组织架构根节点展示群组内用户
 	'rootListGroup'		=> 0,			// 组织架构根节点展示子群组
-	'csrfProtect'		=> 0, 		 	// 开启csrf保护
 	'currentVersion'	=> KOD_VERSION, // 当前版本
 	'orderSort'         => 'desc',      // sort字段排序方式;默认从大到小
+
+	'fileEncryption'	=> 'keepName',	// all-全加密;keepExt-加密文件名保留扩展名;keepName-不加密;
+	'passwordErrorLock'	=> '1',			// 密码连续错误锁定账号; 某账号连续输入5次后锁定30s后才能登陆;
+	'passwordRule'		=> 'none',		// 限制密码强度;none-不限制;strong-中等强度;strongMore-高强度
+	'loginIpCheck'		=> '0',			// 登陆ip限制开关;
+	'loginIpAllow'		=> '',			// 登陆允许的ip来源; ip白名单;
+	'csrfProtect'		=> '0',		 	// 开启csrf保护	
 
 	'wallpageDesktop'	=> "1,2,3,4,5,6,7,8,9,10,11,12,13",
 	'wallpageLogin'		=> "2,3,6,8,9,11,12",
@@ -171,7 +177,8 @@ $config['settingSystemDefault'] = array(
 	'menu'	=> array(		//初始化默认菜单配置
 		array('name'=>'desktop','type'=>'system','url'=>'desktop','target'=>'_self','use'=>'1'),
 		array('name'=>'explorer','type'=>'system','url'=>'explorer','target'=>'_self','use'=>'1'),
-		array('name'=>'editor','type'=>'system','url'=>'editor','target'=>'_self','use'=>'1')
+		array('name'=>'editor','type'=>'system','url'=>'editor','target'=>'_self','use'=>'0'),
+		array('name'=>'官网','url'=>'https://kodcloud.com',"icon"=>"icon-cloud",'target'=>'inline','use'=>'1')
 	),
 );
 
@@ -192,21 +199,22 @@ $config['settingDefault'] = array(
 	"fileIconSizeDesktop"=> '80',		// 桌面图标大小
 	'resizeConfig'		=> 
 		'{"filename":250,"filetype":80,"filesize":80,"filetime":215,"editorTreeWidth":200,"explorerTreeWidth":200}',
-	'imageThumb'		=> 1,
-	'fileSelect'		=> 1,
+	'imageThumb'		=> '1',
+	'fileSelect'		=> '1',
+	'displayHideFile'	=> '0',
 );
 $config['editorDefault'] = array(
 	'fontSize'		=> '14px',
 	'theme'			=> 'tomorrow',
-	'autoWrap'		=> 1,		//自适应宽度换行
-	'autoComplete'	=> 1,
-	'functionList' 	=> 1,
-	"tabSize"		=> 4,
-	"softTab"		=> 1,
-	"displayChar"	=> 0,		//是否显示特殊字符
+	'autoWrap'		=> '1',		//自适应宽度换行
+	'autoComplete'	=> '1',
+	'functionList' 	=> '1',
+	"tabSize"		=> '4',
+	"softTab"		=> '1',
+	"displayChar"	=> '0',		//是否显示特殊字符
 	"fontFamily"	=> "Menlo",	//字体
 	"keyboardType"	=> "ace",	//ace vim emacs
-	"autoSave"		=> 0,		//自动保存
+	"autoSave"		=> '0',		//自动保存
 );
 
 // 文档类型筛选；分页
@@ -325,7 +333,7 @@ $config['authRoleAction']= array(
 		'explorer.editor'=>'fileGet',
 		'explorer.fileView'=>'index,open'
 	),
-	'explorer.download'		=> array('explorer.index'=>'zipDownload,fileDownloadRemove'),
+	'explorer.download'		=> array('explorer.index'=>'fileDownload,zipDownload,fileDownloadRemove'),
 	'explorer.share'		=> array('explorer.userShare'=>'add,edit,del'),
 	'explorer.remove'		=> array('explorer.index'=>'pathDelete,recycleDelete,recycleRestore'),
 	'explorer.edit'			=> array('explorer.index'=>'setDesc,setAuth,fileSave,pathRename,zip,unzip',
@@ -346,7 +354,7 @@ $config['authRoleAction']= array(
 		'explorer.tag'=>'add,edit,remove,moveTop,moveBottom,resetSort,sourceAddToTag,sourceResetTag,sourceRemoveFromTag',
 	),
 	
-	'admin.index.dashboard'	=> array('admin.analysis'=>'summary,list,trend'),
+	'admin.index.dashboard'	=> array('admin.analysis'=>'summary,table,trend'),
 	'admin.index.setting'	=> array('admin.setting'=>'get,set,clearCache,phpInfo'),
 	'admin.index.loginLog'	=> array('admin.log'=>'loginLogList'),
 	'admin.index.log'		=> array('admin.log'=>'get,typelist'),
@@ -380,3 +388,11 @@ $config['authRoleAction']= array(
 	'admin.autoTask.list'	=> array('admin.autoTask'=>'get'),
 	'admin.autoTask.edit'	=> array('admin.autoTask'=>'add,edit,enable,remove,run,taskStart,taskRun,taskRunEvent'),
 );
+
+if (file_exists(BASIC_PATH.'config/setting_user.php')) {
+	include_once(BASIC_PATH.'config/setting_user.php');
+}
+if (file_exists(BASIC_PATH.'config/setting_user_more.php')) {
+	include_once(BASIC_PATH.'config/setting_user_more.php');
+}
+if(!defined('INSTALL_CHANNEL')){define('INSTALL_CHANNEL','');}

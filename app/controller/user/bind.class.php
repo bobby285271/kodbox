@@ -85,8 +85,8 @@ class userBind extends Controller {
 				}
 			} else {
 				$data['bind'] = false; // 可不传
-				$msg = array('bind', 'bind_others');
-				$success = false;	// $bind=true，说明已绑定其他账号
+				$msg = array('bind', 'bind_others', $bind);
+				$success = false;	// $bind=true，说明已绑定其他账号——update:bind=name
 			}
 			return $this->bindHtml($type, $data, $success, $msg);
 		}
@@ -272,7 +272,7 @@ class userBind extends Controller {
 		$errList = array(
 			'sign_error'	 => LNG('user.bindSignError'),
 			'update_error'	 => LNG('user.bindUpdateError'),
-			'bind_others'	 => SELF::$TYPE_LIST[$type] . LNG('user.bindOthers')
+			'bind_others'	 => SELF::$TYPE_LIST[$type] . LNG('user.bindOthers') . "[{$msgData[2]}]"
 		);
 		return $errTit . LNG('common.bindError') .';' . (isset($errList[$msg]) ? $errList[$msg] : $msg);
 	}
@@ -326,8 +326,9 @@ class userBind extends Controller {
 			show_json(LNG('common.' . $type) . LNG('user.binded'), false);
 		}
 		// 1.2 判断邮箱是否已绑定-他人
-		if ($this->userSearch(array($type => $data['input']))) {
-			show_json(LNG('common.' . $type) . LNG('user.bindOthers'), false);
+		if ($res = Model('User')->userSearch(array($type => $data['input']), 'name,nickName')) {
+			$name = $res['nickName'] ? $res['nickName'] : $res['name'];
+			show_json(LNG('common.' . $type) . LNG('user.bindOthers') . "[{$name}]", false);
 		}
 
 		// 2.1 发送邮件
@@ -364,7 +365,7 @@ class userBind extends Controller {
 		if (is_string($param)) {
 			$param = array('address' => $param);
 		}
-		if (!check_input('email', $param['address'])) {
+		if (!Input::check($param['address'], 'email')) {
 			return array('code' => false, 'data' => LNG('common.invalidFormat'));
 		}
 		// 邮件发送方式:0.系统默认;1.自定义
@@ -485,7 +486,7 @@ class userBind extends Controller {
 	 * @return type
 	 */
 	public function sendSms($type, $phone) {
-		if (!check_input('phone', $phone)) {
+		if (!Input::check($phone, 'phone')) {
 			return array('code' => false, 'data' => LNG('common.invalidFormat'));
 		}
 		$data = array(
@@ -639,7 +640,10 @@ class userBind extends Controller {
 		// 后端,要判断该微信/QQ是否已经绑定了其他账号
 		// 通过绑定信息获取到的用户，不是当前登录用户，说明已绑定其他账号
 		if (!$client) {
-			return $user['userID'] != Session::get("kodUser.userID") ? true : false;
+			if($user['userID'] != Session::get("kodUser.userID")) {
+				return $user['nickName'] ? $user['nickName'] : $user['name'];
+			}
+			return false;
 		}
 		// 前端,用户存在,则直接登录
 		if($user['status']) Action('user.index')->loginSuccess($user);
@@ -672,13 +676,6 @@ class userBind extends Controller {
 	}
 
 	/**
-	 * 根据条件获取用户信息
-	 */
-	public function userSearch($where, $field = '*') {
-		return Model('User')->where($where)->field($field)->find();
-	}
-
-	/**
 	 * 用户是否绑定
 	 */
 	public function bindMetaInfo(){
@@ -701,5 +698,4 @@ class userBind extends Controller {
 		$info = Model('User')->getInfoSimple($userID);
 		return empty($info['password']);
 	}
-
 }

@@ -37,7 +37,7 @@ class adminGroup extends Controller{
 			"words" 		=> array("check"=>"require"),
 			"parentGroup"	=> array("check"=>"int",'default'=>false),
 		));
-		$result = $this->model->listSearch($data['words'],$data['parentGroup']);
+		$result = $this->model->listSearch($data);
 		show_json($result,true);
 	}
 	

@@ -25,7 +25,7 @@ class userRegist extends Controller {
 		if(!in_array($data['source'], $typeList)){
 			show_json(LNG('common.invalidRequest'), false);
 		}
-		if (!check_input($data['type'], $data['input'])) {
+		if (!Input::check($data['input'], $data['type'])) {
 			show_json(LNG('common.invalid') . LNG('common.' . $data['type']), false);
 		}
 		if (Session::get('checkCode') != $data['checkCode']) {
@@ -54,13 +54,7 @@ class userRegist extends Controller {
 			'input' => $data['input']
 		);
 		$this->msgCodeExec($data['type'], $res['data'], $param, true);
-
 		show_json(LNG('user.sendSuccess'), true);
-	}
-
-	private function userSearch($key,$value) {
-		$where = array($key => $value);
-		return Model('User')->where($where)->find();
 	}
 
 	/**
@@ -68,8 +62,8 @@ class userRegist extends Controller {
 	 * @param type $data
 	 */
 	private function userRegistCheck($data) {
-		$result = $this->userSearch($data['type'],$data['input']);
-		if (!empty($result)) {
+		$where = array($data['type'] => $data['input']);
+		if (Model('User')->userSearch($where)) {
 			show_json(LNG('common.' . $data['type']) . LNG('user.registed'), false);
 		}
 	}
@@ -83,8 +77,8 @@ class userRegist extends Controller {
 		$userID = Input::get('userID', 'require', '0');
 		// 前端找回密码
 		if ($userID == '0') {
-			$result = $this->userSearch($data['type'],$data['input']);
-			if (empty($result)) {
+			$where = array($data['type'] => $data['input']);
+			if (!Model('User')->userSearch($where)) {
 				show_json(LNG('common.' . $data['type']) . LNG('user.notRegist'), false);
 			}
 			return;
@@ -122,7 +116,7 @@ class userRegist extends Controller {
 			show_json(LNG('user.codeError'), false);
 		}
 		// 邮箱/手机号校验
-		if (!check_input($data['type'], $data['input'])) {
+		if (!Input::check($data['input'], $data['type'])) {
 			show_json(LNG('common.invalid') . LNG('common.' . $data['type']), false);
 		}
 		// 消息验证码校验
@@ -139,6 +133,9 @@ class userRegist extends Controller {
 		$salt = Input::get('salt',null, 0);
 		$password = $salt == 1 ? Action('user.setting')->decodePwd($data['password']) : $data['password'];
 		$data['password'] = rawurldecode($password);
+		if( !ActionCall('user.check.password',$data['password']) ){
+			return ActionCall('user.check.passwordTips');
+		}
 		$this->addUser($data);
 	}
 
@@ -155,7 +152,7 @@ class userRegist extends Controller {
 		$bindRegist = true;	// 绑定注册
 		if (isset($param['type']) && isset($param['input'])) {
 			$bindRegist = false;
-			if ($this->userSearch($param['type'],$param['input']) ) {
+			if (Model('User')->userSearch(array($param['type'] => $param['input'])) ) {
 				return show_json(LNG('common.' . $param['type']) . LNG('user.registed'), false);
 			}
 		}
@@ -194,7 +191,6 @@ class userRegist extends Controller {
 		if(!$res['code']) show_json(LNG('explorer.error'), false);
 
 		Session::remove('checkCode');
-
 		$code = true;
 		$msg = LNG('user.registSuccess');
 		if(!$this->in['status']){
@@ -229,7 +225,6 @@ class userRegist extends Controller {
 		}
 		// 2. 验证
 		$type = $type == 'phone' ? 'sms' : $type;
-		// 验证-缓存为空
 		if (!$sess = Session::get($name)) {
 			$msg = LNG('common.invalid') . LNG('common.' . $type) . LNG('user.code');
 			show_json($msg, false);

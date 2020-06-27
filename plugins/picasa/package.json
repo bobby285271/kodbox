@@ -2,7 +2,7 @@
 	"id":"picasa",
 	"name":"{{LNG['admin.plugin.defaultPicasa']}}",
 	"title":"",
-	"version":"1.23",
+	"version":"1.24",
 	"source":{
 		"className":"x-item-icon x-jpg",
 		"screenshoot":[

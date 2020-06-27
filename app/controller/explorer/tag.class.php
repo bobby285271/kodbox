@@ -31,8 +31,26 @@ class explorerTag extends Controller{
 	 * tag列表
 	 */
 	public function get() {
-		$result = $this->model->listData();
-		show_json($result);
+		show_json($this->listData());
+	}
+	private function data(){
+		return $this->model->listData();
+	}
+	/**
+	 * 用户文件标签列表
+	 */
+	public function tagList(){
+		$dataList = $this->data();
+		$list = array();
+		foreach ($dataList as $item) {
+			$style = $item['style']? $item['style'] : 'label-grey-normal';
+			$list[] = array(
+				"name"	=> $item['name'],
+				"path"	=> KodIO::makeFileTagPath($item['id']),
+				"icon"	=> 'tag-label label ' . $style,
+			);
+		}
+		return $list;
 	}
 
 	/**
@@ -45,7 +63,7 @@ class explorerTag extends Controller{
 		));
 		$res = $this->model->add($data['name'],$data['style']);
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.repeatError');
-		show_json($msg,!!$res);
+		show_json($msg,!!$res,$this->data());
 	}
 
 	/**
@@ -59,7 +77,7 @@ class explorerTag extends Controller{
 		));
 		$res = $this->model->update($data['tagID'],$data);
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.repeatError');
-		show_json($msg,!!$res);
+		show_json($msg,!!$res,$this->data());
 	}
 	
 	/**
@@ -70,7 +88,7 @@ class explorerTag extends Controller{
 		$res = $this->model->remove($tagID);
 		$this->modelSource->removeByTag($tagID);
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.error');
-		show_json($msg,!!$res);
+		show_json($msg,!!$res,$this->data());
 	}
 	
 	/**
@@ -80,7 +98,7 @@ class explorerTag extends Controller{
 		$tagID = Input::get('tagID',"int");
 		$res = $this->model->moveTop($tagID);
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.error');
-		show_json($msg,!!$res);
+		show_json($msg,!!$res,$this->data());
 	}
 
 	/**
@@ -90,7 +108,7 @@ class explorerTag extends Controller{
 		$tagID = Input::get('tagID',"int");
 		$res = $this->model->moveBottom($tagID);
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.error');
-		show_json($msg,!!$res);
+		show_json($msg,!!$res,$this->data());
 	}
 	/**
 	 * 重置排序，更具id的顺序重排;
@@ -103,7 +121,7 @@ class explorerTag extends Controller{
 		}
 		$res = $this->model->resetSort($tagArray);
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.error');
-		show_json($msg,!!$res);
+		show_json($msg,!!$res,$this->data());
 	}
 
 	

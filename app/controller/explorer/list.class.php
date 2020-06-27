@@ -36,7 +36,10 @@ class explorerList extends Controller{
 		$this->dataParse($data,$path);
 		$this->checkExist($data,$pathInfo);
 		$this->pageParse($data);
+		$this->dataParseHidden($data);
+		$this->pathIconParse($data);
 		$data = Action('explorer.listGroup')->groupChildAppend($data);
+		$data = Action('explorer.fav')->favAppend($data);
 		if($thePath) return $data;
 		show_json($data);
 	}
@@ -214,6 +217,17 @@ class explorerList extends Controller{
 			show_json(LNG('common.pathNotExists'),false);
 		}
 	}
+	private function pathIconParse(&$data){
+		if(!$data['current']) return;
+		$current = &$data['current'];
+		$info = KodIO::parse($current['path']);
+		if($info['type'] != KodIO::KOD_IO) return;
+		
+		$storage = Model('Storage')->listData($info['id']);
+		$current['driver'] = strtolower($storage['driver']);
+		$current['pathDisplay'] = str_replace($info['pathBase'],$storage['name'],$current['path']);
+		// pr($info,$storage,$current);exit;
+	}
 
 	/**
 	 * 递归处理数据；自动加入打开等信息
@@ -247,6 +261,30 @@ class explorerList extends Controller{
 		$data['fileList']   = $this->dataFilterAuth($data['fileList']);
 		$data['folderList'] = $this->dataFilterAuth($data['folderList']);
 	}
+	
+	// 显示隐藏文件处理; 默认不显示隐藏文件;
+	private function dataParseHidden(&$data){
+		if(Model('UserOption')->get('displayHideFile') == '1') return;
+		$pathHidden = Model('SystemOption')->get('pathHidden');
+		$pathHidden = explode(',',$pathHidden);
+		$hideNumber = 0;
+		foreach ($data as $type =>$list) {
+			if(!in_array($type,array('fileList','folderList'))) continue;
+			$result = array();
+			foreach ($list as $item){
+				if(substr($item['name'],0,1) == '.') continue;
+				if(in_array($item['name'],$pathHidden)) continue;			
+				$result[] = $item;
+			}
+			$data[$type] = $result;
+			$hideNumber  += count($list) - count($result);
+		}
+		// 总文件数; 只减去当前页;暂不处理多页情况;
+		// if(is_array($data['pageInfo']) && $hideNumber > 0){
+		// 	$data['pageInfo']['totalNum'] -= $hideNumber;
+		// }
+	}
+
 	
 	// 用户或部门空间尺寸;
 	public function targetSpace($current){
@@ -315,21 +353,23 @@ class explorerList extends Controller{
 			'tools'		=>	array('name'=>LNG('common.tools'),'open'=>true,'children'=>true),
 			'fileType'	=>	array('name'=>LNG('common.fileType'),'open'=>false,'children'=>true),
 			// 'fileTag'	=>	array('name'=>LNG('common.tag'),'open'=>false,'children'=>true),
-			// 'driver'	=>	array('name'=>LNG('common.mount'),'open'=>false),
+			'driver'	=>	array('name'=>LNG('common.mount').' (admin)','open'=>false),
 		);
 		if(!$this->pathEnable('fileType')){unset($list['fileType']);}
-		if(!$this->pathEnable('fileTag')){unset($list['fileTag']);}
 		if(!$this->pathEnable('driver')){unset($list['driver']);}
+		// if(!$this->pathEnable('fileTag')){unset($list['fileTag']);}
+		
 		
 		$result = array();		
 		foreach ($list as $type => $item) {
 			$block = array(
 				"name"		=> $item['name'],
-				"path"		=> '{block:'.$type.'}',
+				"path"		=> '{block:'.$type.'}/',
 				"open"		=> $item['open'],
 				"isParent"	=> true,
 				"children"	=> $this->blockChildren($type),
 			);
+			if($block['children'] === false) continue;
 			$result[] = $block;
 		}
 		return $result;
@@ -345,8 +385,8 @@ class explorerList extends Controller{
 			case 'files': 		$result = $this->blockFiles();break;
 			case 'tools': 		$result = $this->blockTools();break;
 			case 'fileType': 	$result = $this->blockFileType();break;
-			case 'fileTag': 	$result = $this->blockTags();break;
-			case 'driver': 		$result = $this->blockDriver();break;
+			case 'fileTag': 	$result = Action('explorer.tag')->tagList();break;
+			case 'driver': 		$result = Action("explorer.listDriver")->get();break;
 		}
 		return $result;
 	}
@@ -369,14 +409,16 @@ class explorerList extends Controller{
 				'path' 		=> KodIO::make(Session::get('kodUser.sourceInfo.sourceID')),
 				'open'		=> true,
 				"sourceRoot"=> 'userSelf',//文档根目录标记；前端icon识别时用：用户，部门
-				'targetType'=> 'user','targetID' => USER_ID,
+				'targetType'=> 'user',
+				'targetID' => USER_ID,
 			),
 			"rootGroup"=>array(
 				'name'		=> $groupInfo['name'],//公共网盘
 				'path' 		=> KodIO::make($groupInfo['sourceInfo']['sourceID']),
 				'open'		=> false,
 				"sourceRoot"=> 'groupPublic',
-				'targetType'=> 'group','targetID' => $groupRoot,
+				'targetType'=> 'group',
+				'targetID' => $groupRoot,
 			),
 			"myGroup"=>array(
 				'name'		=> LNG('explorer.toolbar.myGroup'),
@@ -406,14 +448,18 @@ class explorerList extends Controller{
 		
 		if(!$this->pathEnable('my')){unset($list['my']);}
 		if(!$this->pathEnable('myGroup')){unset($list['myGroup']);}
-		// if(!$this->pathEnable('rootGroup')){unset($list['rootGroup']);}
 		return array_values($list);
 	}
 	
 	private function pathEnable($type){
 		$option = Model('SystemOption')->get();
 		if( !isset($option['treeOpen']) ) return true;
-		
+		//单独添加driver情况;更新后处理;
+		if( !$option['treeOpenDriver']){
+			Model('SystemOption')->set('treeOpenDriver','1');
+			Model('SystemOption')->remove('treeOpen');
+			return true;
+		}
 		$allow = explode(',',$option['treeOpen']);
 		return in_array($type,$allow);
 	}
@@ -440,37 +486,12 @@ class explorerList extends Controller{
 	 */
 	private function blockTools(){
 		$list = array(
-			'recentDoc' => array("name" => LNG('explorer.toolbar.recentDoc'), "path"=> KodIO::KOD_USER_RECENT),
-			'myShare' 	=> array("name" => LNG('explorer.toolbar.myShare'), "path"=> KodIO::KOD_USER_SHARE),
-			'shareToMe' => array("name" => LNG('explorer.toolbar.shareToMe'), "path" => KodIO::KOD_USER_SHARE_TO_ME),
-			'recycle' 	=> array("name"=> LNG('explorer.toolbar.recycle'), "path"=> KodIO::KOD_USER_RECYCLE),
+			'recentDoc' => array("name" => LNG('explorer.toolbar.recentDoc'), "path"=> KodIO::KOD_USER_RECENT.'/'),
+			'myShare' 	=> array("name" => LNG('explorer.toolbar.myShare'), "path"=> KodIO::KOD_USER_SHARE.'/'),
+			'shareToMe' => array("name" => LNG('explorer.toolbar.shareToMe'), "path" => KodIO::KOD_USER_SHARE_TO_ME.'/'),
+			'recycle' 	=> array("name"=> LNG('explorer.toolbar.recycle'), "path"=> KodIO::KOD_USER_RECYCLE.'/'),
 		);
 		if(!$this->pathEnable('recentDoc')){unset($list['recentDoc']);}
 		return array_values($list);
-	}
-	
-	/**
-	 * 用户文件标签列表
-	 */
-	private function blockTags(){
-		$tagList = Model("UserTag")->listData();
-		$list = array();
-		foreach ($tagList as $tag) {
-			$style = $tag['style']? $tag['style'] : 'label-grey-normal';
-			$list[] = array(
-				"name"	=> $tag['name'],
-				"path"	=> KodIO::makeFileTagPath($tag['id']),
-				"icon"	=> 'tag-label label ' . $style,
-			);
-		}
-		return $list;
-	}
-	
-	/**
-	 * 用户存储挂载列表
-	 */
-	private function blockDriver(){
-		$list = array();
-		return $list;
 	}
 }

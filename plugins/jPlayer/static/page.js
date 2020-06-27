@@ -100,7 +100,9 @@ define(function(require, exports) {
 		var config = {
 			solution:media.solution,
 			//solution:'flash',
-			swfPath: appStatic+"jPlayer/jquery.jplayer.swf"
+			swfPath: appStatic+"jPlayer/jquery.jplayer.swf",
+			volume: 0.8,   //默认音量
+			muted: false,
 		}
 		
 		$playerBox.attr('id',UUID());
@@ -117,7 +119,8 @@ define(function(require, exports) {
 		player.jPlayer("setMedia",media);
 		player.jPlayer("play");
 		jPlayerBindControl($playerBox);
-		$playerBox.find('audio').attr('autoplay','autoplay').attr('muted','');
+		$playerBox.find('audio').attr('autoplay','autoplay').removeAttr('muted');
+		// plaryer.mute(false);//取消静音;兼容android;
 
 		//移动端;微信,safari等屏蔽了自动播放;首次点击页面触发播放;
 		//$playerBox.find('.aui-content').one("touchstart mousedown",play);

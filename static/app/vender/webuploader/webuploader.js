@@ -4223,11 +4223,11 @@
                     type = typeArr[0];
                     status = parseFloat( typeArr[1] ),
                     statusText = typeArr[2];
-    
-                    block.retried = block.retried || 0;
-    
+					block.retried = block.retried || 0;
+					    
 					// 自动重试
 					// 服务端出错并且设置了分块允许重传则重传 block.serverNeedRetry // add by warlee
+					file._serverData = tr.getResponse();
 					if ( block.chunks > 1 && 
 						(~'http,abort'.indexOf( type )  || block.serverNeedRetry) &&
                             block.retried < opts.chunkRetry ) {
@@ -7140,18 +7140,15 @@
                          // 拼接的状态，在 widgets/upload.js 会有代码用到这个分隔符
                         status = separator + xhr.status +
                                  separator + xhr.statusText;
-    
+					// changed by warlee;
+					me._response = xhr.responseText;
+					me._headers = me._parseHeader(xhr.getAllResponseHeaders());
                     if ( xhr.status >= 200 && xhr.status < 300 ) {
-                        me._response = xhr.responseText;
-                        me._headers = me._parseHeader(xhr.getAllResponseHeaders());
                         return me.trigger('load');
                     } else if ( xhr.status >= 500 && xhr.status < 600 ) {
-                        me._response = xhr.responseText;
-                        me._headers = me._parseHeader(xhr.getAllResponseHeaders());
                         return me.trigger( 'error', 'server' + status );
-                    }
-    
-    
+					}
+					
                     return me.trigger( 'error', me._status ? 'http' + status : 'abort' );
                 };
     

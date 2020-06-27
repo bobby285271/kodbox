@@ -19,6 +19,7 @@ class adminerPlugin extends PluginBase{
 			'subMenu'	=> $config['menuSubMenu'],
 			'use'		=> '1'
 		);
+		// Action('admin/setting')->addMenu($menu);
 		return ActionCall('admin.setting.addMenu',$options,$menu);
 	}
 	

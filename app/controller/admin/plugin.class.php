@@ -55,24 +55,25 @@ class adminPlugin extends Controller{
 			}
 		}
 		$this->model->changeStatus($app,$status);
-		$list  = $this->model->viewList();
-		show_json($list);
+		ActionCall($app.'Plugin.onChangeStatus',$status,$app);
+		$this->appList();
 	}
 
 	public function getConfig(){
 		$app = Input::get('app');
+		ActionCall($app.'Plugin.onGetConfig',$app);
 		$data = $this->model->getConfig($app);
 		$package  = $this->model->getPackageJson($app);
 		$formData = $package['configItem'];
 		$userSelect = array("type"=>"mutil","user"=>"mutil","group"=>"mutil","role"=>"mutil");
 
 		foreach ($formData as $key=>&$item) {
+			if(!isset($item['type']) || $item['type'] == 'html' || $item['type'] == 'button') continue;
 			if(isset($data[$key])){
 				$item['value'] = $data[$key];
 			}
 			//用户选择,默认值处理;
-			if( is_array($item) && isset($item['type']) && 
-				$item['type'] == 'userSelect' && !isset($item['info']) ){
+			if( is_array($item) && $item['type'] == 'userSelect' && !isset($item['info']) ){
 				$item['info'] = $userSelect;
 			}
 		}		
@@ -96,6 +97,7 @@ class adminPlugin extends Controller{
 		}
 		$this->model->changeStatus($app,1);
 		$this->model->setConfig($app,$json);
+		ActionCall($app.'Plugin.onSetConfig',$json,$app);
 		show_json(LNG('explorer.success'));
 	}
 
@@ -176,9 +178,9 @@ class adminPlugin extends Controller{
 			show_json(LNG('explorer.dataNotFull'),false);
 		}
 		$app = KodIO::clear($this->in['app']);
+		ActionCall($app.'Plugin.onUninstall',$app);
 		$this->model->unInstall($app);
 		del_dir(PLUGIN_DIR.$app);
-		$list  = $this->model->viewList();
-		show_json($list);
+		$this->appList();
 	}
 }

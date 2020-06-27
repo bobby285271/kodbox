@@ -14,6 +14,7 @@ class adminSetting extends Controller {
 
 	public function get(){
 		$data = Model('SystemOption')->get();
+		$data = array_merge($this->config['settingSystemDefault'],$data);
 		$removeKey = array(
 			'versionLicense','versionUser','versionHashUser','versionHash',
 			'systemSecret','systemPassword','deviceUUID',
@@ -40,12 +41,12 @@ class adminSetting extends Controller {
 			show_json(LNG('admin.setting.transferChunkSizeDescError1').
 			":$sizeTips,<br/>".LNG('admin.setting.transferChunkSizeDescError2'),false);
 		}
-				
+
 		Model('SystemOption')->set($setting);
 		show_json(LNG('explorer.success'));
 	}
 	
-		/**
+	/**
 	 * 发送邮件测试-用户注册功能设置
 	 */
 	public function mailTest() {
@@ -86,7 +87,7 @@ class adminSetting extends Controller {
 	/**
 	 * 动态添加菜单;
 	 */
-	public function addMenu($options,$menu){
+	public function addMenu($options,$menu=array()){
 		$menus = &$options['system']['options']['menu'];
 		$menusKeys = array_to_keyvalue($menus,'name');
 		if( isset($menusKeys[$menu['name']]) ) return $options;
@@ -106,5 +107,79 @@ class adminSetting extends Controller {
 		Cache::deleteAll();
 		del_dir(TEMP_PATH);
 		mk_dir(TEMP_PATH . 'log');
+	}
+
+	/**
+	 * 缓存配置检测
+	 */
+	public function cacheCheck(){
+		$type = Input::get('type','in',null,array('redis','memcached'));
+		$config = Input::getArray(array(
+			"{$type}Host" => array('check'=>'require', 'aliasKey'=>'host'),
+			"{$type}Port" => array('check'=>'require', 'aliasKey'=>'port')
+		));
+		
+		$className = "Cache".ucfirst($type);
+		$cache = new $className($config,3);
+		$cache->set('cacheCheck','ok');
+		if($cache->get('cacheCheck') != 'ok') {
+			show_json(sprintf(LNG('admin.install.cacheError'),"{$type}"), false);
+		}
+		show_json(LNG('explorer.success'));
+	}
+	public function cacheGet(){
+		$cache = Model('SystemOption')->get('systemCache');
+		$cache = json_decode($cache, true);
+		if(!$cache) {
+			$cache = $GLOBALS['config']['cache'];
+		}
+		show_json($cache);
+	}
+	/**
+	 * 缓存配置切换保存
+	 */
+	public function cacheSave(){
+		$type = Input::get('cacheType','in',null,array('file','redis','memcached'));
+		if(in_array($type, array('redis','memcached'))) {
+			$config = Input::getArray(array(
+				"{$type}Host" => array('check'=>'require', 'aliasKey'=>'host'),
+				"{$type}Port" => array('check'=>'require', 'aliasKey'=>'port')
+			));
+			$className = "Cache".ucfirst($type);
+			$cache = new $className($config,3);
+			$cache->set('cacheCheck','ok');
+			if($cache->get('cacheCheck') != 'ok') {
+				show_json(sprintf(LNG('admin.install.cacheError'),"{$type}"), false);
+			}
+		}
+		// 1.存入数据库
+		$cache = $GLOBALS['config']['cache'];
+		$cache['sessionType'] = $cache['cacheType'] = $type;
+		if($type != 'file') {
+			$config = Input::getArray(array(
+				"{$type}Host" => array('check'=>'require', 'aliasKey'=>'host'),
+				"{$type}Port" => array('check'=>'require', 'aliasKey'=>'port')
+			));
+			$cache[$type] = $config;
+		}
+		Model('SystemOption')->set('systemCache', $cache);
+
+		// 2.更新setting_user.php
+		$file = BASIC_PATH . 'config/setting_user.php';
+		$text = array(
+			PHP_EOL . PHP_EOL,
+            "\$config['cache']['sessionType'] = '{$type}';",
+            "\$config['cache']['cacheType'] = '{$type}';"
+		);
+		if($type != 'file'){
+			$text[] = "\$config['cache']['{$type}']['host'] = '".$config['host']."';";
+			$text[] = "\$config['cache']['{$type}']['port'] = '".$config['port']."';";
+		}
+		$content = implode(PHP_EOL, $text);
+		if(!file_put_contents($file, $content, FILE_APPEND)) {
+            show_json(LNG('explorer.error'), false);
+		}
+		Cache::deleteAll();
+		show_json(LNG('explorer.success'));
 	}
 }

@@ -34,7 +34,7 @@ define(function(require, exports) {
 		loadSubtitle(playerOption,vedioInfo);
 		var player = new DPlayer(playerOption);
 		player.play();
-		$target.find('video').attr('autoplay','autoplay').attr('muted','');
+		$target.find('video').attr('autoplay','autoplay').removeAttr('muted');
 		
 		//移动端;微信,safari等屏蔽了自动播放;首次点击页面触发播放;
 		// $target.find('.dplayer-video-wrap').one("touchstart mousedown",play);

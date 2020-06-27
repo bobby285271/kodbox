@@ -12,6 +12,7 @@ kodReady.push(function(){
 				var appStaticDefault = "{{pluginHostDefault}}static/";
 				requireAsync(appStatic+'page.js',function(app){
 					app(path,ext,name,appStatic,appStaticDefault);
+					bindTouch();
 				});
 			}
 		});
@@ -20,5 +21,9 @@ kodReady.push(function(){
 			$.addStyle(".pswp--supports-fs .pswp__button--fs{display:none !important;}")
 		}
 	});
-	
+	var bindTouch = function(){
+		$('.pswp_content').bind('touchstart',function(e){
+			return stopPP(e);
+		})
+	}
 });

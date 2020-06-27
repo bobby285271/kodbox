@@ -15,10 +15,11 @@ class userAuthRole extends Controller {
 		parent::__construct();
 	}
 	public function authCanDownload(){
-		return $this->authCan('explorer.download') && $this->authCan('explorer.view');
+		return $this->authCan('explorer.download');
 	}
 	public function isRoot(){return !!$GLOBALS['isRoot'];} 
 	public function authCanSearch(){return $this->authCan('explorer.search');}
+	public function authCanRead(){return $this->authCan('explorer.view');}
 	public function authCanEdit(){return $this->authCan('explorer.edit');}
 	public function authCan($action){
 		if($this->isRoot()) return true;
@@ -28,6 +29,42 @@ class userAuthRole extends Controller {
 			return true;
 		}
 		return false;
+	}
+	
+	private function requestCheck(){
+		$action   = strtolower(ACTION);
+		$theMod   = strtolower(MOD);
+		$notAllow = array(
+			'user.view.options',
+			'user.index.accessTokenGet',
+		);
+		foreach ($notAllow as &$val) {
+			$val = strtolower($val);
+		}
+		// 不允许jsonp的方法;
+		if( $theMod == 'explorer' || 
+			$theMod == 'admin' ||
+			in_array($action,$notAllow) 			
+		){
+			$GLOBALS['config']['jsonpAllow'] = false;
+		}
+		
+		// 强制使用POST的接口;
+		$mustPost = array(
+			'user.setting.setConfig',
+			'user.setting.setUserInfo',
+			'user.regist.regist',
+		);
+		foreach ($mustPost as &$val) {
+			$val = strtolower($val);
+		}
+		if( $theMod == 'admin' ||
+			in_array($action,$mustPost)
+		){
+			if(!GLOBAL_DEBUG && REQUEST_METHOD != 'POST'){
+				return show_json('REQUEST_METHOD must be POST!',false);
+			}
+		}
 	}
 	
 	// 未登录：允许的 控制器方法;
@@ -41,7 +78,7 @@ class userAuthRole extends Controller {
 		foreach ($authNotNeedLogin as &$val) {
 			$val = strtolower($val);
 		}
-
+		$this->requestCheck();
 		if(in_array($theAction,$authNotNeedLogin)) return;
 		foreach ($authNotNeedLogin as $value) {
 			$item = explode('.',$value); //MOD,ST,ACT

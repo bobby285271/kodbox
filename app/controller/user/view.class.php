@@ -15,6 +15,7 @@ class userView extends Controller{
 				'systemOS'		=> $this->config['systemOS'],
 				'phpVersion'	=> PHP_VERSION,
 				'appApi'		=> rtrim(APP_HOST,'/').'/index.php?',
+				'APP_HOST'		=> APP_HOST,
 				'ENV_DEV'		=> !!STATIC_DEV,
 				'staticPath'	=> STATIC_PATH,
 				'version'		=> KOD_VERSION,
@@ -28,8 +29,8 @@ class userView extends Controller{
 				'isRoot'		=> $GLOBALS['isRoot'],
 				'info'			=> $user,
 				'role'			=> Action('user.authRole')->userRoleAuth(),
-				'config'		=> $user ? Model('UserOption')->get(): $this->config['settingDefault'],
-				'editorConfig'	=> $user ? Model('UserOption')->get(false,'editor'): $this->config['editorDefault'],
+				'config'		=> $this->config['settingDefault'],
+				'editorConfig'	=> $this->config['editorDefault'],
 				'isRootAllow'	=> $this->config["ADMIN_ALLOW_IO"],
 			),
 			"system" => array(
@@ -47,16 +48,18 @@ class userView extends Controller{
 				"sizeUse" => intval($user['sizeUse']),
 			);
 			$options['user']['role'] = $options['user']['role']['roleList'];
-			if(!$options['user']['config']){
-				$options['user']['config'] = $this->config['settingDefault'];
-			}
-			if(!$options['user']['editorConfig']){
-				$options['user']['editorConfig'] = $this->config['editorDefault'];
-			}
+			$options['user']['config'] = array_merge($this->config['settingDefault'],Model('UserOption')->get());
+			$options['user']['editorConfig'] = array_merge($this->config['editorDefault'],Model('UserOption')->get(false,'editor'));
 		}
 		if($GLOBALS['isRoot']){
 			$options['kod']['WEB_ROOT']   = WEB_ROOT;
 			$options['kod']['BASIC_PATH'] = BASIC_PATH;
+		}
+		
+		//为https时自适应为https; 兼容https无法请求http的情况;
+		if(strstr(APP_HOST,'https://')){
+			$api = $options['system']['settings']['kodApiServer'];
+			$options['system']['settings']['kodApiServer'] = str_replace('http://','https://',$api);
 		}
 		
 		$optionsGet = Hook::filter('user.view.options.before',$options);

@@ -158,6 +158,12 @@ class explorerUserShare extends Controller{
 		if($source['type'] == 'folder'){
 			$source['pathDisplay'] .= '/';
 		}
+		
+		// 读写权限;
+		if($source['auth']){
+			$source['isWriteable'] = AuthModel::authCheckEdit($source['auth']['authValue']);
+			$source['isReadable']  = AuthModel::authCheckView($source['auth']['authValue']);
+		}
 		return $source;
 	}
 	

@@ -101,8 +101,9 @@ class userSetting extends Controller {
 		if($this->user[$type] == $input) return;
 
 		$where = array($type=> $input);
-		if ($this->userSearch($where)) {
-			show_json(LNG('common.' . $type) . LNG('user.bindOthers'), false);
+		if ($res = Model('User')->userSearch($where, 'name,nickName')) {
+			$name = $res['nickName'] ? $res['nickName'] : $res['name'];
+			show_json(LNG('common.' . $type) . LNG('user.bindOthers') . "[{$name}]", false);
 		}
 		// 判断邮箱、短信验证码
 		$param = array(
@@ -123,7 +124,7 @@ class userSetting extends Controller {
 		if ($input == $oldName)  return;
 
 		// 新旧昵称不等,且新昵称能查询到
-		if ($this->userSearch(array('nickName' => $input))) {
+		if (Model('User')->userSearch(array('nickName' => $input))) {
 			show_json(LNG('explorer.repeatError'), false);
 		}
 	}
@@ -148,6 +149,9 @@ class userSetting extends Controller {
 		}
 		if (!$this->model->userPasswordCheck($this->user['userID'], $oldpwd)) {
 			show_json(LNG('user.oldPwdError'), false);
+		}
+		if( !ActionCall('user.check.password',$newpwd) ){
+			return ActionCall('user.check.passwordTips');
 		}
 		return $newpwd;
 	}
@@ -210,13 +214,6 @@ class userSetting extends Controller {
 	}
 
 	/**
-	 * 根据条件获取用户信息
-	 */
-	public function userSearch($where, $field = '*') {
-		return $this->model->where($where)->field($field)->find();
-	}
-
-	/**
 	 * 重置密码
 	 */
 	public function changePassword() {
@@ -251,7 +248,7 @@ class userSetting extends Controller {
 			'msgCode'	 => array('check' => 'require')
 		));
 		// 是否绑定
-		$res = $this->userSearch(array($data['type'] => $data['input']), 'userID');
+		$res = Model('User')->userSearch(array($data['type'] => $data['input']), 'userID');
 		if (empty($res)) {
 			show_json(LNG('user.notBind'), false);
 		}
@@ -279,26 +276,30 @@ class userSetting extends Controller {
 	 */
 	private function findPwdReset() {
 		$data = Input::getArray(array(
-			'token'	 => array('check' => 'require'),
-			'password'	 => array('check' => 'require'),
-			'salt'		 => array('default' => null)
+			'token'	 	=> array('check' => 'require'),
+			'password'	=> array('check' => 'require'),
+			'salt'		=> array('default' => null)
 		));
 		// 检测token是否有效
-		if(!$cache = Cache::get($data['token'])) show_json(LNG('common.errorExpiredRequest'), false);
+		$cache = Cache::get($data['token']);
+		if(!$cache) show_json(LNG('common.errorExpiredRequest'), false);
 		if(!isset($cache['type']) || !isset($cache['input']) || !isset($cache['userID']) || !isset($cache['time'])){
 			show_json(LNG('common.illegalRequest'), false);
 		}
-		if($cache['time'] < time() - 60 * 20){
+		if($cache['time'] < time() - 60 * 10){
 			show_json(LNG('common.expiredRequest'), false);
 		}
-		$res = $this->userSearch(array($cache['type'] => $cache['input']), 'userID');
+		$res = Model('User')->userSearch(array($cache['type'] => $cache['input']), 'userID');
 		if(empty($res) || $res['userID'] != $cache['userID']){
 			show_json(LNG('common.illegalRequest'), false);
 		}
-		Cache::remove($data['token']);
 		if (isset($data['salt'])) {
 			$data['password'] = $this->decodePwd($data['password']);
 		}
+		if( !ActionCall('user.check.password',$data['password']) ){
+			return ActionCall('user.check.passwordTips');
+		}
+		Cache::remove($data['token']);		
 		if (!$this->model->userEdit($res['userID'], array('password' => $data['password']))) {
 			show_json(LNG('explorer.error'), false);
 		}

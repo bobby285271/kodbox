@@ -1,7 +1,7 @@
 define(function(require, exports) {
 	var getImageArr = function(filePath,name){
-		var $file    = $("[data-path="+hashEncode(filePath)+"]");
-		var $images  = $file.parent().find(".file .picture");
+		var $files 	 = $("[data-path="+hashEncode(filePath)+"]");
+		var $images  = $files.parent().find(".file .picture-show");
 		var itemsArr = [];
 		var index 	 = 0;
 		var makeItem = function(filePath,name,$dom){
@@ -20,7 +20,7 @@ define(function(require, exports) {
 			$images.each(function(i){
 				var $curFile = $(this).parents('.file');
 				var curPath  = hashDecode($curFile.attr('data-path'));
-				makeItem(curPath,$curFile.attr('data-name'),$(this).find('img'));
+				makeItem(curPath,$curFile.attr('data-name'),$(this));
 				if(curPath == filePath){
 					index = i;
 				}

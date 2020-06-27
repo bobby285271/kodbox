@@ -16,17 +16,39 @@ class explorerFav extends Controller{
 	 * 获取收藏夹json
 	 */
 	public function get() {
-		$result = $this->model->listView();
-		// 管理员首次; 添加物理路径管理;
-		if( $GLOBALS['isRoot'] && count($result) == 0){
-			$isAdd = Model('UserOption')->get('initAdminFav') ;
-			if($isAdd != '1'){
-				$this->model->addFav(WEB_ROOT,"wwwroot (admin)",'folder');
-				$result = $this->model->listView();
-				Model('UserOption')->set('initAdminFav','1');
+		return $this->model->listView();
+	}
+	
+	public function favAppend($data){
+		$favList = $this->model->listData();
+		$favList = array_to_keyvalue($favList,'path');
+		foreach ($data as $type =>&$list) {
+			if(!in_array($type,array('fileList','folderList','groupList'))) continue;
+			foreach ($list as &$item){
+				if(!isset($item['sourceInfo'])){
+					$item['sourceInfo'] = array();
+				}
+				if( isset($favList[$item['path']]) ){
+					$item['sourceInfo']['isFav'] = 1;
+				}
+				
+				// 收藏文件;
+				if($item['type'] == 'file'){
+					unset($item['hasChildFile']);
+					unset($item['hasChildFolder']);
+					$item['ext'] = get_path_ext($item['name']);
+				}
+				
+				// // driver路径收藏;
+				// $info = KodIO::parse($item['path']);
+				// if($info['type'] == KodIO::KOD_IO){
+				// 	$storage = Model('Storage')->listData($info['id']);
+				// 	$item['driver'] = strtolower($storage['driver']);
+				// }
 			}
 		}
-		return $result;
+		// $data['favList'] = $favList;
+		return $data;
 	}
 
 	/**

@@ -62,6 +62,7 @@ define('DATA_THUMB',    TEMP_PATH .'thumb/');       //缩略图生成存放
 define('LANGUAGE_PATH', BASIC_PATH .'config/i18n/');//多语言目录
 define('KOD_SITE_ID',substr(md5(BASIC_PATH),0,5));
 define('SESSION_ID','KOD_SESSION_ID');
+define('REQUEST_METHOD',strtoupper($_SERVER['REQUEST_METHOD']));
 
 include(FUNCTION_DIR.'common.function.php');
 include(FUNCTION_DIR.'web.function.php');
@@ -73,6 +74,7 @@ include(BASIC_PATH.'config/version.php');
 check_enviroment();
 include(LIB_DIR.'autoload.php');
 
+$config['jsonpAllow']	= true;
 $config['appCharset']	= 'utf-8';//该程序整体统一编码
 $config['checkCharset'] = 'ASCII,UTF-8,GB2312,GBK,BIG5,UTF-16,UCS-2,'.
 		'Unicode,EUC-KR,EUC-JP,SHIFT-JIS,EUCJP-WIN,SJIS-WIN,JIS,LATIN1';//文件打开自动检测编码
@@ -95,11 +97,6 @@ if(!defined('APP_HOST')){	define('APP_HOST',HOST.str_replace(WEB_ROOT,'',BASIC_P
 define('PLUGIN_HOST',APP_HOST.str_replace(BASIC_PATH,'',PLUGIN_DIR));//插件目录
 
 include(BASIC_PATH.'config/setting.php');
-if (file_exists(BASIC_PATH.'config/setting_user.php')) {
-	include_once(BASIC_PATH.'config/setting_user.php');
-}
-if(!defined('INSTALL_CHANNEL')){define('INSTALL_CHANNEL','');}
-
 init_common();
 $config['autorun'] = array(
 	'user.index.init',
