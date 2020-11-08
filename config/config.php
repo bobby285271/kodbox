@@ -9,6 +9,7 @@
 define('GLOBAL_DEBUG',0);//0 or 1
 @set_time_limit(3600);//60min pathInfoMuti,search,upload,download...
 @ini_set("max_execution_time",3600);//3600
+@ini_set('request_terminate_timeout', 3600);
 @ini_set('memory_limit','500M');//
 @ini_set('session.cache_expire',1800);
 
@@ -20,15 +21,13 @@ if(GLOBAL_DEBUG){
 	@ini_set("display_errors","on");
 	@error_reporting(E_ALL^E_NOTICE^E_DEPRECATED);
 	define("STATIC_DEV",0);
-	// $xhprof = "/Library/WebServer/Documents/localhost/kod/doc/tools/xhprof/load.php";
-	// if(file_exists($xhprof)){
-	// 	include($xhprof);
-	// }
+	//$f="/Library/WebServer/Documents/localhost/kod/doc/tools/xhprof/load.php";if(file_exists($f)){include($f);}
 }else{
 	@ini_set("display_errors","on");//on off;
 	@error_reporting(E_ALL^E_NOTICE^E_WARNING^E_DEPRECATED);//0
 	define("STATIC_DEV",0);
 }
+
 
 //header('HTTP/1.1 200 Ok');//兼容部分lightHttp服务器环境; php5.1以下会输出异常；暂屏蔽
 header("Content-type: text/html; charset=utf-8");
@@ -100,6 +99,7 @@ include(BASIC_PATH.'config/setting.php');
 init_common();
 $config['autorun'] = array(
 	'user.index.init',
+	'user.index.maintenance',
 	'user.authRole.autoCheck',
 	'user.authPlugin.autoCheck',
 	'explorer.auth.autoCheck',

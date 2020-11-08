@@ -1,8 +1,10 @@
 <?php
 return array(
-	"yzOffice.meta.name"				=> "永中office预览",
-	"yzOffice.meta.title"				=> "永中office",
+	"yzOffice.meta.name"				=> "永中office",
+	"yzOffice.meta.title"				=> "永中office在线预览",
 	"yzOffice.meta.desc"				=> "office系列文件在线预览",
+	'yzOffice.meta.netwrokDesc'			=> "<h4>说明:</h4>该应用在运行过程中，将请求外网接口（Yozo），通过接口对office文件进行上传和转换，实现文件的在线预览。",
+	'yzOffice.meta.netwrokUrl'			=> "接口地址",
 
 	'yzOffice.config.cacheFile'			=> "开启缓存",
 	'yzOffice.config.cacheFileDesc'		=> "开启后,office解析生成的图片等文件存储于本服务器;",

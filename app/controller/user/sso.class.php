@@ -11,50 +11,67 @@
  * 通用远程调用
  */
 class userSso extends Controller{
-	private $ssoKey = 'KOD_SESSION_SSO';
 	public function __construct(){
 		parent::__construct();
-
-		Action('user.index')->init();
-		$this->ssoID = Cookie::get($this->ssoKey);
-		if(!$this->ssoID){
-			$this->ssoID = rand_string(32);
-		}
-		Cookie::set($this->ssoKey,$this->ssoID);
-		$this->session = Cache::get($this->ssoID);
-		$this->session = $this->session ? $this->session : array();
 	}
 
-	public function checkAuth($appName,$authValue){
-		$userID   = Session::get('kodUser.userID');
-		$apiToken = $userID.json_encode($authValue);
-		//检测是否已存在且校验通过; 用户登录名,权限都一致
-		if($userID && $this->session[$appName] &&
-			$this->session[$appName] === $apiToken ){
-			return true;
-		}
-		
-		//检测权限;
-		if(Action('user.AuthPlugin')->checkAuthValue($authValue)){
-			$this->session[$appName] = $apiToken;
-			Cache::set($this->ssoID,$this->session);
-			return;
-		}
-		unset($this->session[$appName]);
-		Cache::set($this->ssoID,$this->session);
-		
-		$login = APP_HOST.'#user/login&link='.rawurlencode(this_url());
-		if($userID){
-			$login .= '&msg=' . LNG('user.loginNoPermission');
-		}		
+	// 引入代码调用;
+	public function check($appName,$authValue=''){
+		$result = $this->checkAuth($appName,$authValue);
+		if($result === true) return array(1,Action('user.index')->accessToken());
+		$login = APP_HOST.'#user/login&link='.rawurlencode(this_url()).'&msg='.$result;
 		header('Location:'.$login);exit;
 	}
-	public function checkAuthPlugin($appName){
-		$plugin = Model("Plugin")->loadList($appName);
-		if (!$plugin || $plugin['status'] == 0){
-			show_tips($appName.LNG('admin.plugin.disabled'),false);
-			return false;
+	private function checkAuth($appName,$authValue=''){
+		Action('user.index')->init();
+		if(!Session::get('kodUser.userID')) return '[API LOGIN]';
+		if(!$authValue){
+			$plugin = Model("Plugin")->loadList($appName);
+			if (!$plugin || $plugin['status'] == 0){
+				return $appName.' '.LNG('admin.plugin.disabled');
+			}
+			$authValue = $plugin['config']['pluginAuth'];
 		}
-		$this->checkAuth($appName,$plugin['config']['pluginAuth']);
+		if(!Action('user.AuthPlugin')->checkAuthValue($authValue)){
+			return LNG('user.loginNoPermission');
+		}
+		return true;
+	}
+
+	
+	
+	// 第三方通过url调用请求;
+	public function apiCheckToken(){
+		if($this->checkAuth($_GET['appName'],$_GET['authValue']) === true){
+			echo "[ok]";
+		}
+	}
+	// -> login&apiLogin => 第三方app&token=accessToken;
+	public function apiLogin(){
+		$result = $this->checkAuth($_GET['appName'],$_GET['authValue']);
+		$callbackUrl = $_GET['callbackUrl'];
+		if($result === true){
+			$token = Action('user.index')->accessToken();
+			$callbackUrl = $this->urlRemoveKey($callbackUrl,'kodTokenApi');
+			if(strstr($callbackUrl,'?')){
+				$callbackUrl = $callbackUrl.'&kodTokenApi='.$token;
+			}else{
+				$callbackUrl = $callbackUrl.'?kodTokenApi='.$token;
+			}
+			// pr($callbackUrl,$token);exit;
+			header('Location:'.$callbackUrl);exit;
+		}
+		
+		$link = APP_HOST.'#user/login&link='.rawurlencode($callbackUrl).'&callbackToken=1&msg='.$result;
+		header('Location:'.$link);exit;
+	}
+	
+	private function urlRemoveKey($url,$key){
+		$parse = parse_url($url);
+		parse_str($parse['query'],$get);
+		unset($get[$key]);
+		$query = http_build_query($get);
+		$query = $query ? '?'.$query : '';
+		return $parse['scheme'].'://'.$parse['host'].$parse['path'].$query;
 	}
 }

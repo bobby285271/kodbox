@@ -2,7 +2,7 @@
 	"id":"yzOffice",
 	"name":"{{LNG['yzOffice.meta.name']}}",
 	"title":"{{LNG['yzOffice.meta.title']}}",
-	"version":"1.44",
+	"version":"1.47",
 	"category":"file",
 	"source":{
 		"icon":"{{pluginHost}}static/images/icon.png"
@@ -12,6 +12,10 @@
 		"copyright":"kodcloud",
 		"homePage":"http://kodcloud.com"
 	},
+	"meta":{
+		"needNetwork": 1
+	},
+	"networkDesc": "{{LNG['yzOffice.meta.netwrokDesc']}}<br/>{{LNG['yzOffice.meta.netwrokUrl']}}: <span class='blue-6'>http://dcs.yozosoft.com</span>",
 	"configItem":{
 		"formStyle":{
 			"className":"form-box-title-left",

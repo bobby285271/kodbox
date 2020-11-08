@@ -1,8 +1,8 @@
 {
 	"id":"picasa",
-	"name":"{{LNG['admin.plugin.defaultPicasa']}}",
-	"title":"",
-	"version":"1.24",
+	"name":"Picasa",
+	"title":"图片管理工具",
+	"version":"1.26",
 	"source":{
 		"className":"x-item-icon x-jpg",
 		"screenshoot":[

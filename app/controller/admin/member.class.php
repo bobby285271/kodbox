@@ -34,7 +34,6 @@ class adminMember extends Controller{
 	 * 根据所在部门获取用户列表
 	 */
 	public function get() {
-		$rootGroupID = 1;
 		$data = Input::getArray(array(
 			"fields"	=> array("check"=>"require",'default'=>''),
 			"status"	=> array("default"=>null)
@@ -73,6 +72,7 @@ class adminMember extends Controller{
 	public function add() {
 		$this->import();
 		$data = Input::getArray(array(
+			"userID"	=> array("default"=>null),
 			"name" 		=> array("check"=>"require"),
 			"sizeMax" 	=> array("check"=>"float","default"=>1024*1024*100),
 			"roleID"	=> array("check"=>"int"),
@@ -184,7 +184,9 @@ class adminMember extends Controller{
 		
 		$res = $this->model->userEdit($data['userID'],$data);
 		$groupInfo = json_decode($this->in['groupInfo'],true);
-		if($res && is_array($groupInfo)){
+		if($res && isset($this->in['groupInfo'])){ 
+			// 编辑用户,必须有至少一个默认部门; 即便是没有权限;
+			$groupInfo = is_array($groupInfo) ? $groupInfo : array();
 			$this->model->userGroupSet($data['userID'],$groupInfo,true);
 		}
 		$msg = $res > 0 ? LNG('explorer.success') : $this->model->errorLang($res);

@@ -311,7 +311,7 @@ class S3 {
 			if ($maxKeys == 0) {
 				$maxKeys = null;
 			}
-			$rest->setParameter('list-type', 2);
+			// $rest->setParameter('list-type', 2);		// 与marker冲突
 			if ($prefix !== null && $prefix !== '') {
 				$rest->setParameter('prefix', $prefix);
 			}
@@ -403,7 +403,57 @@ class S3 {
 	public static function deleteBucket($bucket) {
 		$rest = new S3Request('DELETE', $bucket, '', self::$endpoint);
 		$rest = $rest->getResponse();
-		return self::__execReponse($rest, __FUNCTION__, 1, array($bucket), 204);
+		$code = $rest->code == '200' ? 200 : 204;
+		return self::__execReponse($rest, __FUNCTION__, 1, array($bucket), $code);
+	}
+
+	/**
+	 * get cors of bucket
+	 * @param [type] $bucket
+	 * @return void
+	 */
+	public static function getBucketCors($bucket) {
+		$rest = new S3Request('GET', $bucket, '', self::$endpoint);
+		$rest->setParameter('cors', '');
+		$rest = $rest->getResponse();
+
+		if (!$body = self::__execReponse($rest, __FUNCTION__, 0, array($bucket)))
+			return false;
+		
+		return isset($body['CORSRule']) ? $body['CORSRule'] : false;
+	}
+
+	/**
+	 * set cors of bucket
+	 * @param [type] $bucket
+	 * @return void
+	 */
+	public static function setBucketCors($bucket) {
+		$xmlStr = "<?xml version='1.0' encoding='UTF-8'?><CORSConfiguration>"
+					. "<CORSRule>"
+					. "<AllowedOrigin>*</AllowedOrigin>"
+					. "<AllowedMethod>GET</AllowedMethod>"
+					. "<AllowedMethod>PUT</AllowedMethod>"
+					. "<AllowedMethod>POST</AllowedMethod>"
+					. "<AllowedMethod>DELETE</AllowedMethod>"
+					. "<AllowedMethod>HEAD</AllowedMethod>"
+					. "<MaxAgeSeconds>600</MaxAgeSeconds>"
+					. "<ExposeHeader>ETag</ExposeHeader>"
+					. "<AllowedHeader>*</AllowedHeader>"
+					. "</CORSRule>"
+				. "</CORSConfiguration>";
+		$xml = new SimpleXMLElement($xmlStr);
+		$body = $xml->asXML();
+
+		$rest = new S3Request('PUT', $bucket, '', self::$endpoint);
+		$rest->setHeader('Content-Type', 'application/xml');
+		$rest->setHeader('Content-MD5', self::__base64(md5($body)));
+		$rest->setHeader('Content-Length', strlen($body));
+		$rest->setParameter('cors', '');
+		$rest->setBody($body);
+		$rest = $rest->getResponse();
+
+		return self::__execReponse($rest, __FUNCTION__, 1);
 	}
 
 	/**
@@ -966,7 +1016,7 @@ class S3 {
 	 *
 	 * @return mixed | false
 	 */
-	public static function copyObject($srcBucket, $srcUri, $bucket, $uri, $acl = self::ACL_PRIVATE, $metaHeaders = array(), $requestHeaders = array(), $storageClass = self::STORAGE_CLASS_STANDARD) {
+	public static function copyObject($srcBucket, $srcUri, $bucket, $uri, $acl = self::ACL_PRIVATE, $metaHeaders = array(), $requestHeaders = array(), $storageClass = self::STORAGE_CLASS_STANDARD, $returnBody = false) {
 		$rest = new S3Request('PUT', $bucket, $uri, self::$endpoint);
 		$rest->setHeader('Content-Length', 0);
 		foreach ($requestHeaders as $h => $v) {
@@ -984,10 +1034,10 @@ class S3 {
 			$rest->setAmzHeader('x-amz-metadata-directive', 'REPLACE');
 		}
 
-		$rest = $rest->getResponse();
+		$rest = $rest->getResponse(true);
 		if (!$body = self::__execReponse($rest, __FUNCTION__, 0, array($srcBucket, $srcUri, $bucket, $uri)))
 			return false;
-		
+		if($returnBody) return $body;
 		return isset($body['LastModified'], $body['LastModified']) ? true : false;
 	}
 
@@ -1021,8 +1071,8 @@ class S3 {
 	public static function deleteObject($bucket, $uri) {
 		$rest = new S3Request('DELETE', $bucket, $uri, self::$endpoint);
 		$rest = $rest->getResponse();
-		
-		return self::__execReponse($rest, __FUNCTION__, 1, array(), 204);
+		$code = $rest->code == '200' ? 200 : 204;
+		return self::__execReponse($rest, __FUNCTION__, 1, array(), $code);
 	}
 
 	/**
@@ -1057,44 +1107,21 @@ class S3 {
 
 	/**
 	 * Get a query string authenticated URL.
-	 *
-	 * @param string $bucket     Bucket name
-	 * @param string $uri        Object URI
-	 * @param int    $lifetime   Lifetime in seconds
-	 * @param bool   $hostBucket Use the bucket name as the hostname
-	 * @param bool   $https      Use HTTPS ($hostBucket should be false for SSL verification)
-	 *
-	 * @return string
-	 */
-	public static function getAuthenticatedURLX($bucket, $uri, $lifetime, $hostBucket = false, $https = false, $preview = false) {
-		$expires = self::__getTime() + $lifetime;
-		$uri = str_replace(array('%2F', '%2B'), array('/', '+'), rawurlencode($uri));
-		if ($preview) {
-			return sprintf(($https ? 'https' : 'http') . '://%s/%s?response-content-disposition=inline&AWSAccessKeyId=%s&Expires=%u&Signature=%s', $hostBucket ? $bucket : self::$endpoint . '/' . $bucket, $uri, self::$__accessKey, $expires, urlencode(self::__getHash("GET\n\n\n{$expires}\n/{$bucket}/{$uri}")));
-		}
-
-		return sprintf(($https ? 'https' : 'http') . '://%s/%s?AWSAccessKeyId=%s&Expires=%u&Signature=%s',
-			// $hostBucket ? $bucket : $bucket.'.s3.amazonaws.com', $uri, self::$__accessKey, $expires,
-			$hostBucket ? $bucket : self::$endpoint . '/' . $bucket, $uri, self::$__accessKey, $expires, urlencode(self::__getHash("GET\n\n\n{$expires}\n/{$bucket}/{$uri}")));
-	}
-
-	/**
-	 * Get a query string authenticated URL.
 	 * https://oos-cn.ctyunapi.cn/docs/oos/S3%E5%BC%80%E5%8F%91%E8%80%85%E6%96%87%E6%A1%A3-v6.pdf
 	 * @param string $bucket     Bucket name
 	 * @param string $uri        Object URI
 	 * @param int    $lifetime   Lifetime in seconds
 	 * @param bool   $hostBucket Use the bucket name as the hostname
-	 * @param bool   $https      Use HTTPS ($hostBucket should be false for SSL verification)
 	 *
 	 * @return string
 	 */
-	public function getAuthenticatedURL($bucket, $uri, $lifetime, $hostBucket = false, $https = false, $subResource = array()){
-		$expires = self::__getTime() + $lifetime;
+	public function getAuthenticatedURL($bucket, $uri, $lifetime, $hostBucket = false, $subResource = array()){
+		// $expires = self::__getTime() + $lifetime;
+		$expires = strtotime(date('Ymd 23:59:59')); // kodbox：签名链接有效期，改为当天有效
 		$uri = str_replace(array('%2F', '%2B'), array('/', '+'), rawurlencode($uri));
 		$ext = http_build_query($subResource);
 		$url = sprintf(
-			($https ? 'https' : 'http') . '://%s/%sAWSAccessKeyId=%s&Expires=%u&Signature=%s', 
+			'%s/%sAWSAccessKeyId=%s&Expires=%u&Signature=%s', 
 			$hostBucket ? $bucket : self::$endpoint . '/' . $bucket, 
 			$uri . '?' . $ext . ($ext ? '&' : ''),
 			self::$__accessKey, 
@@ -1102,16 +1129,6 @@ class S3 {
 			urlencode(self::__getHash("GET\n\n\n{$expires}\n/{$bucket}/{$uri}".($ext ? '?' . urldecode($ext) : '')))
 		);
 		return $url;
-	}
-
-	/**
-	 * 获取请求Host
-	 * @param [type] $endpoint
-	 * @param [type] $bucket
-	 * @return void endpoint为域名时，host为bucket.endpoint，否则为endpoint
-	 */
-	public static function getObjectHost($endpoint, $bucket){
-		return is_domain($endpoint) ? $bucket . '.' . $endpoint : $endpoint;
 	}
 
 	/**
@@ -1133,7 +1150,8 @@ class S3 {
 			$signed_headers[strtolower($key)] = $value;
 		}
 		if (!array_key_exists('host', $signed_headers)) {
-			$signed_headers['host'] = self::getObjectHost(self::$endpoint, $bucket);
+			$res = parse_url(self::$endpoint);
+			$signed_headers['host'] = $res['host'];
 		}
 		ksort($signed_headers);
 		$header_string = '';
@@ -1142,7 +1160,11 @@ class S3 {
 		}
 		$signed_headers_string = implode(';', array_keys($signed_headers));
 		$date_text = gmdate('Ymd');
-		$time_text = gmdate('Ymd\THis\Z');
+		// $time_text = gmdate('Ymd\THis\Z');
+
+		$time_text = gmdate('Ymd\T000000\Z');
+		$expires = 3600*24;	// kodbox：签名链接有效期，改为当天有效
+
 		$algorithm = 'AWS4-HMAC-SHA256';
 		$scope = "$date_text/$region/s3/aws4_request";
 		$x_amz_params = array(
@@ -1167,8 +1189,9 @@ class S3 {
 		$signing_key = hash_hmac('sha256', 'aws4_request', hash_hmac('sha256', 's3', hash_hmac('sha256', $region, hash_hmac('sha256', $date_text, 'AWS4' . $secret_key, true), true), true), true);
 		$signature = hash_hmac('sha256', $string_to_sign, $signing_key);
 
-		$host = is_domain(self::$endpoint) ?  $signed_headers['host'] : self::$endpoint . '/' . $bucket;
-		$url = 'https://' . $host . $encoded_uri . '?' . $query_string . '&X-Amz-Signature=' . $signature;
+		// $host = self::$endpoint . '/' . $bucket;
+		$host = self::$endpoint;
+		$url = $host . $encoded_uri . '?' . $query_string . '&X-Amz-Signature=' . $signature;
 
 		return $url;
 	}
@@ -1414,7 +1437,7 @@ class S3 {
 		$uriQmPos = strpos($uri, '?');
 		$amzRequests[] = ($uriQmPos === false ? $uri : substr($uri, 0, $uriQmPos));
 		ksort($parameters);
-		$amzRequests[] = http_build_query($parameters);
+		$amzRequests[] = str_replace('+','%20',http_build_query($parameters));	// 空格会被转义为+，导致签名错误
 		// add header as string to requests
 		foreach ($amzHeaders as $k => $v) {
 			$amzRequests[] = $k . ':' . $v;
@@ -1585,12 +1608,13 @@ final class S3Request {
 		$this->bucket = $bucket;
 		$this->uri = $uri !== '' ? '/' . str_replace('%2F', '/', rawurlencode($uri)) : '/';
 
+		$hosts = explode("://", $endpoint);	// ['http://', 's3.amazonaws.com']
 		if ($this->bucket !== '') {
 			if ($this->__dnsBucketName($this->bucket)) {
-				$this->headers['Host'] = S3::getObjectHost($this->endpoint, $this->bucket);
+				$this->headers['Host'] = $hosts[1];
 				$this->resource = '/' . $this->bucket . $this->uri;
 			} else {
-				$this->headers['Host'] = $this->endpoint;
+				$this->headers['Host'] = $hosts[1];
 				$this->uri = $this->uri;
 				if ($this->bucket !== '') {
 					$this->uri = '/' . $this->bucket . $this->uri;
@@ -1599,7 +1623,7 @@ final class S3Request {
 				$this->resource = $this->uri;
 			}
 		} else {
-			$this->headers['Host'] = $this->endpoint;
+			$this->headers['Host'] = $hosts[1];
 			$this->resource = $this->uri;
 		}
 
@@ -1676,14 +1700,14 @@ final class S3Request {
 				array_key_exists('uploadId', $this->parameters) ||
 				array_key_exists('uploads', $this->parameters) ||
 				array_key_exists('website', $this->parameters) ||
+				array_key_exists('cors', $this->parameters) ||
 				array_key_exists('logging', $this->parameters)) {
 				$this->resource .= $query;
 			}
 		}
-		$host = $this->headers['Host'] !== '' ? $this->headers['Host'] : $this->endpoint;
-
-		if(!is_domain($this->endpoint)) $host = $this->endpoint . '/' . $this->bucket;
-		$url = 'http://' . $host . $this->uri;
+		// $host = $this->headers['Host'] !== '' ? $this->headers['Host'] : $this->endpoint;
+		$url = strpos($this->endpoint, $this->bucket) === false ? $this->endpoint . '/' . $this->bucket : $this->endpoint;
+		$url .= $this->uri;
 
 		// Basic setup
 		$curl = curl_init();
@@ -1789,7 +1813,9 @@ final class S3Request {
 				break;
 			default: break;
 		}
-
+		curl_setopt($curl, CURLOPT_NOPROGRESS, false);//add by warlee;
+		curl_setopt($curl, CURLOPT_PROGRESSFUNCTION,'curl_progress');curl_progress_start($curl);
+		
 		// set curl progress function callback
 		if (S3::$progressFunction) {
 			curl_setopt($curl, CURLOPT_NOPROGRESS, false);
@@ -1806,14 +1832,25 @@ final class S3Request {
 				'resource'	 => $this->resource,
 			);
 		}
-
+		curl_progress_end($curl);
 		@curl_close($curl);
 
 		// Parse body into XML
 		if ($this->response->error === false && isset($this->response->headers['type']) &&
 			$this->response->headers['type'] == 'application/xml' && isset($this->response->body)) {
-			if(stripos($this->response->body, '<?xml')) $this->response->body = stristr($this->response->body,'<?xml');
-			$this->response->body = simplexml_load_string($this->response->body);
+			if (substr($this->response->body, 0, 4) == 'HTTP') {
+				$temp = explode(PHP_EOL, $this->response->body);
+				$body = array();
+				foreach($temp as $value) {
+					if(stripos($value, ':') === false) continue;
+					$item = explode(':', trim($value));
+					$body[$item[0]] = $item[1];
+				}
+				$this->response->body = $body;
+			}else{
+				if(stripos($this->response->body, '<?xml')) $this->response->body = stristr($this->response->body,'<?xml');
+				$this->response->body = simplexml_load_string($this->response->body);
+			}
 
 			// Grab S3 errors
 			if (!in_array($this->response->code, array(200, 204, 206)) &&
@@ -1934,7 +1971,8 @@ final class S3Request {
 				$this->response->headers['size'] = (int) $value;
 			} elseif ($header == 'Content-Type') {
 				$this->response->headers['type'] = $value;
-			} elseif ($header == 'ETag') {
+			// } elseif ($header == 'ETag') {
+			} elseif (strtolower($header) == 'etag') {
 				$this->response->headers['hash'] = $value[0] == '"' ? substr($value, 1, -1) : $value;
 			} elseif (preg_match('/^x-amz-meta-.*$/', $header)) {
 				$this->response->headers[$header] = $value;

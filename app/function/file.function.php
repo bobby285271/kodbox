@@ -76,55 +76,53 @@ function path_filter($path){
 	return str_replace($notAllow,' ', $path);
 }
 
-
 //filesize 解决大于2G 大小问题
 //http://stackoverflow.com/questions/5501451/php-x86-how-to-get-filesize-of-2-gb-file-without-external-program
 function get_filesize($path){
-	$result = false;
-	$fp = @fopen($path,"r");
-	if(! $fp = @fopen($path,"r")) return $result;
 	if(PHP_INT_SIZE >= 8 ){ //64bit
-		$result = (float)(abs(sprintf("%u",@filesize($path))));
+		return (float)(abs(sprintf("%u",@filesize($path))));
+	}
+	
+	$fp = fopen($path,"r");
+	if(!$fp) return $result;	
+	if (fseek($fp, 0, SEEK_END) === 0) {
+		$result = 0.0;
+		$step = 0x7FFFFFFF;
+		while ($step > 0) {
+			if (fseek($fp, - $step, SEEK_CUR) === 0) {
+				$result += floatval($step);
+			} else {
+				$step >>= 1;
+			}
+		}
 	}else{
-		if (fseek($fp, 0, SEEK_END) === 0) {
-			$result = 0.0;
-			$step = 0x7FFFFFFF;
-			while ($step > 0) {
-				if (fseek($fp, - $step, SEEK_CUR) === 0) {
-					$result += floatval($step);
-				} else {
-					$step >>= 1;
-				}
+		static $iswin;
+		if (!isset($iswin)) {
+			$iswin = (strtoupper(substr(PHP_OS, 0, 3)) == 'WIN');
+		}
+		static $exec_works;
+		if (!isset($exec_works)) {
+			$exec_works = (function_exists('exec') && !ini_get('safe_mode') && @exec('echo EXEC') == 'EXEC');
+		}
+		if ($iswin && class_exists("COM")) {
+			try {
+				$fsobj = new COM('Scripting.FileSystemObject');
+				$f = $fsobj->GetFile( realpath($path) );
+				$size = $f->Size;
+			} catch (Exception $e) {
+				$size = null;
+			}
+			if (is_numeric($size)) {
+				$result = $size;
+			}
+		}else if ($exec_works){
+			$cmd = ($iswin) ? "for %F in (\"$path\") do @echo %~zF" : "stat -c%s \"$path\"";
+			@exec($cmd, $output);
+			if (is_array($output) && is_numeric($size = trim(implode("\n", $output)))) {
+				$result = $size;
 			}
 		}else{
-			static $iswin;
-			if (!isset($iswin)) {
-				$iswin = (strtoupper(substr(PHP_OS, 0, 3)) == 'WIN');
-			}
-			static $exec_works;
-			if (!isset($exec_works)) {
-				$exec_works = (function_exists('exec') && !ini_get('safe_mode') && @exec('echo EXEC') == 'EXEC');
-			}
-			if ($iswin && class_exists("COM")) {
-				try {
-					$fsobj = new COM('Scripting.FileSystemObject');
-					$f = $fsobj->GetFile( realpath($path) );
-					$size = $f->Size;
-				} catch (Exception $e) {
-					$size = null;
-				}
-				if (is_numeric($size)) {
-					$result = $size;
-				}
-			}else if ($exec_works){
-				$cmd = ($iswin) ? "for %F in (\"$path\") do @echo %~zF" : "stat -c%s \"$path\"";
-				@exec($cmd, $output);
-				if (is_array($output) && is_numeric($size = trim(implode("\n", $output)))) {
-					$result = $size;
-				}
-			}else{
-				$result = filesize($path);
-			}
+			$result = filesize($path);
 		}
 	}
 	fclose($fp);
@@ -422,10 +420,12 @@ function path_haschildren($dir,$checkFile=false){
 		$fullpath = $dir.$file;
 		if ($checkFile) {//有子目录或者文件都说明有子内容
 			if(@is_file($fullpath) || is_dir($fullpath.'/')){
+				closedir($dh);
 				return true;
 			}
 		}else{//只检查有没有文件
 			if(@is_dir($fullpath.'/')){//解决部分主机报错问题
+				closedir($dh);
 				return true;
 			}
 		}
@@ -454,10 +454,10 @@ function del_file($fullpath){
 function del_dir($dir){
 	if(!file_exists($dir) || !is_dir($dir)) return true;
 	if (!$dh = opendir($dir)) return false;
-	@set_time_limit(0);
+	set_timeout();
 	while (($file = readdir($dh)) !== false) {
 		if ($file =='.' || $file =='..') continue;
-		$fullpath = $dir . '/' . $file;
+		$fullpath = rtrim($dir, '/') . '/' . $file;
 		if (!is_dir($fullpath)) {
 			if (!@unlink($fullpath)) { // 删除不了，尝试修改文件权限
 				@chmod($fullpath, 0777);
@@ -495,7 +495,7 @@ function copy_dir($source, $dest){
 	if (!$dest) return false;
 	if (is_dir($source) && $source == substr($dest,0,strlen($source))) return false;//防止父文件夹拷贝到子文件夹，无限递归
 
-	@set_time_limit(0);
+	set_timeout();
 	$result = true;
 	if (is_file($source)) {
 		if ($dest[strlen($dest)-1] == '/') {
@@ -551,7 +551,7 @@ function move_path($source,$dest,$repeat_add='',$repeat_type='replace'){
 		}
 	}
 
-	@set_time_limit(0);
+	set_timeout();
 	if(is_file($source)){
 		return move_file($source,$dest,$repeat_add,$repeat_type);
 	}
@@ -627,135 +627,6 @@ function recursion_dir($path,&$dir,&$file,$deepest=-1,$deep=0){
 function dir_list($path){
 	recursion_dir($path,$dirs,$files);
 	return array_merge($dirs,$files);
-}
-
-/**
- * 借用临时文件方式对读写文件进行锁定标记
- * 
- * fopen mode: http://www.w3school.com.cn/php/func_filesystem_fopen.asp
- * flock mode: http://www.w3school.com.cn/php/func_filesystem_flock.asp
- */
-function file_lock($file,$open=true,$type='read',$timeout=5){
-	clearstatcache();
-	$lockFile  = $file.'.'.$type.'.lock';
-	$lockRead  = $file.'.read.lock';
-	$lockWrite = $file.'.write.lock';
-	if(!$open){
-		@unlink($lockFile);
-		clearstatcache();
-		return;
-	}
-
-	$startTime = microtime(true);
-	do{
-		clearstatcache();
-		$canLock = true;
-		if( $type=='read' ){
-			if( file_exists($lockWrite) ){
-				$canLock = false;
-			}
-		}else if( $type=='write' ){
-			if( file_exists($lockWrite) || file_exists($lockRead) ){
-				$canLock = false;
-			}
-		}
-		if(!$canLock){
-			usleep(mt_rand(10, 50) * 1000);//10~50ms;
-		}
-	} while((!$canLock) && ((microtime(true) - $startTime) < $timeout ));
-	$result = false;
-	if($canLock){
-		$result = file_put_contents($lockFile,time(),LOCK_EX);
-		clearstatcache();
-		$result = $result && file_exists($lockFile);
-		//if(!$result){write_log($_GET['action'].';file not exists','test2');}
-	}
-	return $result;
-}
-
-// 安全读取文件，避免并发下读取数据为空
-function file_read_safe1($file,$timeout = 5){
-	if(file_lock($file,true,'read',$timeout)){
-		$fp = @fopen($file, 'r');
-		if(!$fp || !flock($fp, LOCK_EX)) return false;
-		$result = fread($fp, filesize($file));
-		flock($fp,LOCK_UN);fclose($fp);
-
-		file_lock($file,false,'read');
-		return $result;
-	}
-	return false;
-}
-// 安全读取文件，避免并发下读取数据为空
-function file_wirte_safe1($file,$buffer,$timeout=5){
-	if(file_lock($file,true,'write',$timeout)){
-		$result = @file_put_contents($file,$buffer,LOCK_EX);
-		file_lock($file,false,'write');
-		return $result;
-	}
-	return false;
-}
-
-
-// 安全读取文件，避免并发下读取数据为空
-function file_read_safe($file,$timeout = 5){
-	//return file_read_safe1($file,$timeout);
-	if(!$file || !file_exists($file)) return false;
-	$fp = @fopen($file, 'r');
-	if(!$fp) return false;
-	$startTime = microtime(true);
-	do{
-		$locked = flock($fp, LOCK_EX|LOCK_NB);//LOCK_EX|LOCK_NB 
-		if(!$locked){
-			usleep(mt_rand(1, 50) * 1000);//1~50ms;
-		}
-	} while((!$locked) && ((microtime(true) - $startTime) < $timeout ));//设置超时时间
-	if($locked && filesize($file) >=0 ){
-		$result = @fread($fp, filesize($file));
-		flock($fp,LOCK_UN);
-		fclose($fp);
-		if(filesize($file) == 0){
-			return '';
-		}
-		return $result;
-	}else{
-		flock($fp,LOCK_UN);fclose($fp);
-		return false;
-	}
-}
-
-// 安全读取文件，避免并发下读取数据为空
-function file_wirte_safe($file,$buffer,$timeout=5){
-	//return file_wirte_safe1($file,$buffer,$timeout);
-	clearstatcache();
-	if(strlen($file) == 0 || !$file || !file_exists($file)) return false;
-	$fp = fopen($file,'r+');
-	$startTime = microtime(true);
-	do{
-		$locked = flock($fp, LOCK_EX);//LOCK_EX 
-		if(!$locked){
-			usleep(mt_rand(1, 50) * 1000);//1~50ms;
-		}
-	} while((!$locked) && ((microtime(true) - $startTime) < $timeout ) );//设置超时时间
-	if($locked){
-		$tempFile = $file.'.temp';
-		$result = file_put_contents($tempFile,$buffer,LOCK_EX);//验证是否还能写入；避免磁盘空间满的情况
-		if(!$result || !file_exists($tempFile) ){
-			flock($fp,LOCK_UN);fclose($fp);
-			return false;
-		}
-		@unlink($tempFile);
-		
-		ftruncate($fp,0);
-		rewind($fp);
-		$result = fwrite($fp,$buffer);
-		flock($fp,LOCK_UN);fclose($fp);
-		clearstatcache();
-		return $result;
-	}else{
-		flock($fp,LOCK_UN);fclose($fp);
-		return false;
-	}
 }
 
 /*
@@ -1010,7 +881,7 @@ function is_text_file($ext){
  * 支持fopen的打开都可以；支持本地、url
  */
 function file_download_this($from, $fileName,$headerSize=0){
-	@set_time_limit(0);
+	set_timeout();
 	$fileTemp = $fileName.'.downloading';
 	if ($fp = @fopen ($from, "rb")){
 		if(!$downloadFp = @fopen($fileTemp, "wb")){
@@ -1116,7 +987,7 @@ function write_log($log, $type = 'default', $level = 'log'){
 	//检测日志文件大小, 超过配置大小则重命名
 	if (file_exists($target) && get_filesize($target) >= 1024*1024*10) {
 		$fileName = substr(basename($target),0,strrpos(basename($target),$ext)).date('H:i:s').$ext;
-		rename($target, dirname($target) .'/'. $fileName);
+		@rename($target, dirname($target) .'/'. $fileName);
 	}
 	if(!file_exists($target)){
 		error_log("<?php exit;?>\n", 3,$target);

@@ -120,6 +120,10 @@ class explorerShare extends Controller{
 		if(!$share || $share['isLink'] != '1'){
 			show_json(LNG('explorer.share.notExist'),30100);
 		}
+		if($share['sourceInfo']['isDelete'] == '1'){
+			show_json(LNG('explorer.share.notExist'),30100);
+		}
+		
 		//检测是否过期
 		if($share['timeTo'] && $share['timeTo'] < time()){
 			show_json(LNG('explorer.share.expiredTips'),30101,$this->get(true));
@@ -147,7 +151,9 @@ class explorerShare extends Controller{
 		$passKey  = 'Share_password_'.$share['shareID'];
 		if( $share['password'] ){
 			if( isset($this->in['password']) ){
-				$pass = trim($this->in['password']);
+				$code = md5(BASIC_PATH.Model('SystemOption')->get('systemPassword'));
+				$pass = Mcrypt::decode(trim($this->in['password']),md5($code));
+				
 				if($pass == $share['password']){
 					Session::set($passKey,$pass);
 				}else{

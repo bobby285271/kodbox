@@ -4,13 +4,13 @@
         lng = {
             'dir_list':     LNG['admin.install.serverDir'], 
             'dir_right':    LNG['admin.install.dirRight'],
+            'path_write':   LNG['admin.install.pathNeedWirte'],
             'php_version':  LNG['admin.install.phpVersionTips'],
             'php_bit':      LNG['admin.install.phpBitTips'],
             'php_bitdesc':  LNG['admin.install.phpBitDesc'],
             'sugst_open':   LNG['admin.install.suggestOpen'], 
             'sugst_close':  LNG['admin.install.suggestClose'],
             'must_open':    LNG['admin.install.mustOpen'],
-            'need_write':   LNG['admin.install.needWirte'],
             'next_step':    LNG['common.nextStep'],
             'ensure_ok':    LNG['admin.install.ensureNoError'],
             'update_ok':    LNG['admin.install.updateSuccess'],
@@ -30,16 +30,11 @@
         var opt = {};
         switch (key) {
             case 'path_writable':
-                var tmpOpt = [];
-                _.each(value, function(val, wpath){
-                    if(!val) tmpOpt.push(wpath);
-                });
-                if(!tmpOpt.length) return opt;
-                opt.check = 'fail';
-                opt.icons = 'error';
-                opt.value = tmpOpt.join('; ', tmpOpt);
-                opt.texts = lng.need_write;
-                return opt;
+                if(value !== true) {
+                    opt.check = 'fail';
+                    opt.icons = 'error';
+                    opt.value = '<span title-timeout="100" title="sudo chmod -Rf 777 '+value+'">'+value+'</span>';
+                }
                 break;
             case 'php_version':
                 if(value < 5.3) {
@@ -71,21 +66,20 @@
     var envOptHtml = function(data){
         var tableList = {
             title: {
-                'path_list':    lng.dir_list, 
-                'path_writable':lng.dir_right, 
-                'php_version':  'PHP '+lng.text_version,
-                'php_bit':      'PHP '+lng.text_phpbit,
-                'shell_exec':   'shell_exec、exec '+lng.text_method
+                'path_list': lng.dir_list, 
+                'path_writable': lng.dir_right, 
+                'php_version': 'PHP '+lng.text_version,
+                'php_bit': 'PHP '+lng.text_phpbit,
+                'shell_exec': 'shell_exec、exec '+lng.text_method
             },
             value: {
-                'path_writable':'--', 
-                'php_version':  lng.php_version, 
-                'php_bit':      lng.php_bit+'<br/><span class="bit-desc">('+lng.php_bitdesc+')</span>'
+                'php_version': lng.php_version, 
+                'php_bit': lng.php_bit+'<br/><span class="bit-desc">('+lng.php_bitdesc+')</span>'
             },
             texts: {
-                // 'file_get_contents': lng.must_open, 
+                'path_writable': lng.path_write, 
                 'allow_url_fopen': lng.must_open, 
-                'path_list':    lng.sugst_close
+                'path_list': lng.sugst_close
             }
         };
         var html = '';
@@ -103,8 +97,8 @@
             }
             html += '<p class="' + key + '">\
                 <span class="w30 row-title">' + opt.title + '</span>\
-                <span class="w30">' + opt.value + '</span>\
-                <span class="w30 row-desc">' + opt.texts + '</span>\
+                <span class="w20 row-value">' + opt.value + '</span>\
+                <span class="w40 row-desc">' + opt.texts + '</span>\
                 <span class="w10 ' + opt.check + '"><i class="icon icon-' + opt.icons + '"></i></span>\
                 <span class="clear"></span>\
             </p>';
@@ -121,7 +115,6 @@
         var mustOpenList = {
             'path_writable': lng.dir_right, 
             'php_version': lng.php_version, 
-            // 'file_get_contents': lng.must_open, 
             'allow_url_fopen': lng.must_open, 
         };
         // 载入页面内容
@@ -336,8 +329,11 @@
     }
     Events.bind('windowReady',function(){
         initLng();
-        envCheck(); // 1.环境检测
-        dbSet();    // 2.数据库配置
+        // 检测是否为一键安装，一键安装直接展示账号界面
+        if(!parseInt($('.install-box .fast-install').text())) {
+            envCheck(); // 1.环境检测
+            dbSet();    // 2.数据库配置
+        }
         userSet();  // 3.管理员账号配置
         new kodApi.copyright();
         $(".content-main-message .body").perfectScroll();

@@ -22,7 +22,7 @@
 
 <body id="theBODY">
 	<div id="odf"></div>
-	<script src="<?php echo $this->pluginHost;?>static/webodf.js" type="text/javascript" charset="utf-8"></script>
+	<?php $this->link('static/webodf.js');?>
 	<script type="text/javascript">
     	var fileURL = "<?php echo $fileUrl;?>";
 		var odfelement = document.getElementById("odf"),

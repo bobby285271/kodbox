@@ -243,16 +243,16 @@ Picasa.prototype = {
 			'		<a href="javascript: void(0);" id="PV_Btn_ZoomIn" class="tool-btn">+</a>'+
 			'		<a href="javascript: void(0);" id="PV_Btn_ZoomActual" class="tool-btn">1:1</a>'+
 			'		<div id="PV_Select" class="PV_Btn_Normal">'+
-			'			<a href="javascript: void(0);" id="PV_Btn_Prev"><i class="icon-arrow-left"></i></a>'+
-			'			<a href="javascript: void(0);" id="PV_Btn_Slide"><i class="icon-play"></i></a>'+
-			'			<a href="javascript: void(0);" id="PV_Btn_Next"><i class="icon-arrow-right"></i></a>'+
+			'			<a href="javascript: void(0);" id="PV_Btn_Prev"><i class="ri-arrow-left-line"></i></a>'+
+			'			<a href="javascript: void(0);" id="PV_Btn_Slide"><i class="ri-play-fill"></i></a>'+
+			'			<a href="javascript: void(0);" id="PV_Btn_Next"><i class="ri-arrow-right-line"></i></a>'+
 			'		</div>'+
-			'		<a href="javascript:void(0);" id="PV_rotate_Left" class="tool-btn rotate"><i class=" icon-rotate-left"></i></a>'+
-			'		<a href="javascript:void(0);" id="PV_rotate_Right" class="tool-btn rotate"><i class="icon-rotate-right"></i></a>'+
-			'		<a href="javascript:void(0);" id="PV_Btn_Full" class="tool-btn"><i class="icon-screen-full"></i></a>'+
+			'		<a href="javascript:void(0);" id="PV_rotate_Left" class="tool-btn rotate"><i class=" ri-anticlockwise-fill-2"></i></a>'+
+			'		<a href="javascript:void(0);" id="PV_rotate_Right" class="tool-btn rotate"><i class="ri-clockwise-line-2"></i></a>'+
+			'		<a href="javascript:void(0);" id="PV_Btn_Full" class="tool-btn"><i class="ri-fullscreen-line"></i></a>'+
 
-			'		<a href="javascript:void(0);" id="PV_Btn_Remove" title="Remove(key delete)" class="tool-btn ml-20"><i class="icon-trash"></i></a>'+
-			'		<a href="javascript:void(0);" id="PV_Btn_Open" class="tool-btn"><i class="icon-external-link"></i></a>'+
+			'		<a href="javascript:void(0);" id="PV_Btn_Remove" title="Remove(key delete)" class="tool-btn ml-20"><i class="ri-delete-bin-line-6"></i></a>'+
+			'		<a href="javascript:void(0);" id="PV_Btn_Open" class="tool-btn"><i class="ri-external-link-line"></i></a>'+
 			'	</div>'+
 			'</div>';
 		document.body.appendChild(this.frame);

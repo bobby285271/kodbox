@@ -134,6 +134,7 @@
 }
 .step-box.env .env-table p:nth-child(even) {background: #fafafa;}
 .step-box.env .env-table .row-title{color:#336;}
+.step-box.env .env-table .row-value{word-break:break-all; }
 .step-box.env .env-table .row-desc{color:#aaa;}
 
 .step-box .icon-checkmark{
@@ -143,9 +144,11 @@
     color: #f5222d;
 }
 
-.w30 {width: 30%;}
-.w60 {width: 60%;}
 .w10 {width: 10%;}
+.w20 {width: 20%;}
+.w30 {width: 30%;}
+.w40 {width: 40%;}
+.w60 {width: 60%;}
 
 .install-box .step-box.env .message-content {
     padding-bottom: 125px;
@@ -167,7 +170,7 @@
     padding: 0px !important;
 }
 .install-box .step-box.msg .success {
-    width: 82px;height: 82px;
+    width: 82px;height: 82px;line-height: 82px;
 }
 
 .install-box  .form-box.config-box .panel-form-body{overflow: hidden;}
@@ -191,8 +194,7 @@
 
 .icon{
     display: inline-block;
-    width: 20px;
-    height: 20px;
+    width: 20px;height: 20px;
     background: rgba(0, 0, 0, 0.02);
     text-align: center;
     color: #666;
@@ -201,21 +203,6 @@
     font-size: 12px;
     line-height: inherit!important;
 }
-.icon.icon-loading{
-    -webkit-animation: moveCircleLoopRight 1.4s infinite linear;
-    animation: moveCircleLoopRight 1.4s infinite linear;
-}
-.icon.icon-loading:before{content:"\f110";}
-.icon.icon-success{background:#52c41a;color:#fff;}
-.icon.icon-success:before{content:"\f00c";}
-.icon.icon-error{background:#f5222d;color:#fff;}
-.icon.icon-error:before{content:"\f00d";}
-/* .icon.icon-info{background:#f7ba29;color:#fff;} */
-.icon.icon-warning{background:#f7ba29;color:#fff;cursor: pointer;}
-.icon.icon-warning:before{content:"\f129";}
-
-
-
 .common-footer{
 	position: fixed;
 	bottom: 0px;

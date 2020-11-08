@@ -7,8 +7,8 @@
  * 登陆ip白名单处理; 只检验拦截登陆接口;
  */
 class userCheck extends Controller {
-	private $lockErrorNum = 5;	//10; 错误n次后锁定账号;
-	private $lockTime = 30;		//60; 锁定n秒;
+	private $lockErrorNum = 6;	//错误n次后锁定账号;
+	private $lockTime = 60;		//锁定n秒;
 	function __construct() {
 		$this->options = Model('systemOption')->get();
 		parent::__construct();

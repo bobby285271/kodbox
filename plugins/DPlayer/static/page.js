@@ -35,10 +35,38 @@ define(function(require, exports) {
 		var player = new DPlayer(playerOption);
 		player.play();
 		$target.find('video').attr('autoplay','autoplay').removeAttr('muted');
-		
+		resetSize(player,$target);
 		//移动端;微信,safari等屏蔽了自动播放;首次点击页面触发播放;
 		// $target.find('.dplayer-video-wrap').one("touchstart mousedown",play);
 	}
+	
+	var resetSize = function(player,$player){
+		var reset = function(){
+			var vWidth  = $player.width();
+			var vHeight = $player.height();
+			var wWidth  = $(window).width()  * 0.9;
+			var wHeight = $(window).height() * 0.9;
+			if(vHeight >= wHeight){
+				vWidth  = (wHeight * vWidth) / vHeight;
+				vHeight = wHeight;
+			}
+			if( vWidth >= wWidth ){
+				vHeight = (wWidth * vHeight) / vWidth;
+				vWidth  = wWidth;
+			}
+			
+			var dialog = $player.parents('.dplayer-dialog').data('artDialog');
+			var left = ($(window).width()  - vWidth) / 2;
+			var top  = ($(window).height() - vHeight) / 2;
+			// console.log(22,[vWidth,vHeight],[left,top]);
+			if(!dialog) return;
+			dialog.size(vWidth,vHeight).position(left,top);
+		}
+		// $player.css({position:'absolute'});
+		player.on('loadeddata',reset);
+	};
+	
+	
 	var loadSubtitle = function(playerOption,vedioInfo){
 		var pathModel = _.get(window,'kodApp.pathAction.pathModel');
 		// console.log(101,subtitle,vedioInfo,pathModel);

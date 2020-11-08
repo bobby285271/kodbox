@@ -27,6 +27,7 @@ class userIndex extends Controller {
 		$this->loginCheck();    //5-15ms session读取写入
 		KodIO::initSystemPath();
 		Model('Plugin')->init();//5-10ms
+		Action('filter.index')->init();
 		Hook::bind('beforeShutdown','user.index.shutdownEvent');
 	}
 	public function shutdownEvent(){
@@ -41,10 +42,10 @@ class userIndex extends Controller {
 			define('STATIC_PATH',$GLOBALS['config']['settings']['staticPath']);
 		}
 	}
-	private function initSession(){ 
+	private function initSession(){
+		$systemPassword = Model('SystemOption')->get('systemPassword');
 		if(isset($_REQUEST['accessToken'])){
-			$pass = Model('SystemOption')->get('systemPassword');
-			$pass = substr(md5('kodbox_'.$pass),0,15);
+			$pass = substr(md5('kodbox_'.$systemPassword),0,15);
 			$sessionSign = Mcrypt::decode($_REQUEST['accessToken'],$pass);
 			if(!$sessionSign){
 				show_json(LNG('common.loginTokenError'),false);
@@ -55,6 +56,8 @@ class userIndex extends Controller {
 		if(!Session::get('kod')){
 			show_tips(LNG('explorer.sessionSaveError'));
 		}
+		// 设置csrf防护;
+		if(!Cookie::get('CSRF_TOKEN')){Cookie::set('CSRF_TOKEN',rand_string(16));}
 	}
 	private function initSetting(){
 		$sysOption = Model('SystemOption')->get();
@@ -63,7 +66,7 @@ class userIndex extends Controller {
 			$upload['chunkSize']  = floatval($sysOption['chunkSize']);
 			$upload['ignoreName'] = trim($sysOption['ignoreName']);
 			$upload['chunkRetry'] = intval($sysOption['chunkRetry']);
-			$upload['httpSendFile']  = $sysOption['httpSendFile'] == '1';
+			// $upload['httpSendFile']  = $sysOption['httpSendFile'] == '1'; //前端默认屏蔽;
 			
 			// 上传限制扩展名,限制单文件大小;
 			$role = Action('user.authRole')->userRoleAuth();
@@ -82,6 +85,7 @@ class userIndex extends Controller {
 		}
 		$upload['chunkSize'] = $upload['chunkSize']*1024*1024;
 		$upload['chunkSize'] = $upload['chunkSize'] <= 1024*1024*0.1 ? 1024*1024*0.4:$upload['chunkSize'];
+		$upload['chunkSize'] = intval($upload['chunkSize']);
 	}
 
 	/**
@@ -108,15 +112,18 @@ class userIndex extends Controller {
 			// 用户账号hash对比; 账号密码修改自动退出处理;
 			if($findUser['userHash'] != $this->user['userHash']){
 				Session::destory();
-				show_json('user data error!',ERROR_CODE_LOGOUT);
+				show_json('user hash error!',ERROR_CODE_LOGOUT);
 			}
-			Session::set('kodUser',$this->user);
+			Session::set('kodUser',$findUser);
 		}
 		if (!$this->user) {
+			Session::destory();
 			show_json('user data error!',ERROR_CODE_LOGOUT);
 		} else if ($this->user['status'] == 0) {
+			Session::destory();
 			show_json(LNG('user.userEnabled'),ERROR_CODE_USER_INVALID);
 		} else if ($this->user['roleID'] == '') {
+			Session::destory();
 			show_json(LNG('user.roleError'),ERROR_CODE_LOGOUT);
 		}
 		
@@ -125,6 +132,15 @@ class userIndex extends Controller {
 		if($role['administrator'] == '1'){
 			$GLOBALS['isRoot'] = 1;
 		}
+		
+		// 计划任务处理; 目录读写所有者为系统;
+		if( strtolower(ACTION) == 'user.view.call'){
+			define('USER_ID','0');
+			define('MY_HOME','');
+			define('MY_DESKTOP','');
+			return;
+		}
+				
 		define('USER_ID',$this->user['userID']);
 		define('MY_HOME',KodIO::make($this->user['sourceInfo']['sourceID']));
 		define('MY_DESKTOP',KodIO::make($this->user['sourceInfo']['desktop']));
@@ -164,7 +180,7 @@ class userIndex extends Controller {
 	 */
 	public function logout() {
 		Session::destory();
-		Cookie::remove(SESSION_ID,true); //保持
+		Cookie::remove(SESSION_ID,true);
 		Cookie::remove('kodToken');
 		show_json('ok');
 	}
@@ -206,7 +222,8 @@ class userIndex extends Controller {
 	}
 	private function loginWithToken(){
 		if (!isset($this->in['loginToken'])) return false;
-		$apiToken = $this->config['settings']['apiLoginTonken'];
+		// 兼容旧版错误拼写
+		$apiToken = $this->config['settings']['apiLoginToken'];
 		$param = explode('|', $this->in['loginToken']);
 		if (strlen($apiToken) < 5 ||
 			count($param) != 2 ||
@@ -236,6 +253,7 @@ class userIndex extends Controller {
 		$third = is_array($third) ? $third : json_decode($third, true);
 
 		// 判断执行结果
+		if(isset($third['avatar'])) $third['avatar'] = rawurldecode($third['avatar']);
 		Action('user.bind')->bindWithApp($third);
 		return show_json('ok',true,$this->accessToken());
 	}
@@ -294,5 +312,14 @@ class userIndex extends Controller {
 		$user = Model('User')->getInfo($userID);
 		if(!$user) return false;
 		return md5($user['password'] . $pass . $userID);
+	}
+
+	// 系统维护中
+	public function maintenance($update=false,$value=0){
+		// Model('SystemOption')->set('maintenance',0);exit;
+		if($update) return Model('SystemOption')->set('maintenance', $value);
+		// 管理员or未启动维护，返回
+		if($GLOBALS['isRoot'] || !Model('SystemOption')->get('maintenance')) return;
+		show_tips(LNG('common.maintenanceTips'), '','',LNG('common.tips'));
 	}
 }

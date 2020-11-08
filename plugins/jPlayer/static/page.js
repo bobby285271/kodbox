@@ -72,6 +72,7 @@ define(function(require, exports) {
 			'flv' : 'flv',
 			'fla' : 'flv',
 			'f4v' : 'flv',
+			'flac':	'flac',
 
 			'f4a' : 'flv',
 			'mp3' : 'mp3',
@@ -238,9 +239,9 @@ define(function(require, exports) {
 			loopType = 'circle';
 			var $playBox = $('.jPlayer-music');
 			var arr = [
-				{icon:"icon-retweet",loop:'circle'},
-				{icon:"icon-random",loop:'rand'},
-				{icon:"icon-refresh loop-one",loop:'one'},
+				{icon:"ri-repeat-line-2",loop:'circle'},
+				{icon:"ri-shuffle-line",loop:'rand'},
+				{icon:"ri-repeat-one-line loop-one",loop:'one'},
 			];
 			$playBox.find('.change-loop').unbind('click').bind('click',function(){
 				var index = parseInt($(this).attr('data-loop')) + 1;
@@ -290,8 +291,8 @@ define(function(require, exports) {
 					'<li class="item">\
 						<span class="name">'+val.title+'</span>\
 						<div class="action-right">\
-							<span class="download"><i class="icon-download"></i></span>\
-							<span class="remove"><i class="icon-remove"></i></span>\
+							<span class="download"><i class="font-icon ri-download-fill-2"></i></span>\
+							<span class="remove"><i class="font-icon ri-close-line"></i></span>\
 						</div>\
 					</li>';
 				});

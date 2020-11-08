@@ -13,6 +13,7 @@ class userSetting extends Controller {
 		parent::__construct();
 		$this->user = Session::get('kodUser');
 		$this->model = Model('User');
+		$this->imageExt = array('png','jpg','jpeg','gif','webp','bmp','ico');
 	}
 
 	/**
@@ -45,6 +46,7 @@ class userSetting extends Controller {
 			$input = Input::get('input','require');
 			$input = trim(rawurldecode($input));
 		}
+		$input = html2txt($input);
 
 		$userID = $this->user['userID'];
 		if(in_array($data['type'], array('email', 'phone'))){
@@ -173,6 +175,7 @@ class userSetting extends Controller {
 		$userID = $this->user['userID'];
 		$fileInfo = IO::info($file);
 		if(!$fileInfo || 
+			!in_array($fileInfo['ext'],$this->imageExt) ||
 			$fileInfo['targetType'] != 'system' || 
 			$fileInfo['createUser']['userID'] != USER_ID
 		){
@@ -190,18 +193,14 @@ class userSetting extends Controller {
 	}
 
 	public function uploadHeadImage(){
-		$savePath 	= IO_PATH_SYSTEM_SOURCE.'avataImage';
-		$pathInfo 	= IO::infoFull($savePath);
-		if(!$pathInfo){
-			$path = IO::mkdir($savePath,'skip');
-		}else{
-			$path = $pathInfo['path'];
+		$ext = get_path_ext(Uploader::fileName());
+		if(!in_array($ext,$this->imageExt)){
+			show_json("only support image",false);
 		}
 
-		// 已存在则删除;
+		$path = KodIO::systemFolder('avataImage');
 		$image = 'avata-'.USER_ID.'.jpg';
-		$imagePath  = $path.'/'.$image;
-		$pathInfo 	= IO::infoFull($imagePath);
+		$pathInfo 	= IO::infoFull($path.'/'.$image);
 		if($pathInfo){
 			IO::remove($pathInfo['path'], false);
 		}
@@ -209,7 +208,7 @@ class userSetting extends Controller {
 		// pr($imagePath,$path,IO::infoFull($imagePath));exit;
 		$this->in['fullPath'] = '';
 		$this->in['name'] = $image;
-		$this->in['path'] = $imagePath;
+		$this->in['path'] = $path;
 		Action('explorer.upload')->fileUpload();
 	}
 
@@ -304,5 +303,34 @@ class userSetting extends Controller {
 			show_json(LNG('explorer.error'), false);
 		}
 		return LNG('explorer.success');
+	}
+
+	// 个人空间使用统计
+	public function userChart(){
+		ActionCall('admin.analysis.chart');
+	}
+	// 个人操作日志
+	public function userLog(){
+		ActionCall('admin.log.userLog');
+	}
+
+	public function taskList(){
+		ActionCall('admin.task.taskList',USER_ID);
+	}
+	public function taskAction(){
+		$result = ActionCall('admin.task.taskActionRun',false);
+		if( !is_array($result['taskInfo']) || 
+			$result['taskInfo']['userID'] != USER_ID){
+			show_json(LNG('common.notExists'),false);
+		}
+		show_json($result['result'],true);
+	}
+	public function notice(){
+		$data	= Input::getArray(array(
+			'id'		=> array('default' => false),
+			'action'	=> array('check' => 'in', 'param' => array('get', 'edit', 'remove')),
+		));
+		$action = 'admin.notice.notice' . ucfirst($data['action']);
+		ActionCall($action, $data['id']);
 	}
 }

@@ -16,46 +16,59 @@ class webdavPlugin extends PluginBase{
 		));
 	}
 	public function echoJs(){
+		$config = $this->getConfig();
 		$allow  = $this->isOpen() && $this->authCheck();
-		$assign = array("{{isAllow}}" => intval($allow));
+		$assign = array(
+			"{{isAllow}}" 	 => intval($allow),
+			"{{pathAllow}}"	 => $config['pathAllow'],
+			"{{webdavName}}" => $this->webdavName(),
+		);
 		$this->echoFile('static/main.js',$assign);
 	}
+	private function webdavName(){
+		$config = $this->getConfig();
+		return $config['webdavName'] ? $config['webdavName']:'kodbox';
+	}
+	
 	public function route(){
 		if(strtolower(MOD.'.'.ST) != 'plugin.webdav') return;
 		$action = ACT;//dav/download;
-		$this->$action();exit;
+		if( method_exists($this,$action) ){
+			$this->$action();exit;
+		}
+		$this->run();exit;
 	}
-	public function kodbox(){
+	public function run(){
 		if(!$this->isOpen()) return show_json("not open webdav",false);
 		require($this->pluginPath.'php/kodWebDav.class.php');
-		$dav = new kodWebDav('/index.php/plugin/webdav/kodbox/'); // 适配window多一层;
+		$dav = new kodWebDav('/index.php/plugin/webdav/'.$this->webdavName().'/'); // 适配window多一层;
 		$this->debug($dav);
 		$dav->run();
 	}
 	public function download(){
 		IO::fileOut($this->pluginPath.'static/webdav.cmd',true);
 	}
-	
 	public function check(){
 		echo $_SERVER['HTTP_AUTHORIZATION'];
 	}
 	public function checkSupport(){
-	    CacheLock::unlockRuntime();
+		CacheLock::unlockRuntime();
 		$url = APP_HOST.'index.php/plugin/webdav/check';
 		$auth   = "Basic ".base64_encode('usr:pass');
 		$header = array("Authorization: ".$auth);
 		$res 	= @url_request($url,"GET",false,$header,false,false,3);
+		if($res && substr($res['data'],0,11) == 'API call to') return true; //请求自己失败;
 		if($res && $res['data'] == $auth) return true;
 		
 		@$this->setConfig(array('isOpen'=>'0'));
 		return false;
 	}
 
-	public function onSetConfig($value,$app){
-		if($value['isOpen'] != '1') return;
-		$this->onGetConfig($app);
+	public function onSetConfig($config){
+		if($config['isOpen'] != '1') return;
+		$this->onGetConfig($config);
 	}
-	public function onGetConfig($app){
+	public function onGetConfig($config){
 		$this->autoApplyApache();
 		if($this->checkSupport()) return;
 		show_tips(
@@ -95,7 +108,10 @@ class webdavPlugin extends PluginBase{
 	}
 	public function log($data){
 		if(!$this->echoLog) return;
-		if($_SERVER['REQUEST_METHOD'] == 'PROPFIND') return;
+		// if($_SERVER['REQUEST_METHOD'] == 'PROPFIND' && !strstr($_SERVER['REQUEST_METHOD'],'aaa')) return;
+		if($_SERVER['REQUEST_METHOD'] == 'PROPFIND' ) return;
+		if(is_array($data)){$data = json_encode_force($data);}
+		
 		$data = $_SERVER['REQUEST_METHOD'].' '.$data;
 		// $data = array($data,$_SERVER);
 		write_log($data,'webdav');

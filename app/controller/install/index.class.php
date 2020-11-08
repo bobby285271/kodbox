@@ -8,11 +8,16 @@
 class installIndex extends Controller {
     public $roleID;
     public $admin = array();
+    public $setingUser; 
     public $installLock; 
+    public $fastInstallLock; 
     public $dbType;
     public $dbWasSet = 'dbWasSet';
 	public function __construct() {
-		parent::__construct();
+        parent::__construct();
+        $this->setingUser       = BASIC_PATH  . 'config/setting_user.php';
+        $this->installLock      = USER_SYSTEM . 'install.lock';
+        $this->fastInstallLock  = USER_SYSTEM . 'fastinstall.lock';
 		$this->checkAuth();
     }
 
@@ -62,19 +67,25 @@ class installIndex extends Controller {
 			ActionCall(ACTION);exit;
         }
         $this->tpl = CONTROLLER_DIR . 'install/static/';
-        $this->values = array('installPath' => INSTALL_PATH);
+        $this->values = array(
+            'installPath' => INSTALL_PATH, 
+            'fastInstall' => $this->fastInstall()
+        );
         $this->display('index.html');
         exit;
     }
     private function checkInstall(){
-        $this->installLock = USER_SYSTEM . 'install.lock';
-        $setting = BASIC_PATH . 'config/setting_user.php';
-        if(@file_exists($this->installLock) && @file_exists($setting)) {
+        if(@file_exists($this->installLock) && @file_exists($this->setingUser)) {
             if($this->dbDefault(true)) return true;
         }
-        if(!@file_exists($setting)) del_file($this->installLock);
+        if(!@file_exists($this->setingUser)) del_file($this->installLock);
         return false;
     }
+    // 一键安装
+    private function fastInstall(){
+        return (@file_exists($this->fastInstallLock) && @file_exists($this->setingUser)) ? 1 : 0;
+    }
+
     // 获取数据库默认配置信息
     public function dbDefault($return=false){
         Cache::remove($this->dbWasSet);
@@ -129,7 +140,6 @@ class installIndex extends Controller {
         $env = array(
             'path_writable'     => array(),
             'php_version'       => phpversion(),
-            // 'file_get_contents' => function_exists('file_get_contents') || false,
             'allow_url_fopen'   => ini_get('allow_url_fopen') || false,
             'php_bit'           => phpBuild64() ? 64 : 32,
             'iconv'             => function_exists('iconv') || false,
@@ -146,16 +156,13 @@ class installIndex extends Controller {
             !function_exists('imagecolorallocate')){
             $env['gd'] = false;
         }
-		$arr_check = array(
-            BASIC_PATH,
-			DATA_PATH,
-			DATA_PATH.'system',
-        );
-        $parent = get_path_father(BASIC_PATH);
-        foreach ($arr_check as $value) {
-            $path = str_replace($parent,'',$value);
-            $env['path_writable'][$path] = path_writeable($value) || false;
+        $pathWrt = true;
+		$pathList = array(BASIC_PATH, DATA_PATH, DATA_PATH.'system');
+        foreach ($pathList as $value) {
+            if(!path_writeable($value)) $pathWrt = false;
+            break;
         }
+        $env['path_writable'] = $pathWrt || rtrim(BASIC_PATH, '/');
         show_json($env);
     }
 
@@ -264,7 +271,7 @@ class installIndex extends Controller {
             $text[] = "\$config['cache']['{$cacheType}']['host'] = '{$host}';";
             $text[] = "\$config['cache']['{$cacheType}']['port'] = '{$port}';";
         }
-        $file = BASIC_PATH . 'config/setting_user.php';
+        $file = $this->setingUser;
         if(!@file_exists($file)) @touch($file);
         $content = file_get_contents($file);
 		$pre = '';
@@ -413,10 +420,12 @@ class installIndex extends Controller {
         think_config($GLOBALS['config']['database']);
 
         $userID = 1;
-        if(Cache::get($this->dbWasSet) && Model('User')->find($userID)) {
+        // if(Cache::get($this->dbWasSet) && Model('User')->find($userID)) {
+        if(Model('User')->find($userID)) {
             if(!Model('User')->userEdit($userID, $data)) show_json(LNG('user.bindUpdateError'), false);
             Cache::remove($this->dbWasSet);
             @touch($this->installLock);
+            del_file($this->fastInstallLock);
             show_json(LNG('admin.install.updateSuccess'), true, $userID);
         }
         $this->admin = $data;
@@ -443,6 +452,7 @@ class installIndex extends Controller {
         $GLOBALS['SHOW_JSON_NOT_EXIT'] = 0;
 
         @touch($this->installLock);
+        del_file($this->fastInstallLock);
         show_json(LNG('admin.install.createSuccess'), true);
     }
 
@@ -466,7 +476,7 @@ class installIndex extends Controller {
         if(!is_dir($dataPath)) @mk_dir($dataPath);
         $data = array (
             'name' => LNG('admin.storage.localStore'),
-            'sizeMax' => '0',
+            'sizeMax' => '1024',
             'driver' => 'Local',
             'default' => '1',
             'system' => '1',
@@ -484,7 +494,9 @@ class installIndex extends Controller {
     public function initLightApp(){
         $model = Model('SystemLightApp');
 		$list = $model->clear();
-        $data = FileCache::load(DATA_PATH.'system/apps.php');
+		$str = file_get_contents(DATA_PATH.'system/apps.php');
+		$data= json_decode(substr($str, strlen('<?php exit;?>')),true);
+		
 		foreach ($data as $app) {
 			$type = $app['type'] == 'app' ? 'js' : $app['type'];
 			$item = array(
@@ -564,7 +576,7 @@ class installIndex extends Controller {
      */
     private function roleDefault(){
         $administrator = array (
-            'name' => '系统管理员',
+            'name' => LNG('admin.role.administrator'),
             'display' => 1,
             'system' => 1,
             'administrator' => 1,
@@ -574,7 +586,7 @@ class installIndex extends Controller {
         );
 
         $default = array (
-            'name' => '普通用户',
+            'name' => LNG('admin.role.default'),
             'display' => 1,
             'system' => 1,
             'auth' => 'explorer.add,explorer.upload,explorer.view,explorer.download,explorer.share,explorer.remove,explorer.edit,explorer.move,explorer.serverDownload,explorer.search,explorer.unzip,explorer.zip,user.edit,user.fav',
@@ -594,7 +606,7 @@ class installIndex extends Controller {
         $this->in = array(
             "userID"    => 1,
 			"name" 		=> !empty($this->admin['name']) ? $this->admin['name'] : 'admin',
-			"nickName" 	=> '管理员',
+			"nickName" 	=> LNG('admin.role.administrator'),
 			"password" 	=> !empty($this->admin['password']) ? $this->admin['password'] : 'admin',
             "roleID"	=> $this->roleID,
             "groupInfo" => json_encode(array('1'=>'1')),

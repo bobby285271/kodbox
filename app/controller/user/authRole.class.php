@@ -30,43 +30,7 @@ class userAuthRole extends Controller {
 		}
 		return false;
 	}
-	
-	private function requestCheck(){
-		$action   = strtolower(ACTION);
-		$theMod   = strtolower(MOD);
-		$notAllow = array(
-			'user.view.options',
-			'user.index.accessTokenGet',
-		);
-		foreach ($notAllow as &$val) {
-			$val = strtolower($val);
-		}
-		// 不允许jsonp的方法;
-		if( $theMod == 'explorer' || 
-			$theMod == 'admin' ||
-			in_array($action,$notAllow) 			
-		){
-			$GLOBALS['config']['jsonpAllow'] = false;
-		}
-		
-		// 强制使用POST的接口;
-		$mustPost = array(
-			'user.setting.setConfig',
-			'user.setting.setUserInfo',
-			'user.regist.regist',
-		);
-		foreach ($mustPost as &$val) {
-			$val = strtolower($val);
-		}
-		if( $theMod == 'admin' ||
-			in_array($action,$mustPost)
-		){
-			if(!GLOBAL_DEBUG && REQUEST_METHOD != 'POST'){
-				return show_json('REQUEST_METHOD must be POST!',false);
-			}
-		}
-	}
-	
+
 	// 未登录：允许的 控制器方法;
 	// 已登录：不允许的 控制器&方法；
 	// 其他的可以通过内部Action进行方法调用转发；
@@ -78,7 +42,6 @@ class userAuthRole extends Controller {
 		foreach ($authNotNeedLogin as &$val) {
 			$val = strtolower($val);
 		}
-		$this->requestCheck();
 		if(in_array($theAction,$authNotNeedLogin)) return;
 		foreach ($authNotNeedLogin as $value) {
 			$item = explode('.',$value); //MOD,ST,ACT
@@ -103,7 +66,7 @@ class userAuthRole extends Controller {
 		$allowAction = $userRole['allowAction'];
 		// pr($allowAction[$theAction],$theAction,$user,$userRole);exit;
 		if(!$allowAction[$theAction]){ //不存在该方法或
-			show_json(LNG('explorer.noPermissionAction'),false);
+			show_json(LNG('explorer.noPermissionAction'),false,1004);
 		}
 	}
 	

@@ -2,7 +2,7 @@
 	"id":"officeLive",
 	"name":"{{LNG['officeLive.meta.name']}}",
 	"title":"{{LNG['officeLive.meta.title']}}",
-	"version":"1.26",
+	"version":"1.27",
 	"category":"file",
 	"source":{
 		"icon":"{{pluginHost}}static/images/icon.png"
@@ -12,6 +12,14 @@
 		"copyright":"kodcloud",
 		"homePage":"http://kodcloud.com"
 	},
+	"meta":{
+		"needNetwork": 1
+	},
+	"networkDesc": "{{LNG['officeLive.meta.netwrokDesc']}}<br/>{{LNG['officeLive.meta.netwrokUrl']}}: <br/>
+		<span class='blue-6'>https://owa-box.vips100.com</span><br/>
+		<span class='blue-6'>https://docview.mingdao.com</span><br/>
+		<span class='blue-6'>https://preview.tita.com</span><br/>
+		<span class='blue-6'>https://view.officeapps.live.com</span>",
 	"configItem":{
 		"formStyle":{
 			"className":"form-box-title-left",

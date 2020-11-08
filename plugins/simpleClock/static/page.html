@@ -1,7 +1,7 @@
 <!DOCTYPE html>
   <html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <title>H5 时钟</title>
-  <link rel="stylesheet" href="<?php echo $this->pluginHost;?>static/page.css" media="screen" type="text/css">
+  <?php $this->link('static/page.css');?>
 </head>
 
 <body>
@@ -28,6 +28,6 @@
   </div>
 </div>
 
-<script src="<?php echo $this->pluginHost;?>static/page.js"></script>
+<?php $this->link('static/page.js');?>
 </body>
 </html>

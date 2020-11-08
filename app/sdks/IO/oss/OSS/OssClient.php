@@ -1864,7 +1864,8 @@ class OssClient
         if (!isset($options[self::OSS_CONTENT_TYPE])) {
             $options[self::OSS_CONTENT_TYPE] = '';
         }
-        $timeout = time() + $timeout;
+        // $timeout = time() + $timeout;
+        $timeout = strtotime(date('Ymd 23:59:59')); // kodbox：签名链接有效期，改为当天有效
         $options[self::OSS_PREAUTH] = $timeout;
         $options[self::OSS_DATE] = $timeout;
         $this->setSignStsInUrl(true);

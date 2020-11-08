@@ -37,8 +37,8 @@ class explorerListDriver extends Controller{
 				"path"			=> '{io:'.$item['id'].'}/',
 				"size"			=> $item['sizeUse'],
 				"driverSpace"	=> $item['sizeMax']*1024*1024*1024,
-				"driver" 		=> strtolower($item['driver']),
 				"driverDefault" => $item['default'],
+				"icon" 			=> 'io-'.strtolower($item['driver']),
 				'isParent'		=> true,
 			);
 		}
@@ -68,7 +68,7 @@ class explorerListDriver extends Controller{
 			"path"			=> $path,
 			"size"			=> $total - @disk_free_space($path),
 			"driverSpace"	=> $total,
-			"driver" 		=> 'driver',
+			"icon" 			=> 'io-driver',
 			'isParent'		=> true,
 		);
 	}

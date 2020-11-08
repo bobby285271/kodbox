@@ -64,7 +64,7 @@
 	</div>
 
 	<script type="text/javascript"> 
-		window.API_HOST = "<?php echo APP_HOST.'/index.php?';?>";
+		window.API_HOST = "<?php echo rtrim(APP_HOST,'/').'/index.php?';?>";
 		window.STATIC_PATH = "<?php echo STATIC_PATH;?>";
 	</script>
 	<script src="<?php linkHref('app/vender/es3-profill.js');?>"></script>

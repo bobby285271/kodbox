@@ -12,17 +12,19 @@
 // header('Access-Control-Allow-Headers: Content-Type,Content-Length,Accept-Encoding,X-Requested-with, Origin');
 
 //配置数据,可在setting_user.php中添加变量覆盖,升级后不会被替换
-$config['settings'] = array(
+$config['settings'] = array( 
 	'downloadUrlTime'	=> 0,			 	//下载地址生效时间，按秒计算，0代表不限制
-	'apiLoginTonken'	=> '',			 	//设定则认为开启服务端api通信登录，同时作为加密密匙
+	'apiLoginToken'		=> '',			 	//设定则认为开启服务端api通信登录，同时作为加密密匙
 	'paramRewrite'		=> false,		 	//开启url 去除? 直接跟参数
-	'ioDisabled'		=> 'moss,eos',		//不显示的io类型，多个以','分隔
+	'ioAvailed'			=> 'local,ftp,oss,qiniu,cos,s3,oos,minio',		//显示的io类型，多个以','分隔
+	'ioFileOutServer'	=> false,
+	'ioUploadServer'	=> false,
 	
 	'upload' => array(
 		'chunkSize'			=> 0.5,			// MB 分片上传大小设定;需要小于php.ini上传限制的大小
 		'threads'			=> 10,			// 上传并发数;部分低配服务器上传失败则将此设置为1
 		'ignoreName'		=> '',			// 忽略的文件名,不区分大小写; 逗号隔开,例如: .DS_Store,Thumb.db
-		'chunkRetry'		=> 5,			// 分片上传失败,重传次数;针对每个分片;
+		'chunkRetry'		=> 2,			// 分片上传失败,重传次数;针对每个分片;
 		'sendAsBinary'		=> 0,			// 以二进制方式上传;后端服务器以php://input接收;0则为传统方式上传 $_FILE;
 		'httpSendFile'		=> false,		//调用webserver下载 http://www.laruence.com/2012/05/02/2613.html; 
 											//https://www.lovelucy.info/x-sendfile-in-nginx.html	
@@ -30,7 +32,6 @@ $config['settings'] = array(
 		'ignoreExt'			=> '',          // 限制的扩展名; 扩展名在该说明中则自动不上传;
 		'ignoreFileSize'	=> 0			// 允许单个文件上传最大值,0则不限制; 单位GB;
 	),
-	
 	'staticPath'		=> APP_HOST."static/",	//静态文件目录,可以配置到cdn;
 	'kodApiServer'		=> "https://api.kodcloud.com/?", //QQ微信登陆/邮件发送/插件-列表等 
 );
@@ -109,14 +110,14 @@ $config['databaseDefault'] = array(
 );
 
 $config['settings']['appType'] = array(
-	array('type' => 'tools','name' => 'explorer.app.groupTools','class' => 'icon-suitcase'),
-	array('type' => 'game','name' => 'explorer.app.groupGame','class' => 'icon-dashboard'),
-	array('type' => 'movie','name' => 'explorer.app.groupMovie','class' => 'icon-film'),
-	array('type' => 'music','name' => 'explorer.app.groupMusic','class' => 'icon-music'),
-	array('type' => 'life','name' => 'explorer.app.groupLife','class' => 'icon-map-marker'),
-	array('type' => 'others','name' => 'common.others','class' => 'icon-ellipsis-horizontal'),
+	array('type' => 'tools','name' => 'explorer.app.groupTools','class' => 'ri-tools-fill'),
+	array('type' => 'game','name' => 'explorer.app.groupGame','class' => 'ri-gamepad-fill'),
+	array('type' => 'movie','name' => 'explorer.app.groupMovie','class' => 'ri-film-line'),
+	array('type' => 'music','name' => 'explorer.app.groupMusic','class' => 'ri-music-fill-2'),
+	array('type' => 'life','name' => 'explorer.app.groupLife','class' => 'ri-map-pin-fill-2'),
+	array('type' => 'others','name' => 'common.others','class' => 'ri-more-fill'),
 );
-
+$config['fileEditLockTimeout'] = 1200; //默认20分钟; 文件编辑锁默认锁定最长时间; 超过了则自动解锁;
 $config['defaultPlugins'] = array(
 	'adminer','DPlayer','imageExif','jPlayer','officeLive','photoSwipe','picasa','pdfjs',
 	'simpleClock','toolsCommon','VLCPlayer','webodf','yzOffice','webdav',
@@ -149,6 +150,7 @@ $config['settingSystemDefault'] = array(
 	'versionType'		=> "A",			// 版本
 	'rootListUser'		=> 0,			// 组织架构根节点展示群组内用户
 	'rootListGroup'		=> 0,			// 组织架构根节点展示子群组
+	'groupAuthOuther'   => 1, 			// 子部门网盘文档可授权给外部部门或成员,
 	'currentVersion'	=> KOD_VERSION, // 当前版本
 	'orderSort'         => 'desc',      // sort字段排序方式;默认从大到小
 
@@ -157,8 +159,9 @@ $config['settingSystemDefault'] = array(
 	'passwordRule'		=> 'none',		// 限制密码强度;none-不限制;strong-中等强度;strongMore-高强度
 	'loginIpCheck'		=> '0',			// 登陆ip限制开关;
 	'loginIpAllow'		=> '',			// 登陆允许的ip来源; ip白名单;
-	'csrfProtect'		=> '0',		 	// 开启csrf保护	
-
+	'csrfProtect'		=> '1',		 	// 开启csrf保护	
+	
+	'treeOpen'			=> 'my,myFav,myGroup,rootGroup,recentDoc,fileType,fileTag,driver',//树目录开启功能;
 	'wallpageDesktop'	=> "1,2,3,4,5,6,7,8,9,10,11,12,13",
 	'wallpageLogin'		=> "2,3,6,8,9,11,12",
 	'emailType'			=> "0",			// 邮件方式
@@ -178,7 +181,7 @@ $config['settingSystemDefault'] = array(
 		array('name'=>'desktop','type'=>'system','url'=>'desktop','target'=>'_self','use'=>'1'),
 		array('name'=>'explorer','type'=>'system','url'=>'explorer','target'=>'_self','use'=>'1'),
 		array('name'=>'editor','type'=>'system','url'=>'editor','target'=>'_self','use'=>'0'),
-		array('name'=>'官网','url'=>'https://kodcloud.com',"icon"=>"icon-cloud",'target'=>'inline','use'=>'1')
+		array('name'=>'官网','url'=>'https://kodcloud.com',"icon"=>"ri-home-line-3",'target'=>'inline','use'=>'1')
 	),
 );
 
@@ -202,6 +205,8 @@ $config['settingDefault'] = array(
 	'imageThumb'		=> '1',
 	'fileSelect'		=> '1',
 	'displayHideFile'	=> '0',
+	'filePanel'			=> '1',
+	'messageSendType'	=> 'enter', //enter,ctrlEnter
 );
 $config['editorDefault'] = array(
 	'fontSize'		=> '14px',
@@ -217,7 +222,66 @@ $config['editorDefault'] = array(
 	"autoSave"		=> '0',		//自动保存
 );
 
-// 文档类型筛选；分页
+// 多语言; 在user/view/parseMetaLang中替换; meta.[key] 为多语言key;
+$config['settings']['sourceMeta'] = array(
+	'configItem'	=> array(
+		'defaultShow'	=> 'user_sourceAlias', 					 					 //默认显示的key;
+		'fileAllow'		=> 'user_sourceAlias,user_fileEncodeType,user_sourceNumber,user_sourceParticipant', //文件支持的key
+		'folderAllow'	=> 'user_sourceAlias,user_fileEncodeType,user_sourceParticipant',					 //文件夹支持的key
+	),
+	'user_sourceAlias' => array(
+		"type"		=> "fileSelect",
+		"value"		=> "",
+		"display" 	=> "关联文件(附件)",
+		"info"		=> array(
+			"single"	=> false,			// 单选or多选; true/false
+			"type"		=> "all", 			// 文件or文件夹选择; file|folder|all
+			"makeUrl"	=> false,			// 生成永久外链,
+			"valueKey"	=> "path", 			// 取结果中的key
+			"valueShowKey"	=> 'name',		// 显示名称;
+			"title"		=> "关联文件(附件)", // 对话框标题;		
+			"authCheck"	=> "read",			// read,write或空;默认为可写入;
+		),
+	),
+	'user_fileEncodeType' => array(
+		"type"		=> "select",
+		"value"		=> "",
+		"display" 	=> "文件密级",
+		"info"		=> array(
+			""  => '---',
+			"A"	=> "A-绝密",
+			"B"	=> "B-机密",
+			"C"	=> "C-秘密",
+		),
+	),
+	//扩展;
+	'user_sourceNumber' => array(
+		"type"		=> "input",
+		"value"		=> "",
+		"display" 	=> "宗卷编号",
+	),
+	//扩展;
+	'user_sourceParticipant' => array(
+		"type"		=> "user",
+		"value"		=> "",
+		"display" 	=> "参与者",
+		"selectType"=> "mutil",
+	),
+);
+
+// name优先识别为多语言key,不存在则以name为原名;
+$config['settings']['userDefaultTag'] = array(
+	array('name'=>"explorer.tag.default1",'style'=>'label-blue-normal'),
+	array('name'=>'explorer.tag.default2','style'=>'label-red-normal'),
+	array('name'=>'explorer.tag.default3','style'=>'label-yellow-normal'),
+	array('name'=>"2020",'style'=>'label-green-normal'),
+);
+
+
+/**
+ * 文档类型筛选
+ * name多语言: explorer.type.[type] 存在则使用该key;否则使用默认name;
+ */
 $config['documentType'] = array(
 	"doc" => array(
 		"name"		=> '文档',	//file-type: file-type-doc
@@ -295,6 +359,7 @@ $config['authNotNeedLogin'] = array(
 	'test.*',
 	'user.index.*',
 	'user.bind.*',
+	'user.sso.*',
 	'user.regist.*',
 	'user.view.*',
 	'explorer.share.*',
@@ -314,6 +379,8 @@ $config['authAllowAction'] = array(
 	'explorer.list.path','explorer.index.desktopApp',
 	'explorer.userShare.get',
 	'explorer.userShare.myShare',
+	'user.setting.notice',
+	'user.setting.taskList','user.setting.taskAction',
 	
 	//临时，搜索分享中使用; 设置用户权限or设置用户部门；
 	'admin.role.get','admin.job.get','admin.auth.get',
@@ -329,36 +396,39 @@ $config['authRoleAction']= array(
 	'explorer.add'			=> array('explorer.index'=>'mkdir,mkfile'),
 	'explorer.upload'		=> array('explorer.upload'=>'fileUpload'),
 	'explorer.view'			=> array(
-		'explorer.index'=>'fileOut,unzipList,fileOutBy',
+		'explorer.index'=>'fileOut,unzipList,fileOutBy,pathLog',
 		'explorer.editor'=>'fileGet',
-		'explorer.fileView'=>'index,open'
+		'explorer.fileView'=>'index,open',
 	),
 	'explorer.download'		=> array('explorer.index'=>'fileDownload,zipDownload,fileDownloadRemove'),
 	'explorer.share'		=> array('explorer.userShare'=>'add,edit,del'),
 	'explorer.remove'		=> array('explorer.index'=>'pathDelete,recycleDelete,recycleRestore'),
-	'explorer.edit'			=> array('explorer.index'=>'setDesc,setAuth,fileSave,pathRename,zip,unzip',
-									 'explorer.editor'=>'fileSave',
-									 'explorer.history'=>'get,remove,clear,rollback,setDetail,fileOut'),
+	'explorer.edit'			=> array(
+		'explorer.index'	=>'setDesc,setMeta,setAuth,fileSave,pathRename,zip,unzip',
+		'explorer.editor'	=>'fileSave',
+		'explorer.history'	=>'get,remove,clear,rollback,setDetail,fileOut',
+		'comment.index'		=>'listData,add,remove,prasise,listByUser,listChildren'
+	),
 	'explorer.move'			=> array('explorer.index'=>'pathCopy,pathCute,pathCopyTo,pathCuteTo,pathPast,clipboard'),
 	'explorer.serverDownload'=> array('explorer.upload'=>'serverDownload'),
 	'explorer.search'		=> array(''),
 	'explorer.unzip'		=> array('explorer.index'=>'unzip,unzipList'),
 	'explorer.zip'			=> array('explorer.index'=>'zip,zipDownload'),
-	
+
 	'user.edit'				=> array(
-		'user.setting'	=> 'setConfig,setUserInfo,setHeadImage,uploadHeadImage',
-		'user.bind'		=> 'bindApi',
+		'user.setting'	=> 'setConfig,setUserInfo,setHeadImage,uploadHeadImage,userChart,userLog',
+		// 'user.bind'		=> 'bindApi,bindMetaInfo,oauth,bindWithApp', //被全开放了, 构造函数中自行权限检测;
 	),
 	'user.fav' => array(
 		'explorer.fav'=>'add,rename,moveTop,moveBottom,del',
-		'explorer.tag'=>'add,edit,remove,moveTop,moveBottom,resetSort,sourceAddToTag,sourceResetTag,sourceRemoveFromTag',
+		'explorer.tag'=>'add,edit,remove,moveTop,moveBottom,resetSort,filesAddToTag,filesResetTag,filesRemoveFromTag',
 	),
 	
-	'admin.index.dashboard'	=> array('admin.analysis'=>'summary,table,trend'),
+	'admin.index.dashboard'	=> array('admin.analysis'=>'option,table,chart,trend'),
 	'admin.index.setting'	=> array('admin.setting'=>'get,set,clearCache,phpInfo'),
 	'admin.index.loginLog'	=> array('admin.log'=>'loginLogList'),
 	'admin.index.log'		=> array('admin.log'=>'get,typelist'),
-	'admin.index.server'	=> array('admin.'),
+	'admin.index.server'	=> array('admin.setting'=>'cacheGet,cacheCheck,cacheSave'),
 	
 	'admin.role.list'		=> array('admin.role'=>'get'),
 	'admin.role.edit'		=> array('admin.role'=>'add,edit,remove,sort'),
@@ -383,7 +453,10 @@ $config['authRoleAction']= array(
 	),
 
 	'admin.storage.list'	=> array('admin.storage'=>'get'),
-	'admin.storage.edit'	=> array('admin.storage'=>'add,edit,remove'),
+	'admin.storage.edit'	=> array(
+		'admin.storage'	=> 'add,edit,remove',
+		'admin.backup'	=> 'config,get,remove'
+	),
 
 	'admin.autoTask.list'	=> array('admin.autoTask'=>'get'),
 	'admin.autoTask.edit'	=> array('admin.autoTask'=>'add,edit,enable,remove,run,taskStart,taskRun,taskRunEvent'),

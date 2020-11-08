@@ -2,7 +2,7 @@
 	"id":"webodf",
 	"name":"Opendocument Viewer",
 	"title":"",
-	"version":"1.24",
+	"version":"1.26",
 	"source":{
 		"className":"x-item-icon x-odt",
 		"icon":""

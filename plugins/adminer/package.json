@@ -2,10 +2,10 @@
 	"id":"adminer",
 	"name":"Adminer",
 	"title":"{{LNG['Adminer.meta.title']}}",
-	"version":"4.66",
+	"version":"4.77",
 	"source":{
 		"thumb":"",
-		"className":"font-icon icon-bar-chart bg-blue-7",
+		"className":"font-icon ri-database-fill-2 bg-blue-7",
 		"screenshoot":["{{pluginHost}}static/screenshot.png"]
 	},
 	"category":"tools",

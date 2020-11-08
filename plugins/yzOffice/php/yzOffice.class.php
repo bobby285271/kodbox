@@ -130,17 +130,13 @@ class yzoffice{
 	//非高清预览【返回上传后直接转换过的文件】
 	public function upload(){
 		ignore_timeout();
-		// 上传文件至cad服务器，先下载至本地，地址入缓存（进度和重启需要）
-		// $path = IO::tempLocalFile($this->filePath);
 		$path = $this->plugin->pluginLocalFile($this->filePath);
-		Cache::set($this->cacheTask . '_localFile', $path);
 		$post = array(
 			"file"			=> "@".$path,
 			"convertType"	=> $this->convertMode(),
 		);
-		curl_progress_bind($path,$this->task['taskUuid']);//上传进度监听id
+		$task = new TaskHttp($this->task['taskUuid'],'plugin.yzOffice.upload',filesize($path));
 		$result = url_request($this->api['upload'],'POST',$post,false,false,true,3600);
-		// IO::tempLocalFileRemove($path);
 		return is_array($result) && $result['data'] ? $result : false;
 	}
 	public function convert($tempFile=false){
@@ -162,16 +158,15 @@ class yzoffice{
 		return false;
 	}
 
-	public function clearChche(){
-		IO::remove($this->cachePath, false);
+	public function clearCache(){
 		Cache::remove($this->cacheTask);
-		Cache::remove($this->cacheTask . '_localFile');
-		// show_json('success');
+		Task::kill($this->task['taskUuid']);
+		IO::remove($this->cachePath, false);
+		show_json('success');
 	}
 
 	public function uploadProcess(){
-		$localFile = Cache::get($this->cacheTask . '_localFile');
-		return curl_progress_get($localFile,$this->task['taskUuid']);
+		return Task::get($this->task['taskUuid']);
 	}
 	public function getFile($file){
 		ignore_timeout();

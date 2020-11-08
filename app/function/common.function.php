@@ -18,6 +18,8 @@ function import($path=false){
 			CORER_DIR.'Cache/',
 			CORER_DIR.'DB/',
 			CORER_DIR.'IO/',
+			CORER_DIR.'Task/',
+			CORER_DIR.'Backup/',
 		);
 		if(!is_dir(MODEL_DIR)){
 			$_autoLoaderPath = array(SDK_DIR);
@@ -86,7 +88,10 @@ function mystr($str){
 // 清除多余空格和回车字符
 function strip($str){
 	return preg_replace('!\s+!', '', $str);
-} 
+}
+function timeFloat(){
+	return microtime(true);
+}
 
 // 删除字符串两端的字符串
 function str_trim($str,$remove){
@@ -187,14 +192,19 @@ function obj2array($obj){
 	} 
 }
 
-// 48 * 60 * 60
-function ignore_timeout($timeout=172800){
-	$static = array();
-	if(!empty($static)) return; //避免重复调用; 5000次100ms;
-
-	$static = array('1');
+function ignore_timeout(){
 	@ignore_user_abort(true);
+	set_timeout();
+}
+
+// 48 * 60 * 60
+function set_timeout($timeout=172800){
+	static $firstRun = false;
+	if($firstRun) return; //避免重复调用; 5000次100ms;
+	$firstRun = true;
+	
 	@ini_set("max_execution_time",$timeout);
+	@ini_set('request_terminate_timeout',$timeout);
 	@set_time_limit($timeout);
 	@ini_set('memory_limit', '4000M');//4G;
 }
@@ -391,7 +401,7 @@ function array_get_value(&$array,$key,$default=null){
  * 二维数组按照指定的键值进行排序，默认升序
  * 
  * @param  $keys 根据键值
- * @param  $type 升序降序
+ * @param  $type 升序降序 默认升序
  * @return array 
  * $array = array(
  * 		array('name'=>'手机','brand'=>'诺基亚','price'=>1050),
@@ -800,11 +810,15 @@ END;
 	exit;
 }
 
-function get_caller_trace($trace) {
+function get_caller_trace($trace) {//return array();
 	$traceText = array();
+	$maxLoad = 50; //数据过多自动丢失后面内容;
+	if(count($trace) > $maxLoad){
+		$trace = array_slice($trace,count($trace) - $maxLoad);
+	}
 	foreach($trace as $i=>$call){
-		if (isset($call['object']) && is_object($call['object'])) { 
-			$call['object'] = get_class($call['object']); 
+		if (isset($call['object']) && is_object($call['object'])) {
+			$call['object'] = get_class_name($call['object']); 
 		}
 		$file = str_replace(BASIC_PATH,'',$call['file']);
 		$traceText[$i] = $file.'['.$call['line'].'] ';
@@ -814,24 +828,14 @@ function get_caller_trace($trace) {
 			$traceText[$i].= $call['function'].'(args)';
 		}else{
 			$args  = is_array($call['args']) ? $call['args'] : array();
-			$param = '';
-			foreach ($args as $arg) {
-				$maxLength = 200;//参数最长长度
-				if(is_string($arg)){
-					$item = "'".$arg."'";
-					if(strlen($arg) > $maxLength) {
-						$item ="'".mb_substr($arg,0,$maxLength).'..."';
-					}
-				}else if(is_object($arg)){
-					$item  = '#'.get_class($arg).'#';
-				}else{
-					$item = json_encode_force($arg);
-					$item = str_replace('"',"'",$item);
-					if(strlen($item) > $maxLength) {
-						$item = mb_substr($item,0,$maxLength).'...';
-					}
-				}
-				$param .= $item.',';
+			$param = json_encode(array_parse_deep($args));
+			$param = str_replace(array('\\/','\/','\\\\/','\"'),array('/','/','/','"'),$param);
+			if(substr($param,0,1) == '['){
+				$param = substr($param,1,-1);
+			}
+			$maxLength = 200;//参数最长长度
+			if(strlen($param) > $maxLength) {
+				$param = mb_substr($param,0,$maxLength).'...';
 			}
 			$traceText[$i].= $call['function'].'('.rtrim($param,',').')';
 		}
@@ -844,6 +848,16 @@ function get_caller_trace($trace) {
 function get_caller_info() { 
 	$trace = debug_backtrace();
 	return get_caller_trace($trace);
+}
+function get_caller_msg() { 
+	$msg = get_caller_info();
+	$msg = array_slice($msg,0,count($msg) - 1);
+
+	$msg['memory'] = sprintf("%.3fM",memory_get_usage()/(1024*1024));
+	$msg['sql']  = think_trace('[sql]');
+	$msg = json_encode_force($msg);
+	$msg = str_replace(array('\\/','\/','\\\\/','\"'),array('/','/','/','"'),$msg);
+	return $msg;
 }
 
 
@@ -934,11 +948,37 @@ function json_encode_force($json){
 		$jsonStr = json_encode($json);
 	}
 	if($jsonStr === false){
+		$json = array_parse_deep($json);
 		$parse = new Services_JSON();
-		$jsonStr =  $parse->encode($json);
+		$jsonStr = $parse->encode($json);
 	}
 	return $jsonStr;
 }
+
+function array_parse_deep($arr){
+	if(!is_array($arr)) return $arr;
+	foreach ($arr as $key => $obj) {
+		if(is_resource($obj) || is_object($obj)){ // 资源无法json_encode;
+			$arr[$key] = get_class_name($obj);
+		}else if(is_array($obj)){
+			$arr[$key] = array_parse_deep($obj);
+		}
+	}
+	return $arr;
+}
+
+function get_class_name($obj){
+	if(is_resource($obj)){ // 资源无法json_encode;
+		ob_start();echo $obj;$id = ob_get_clean();
+		$id = str_replace('Resource id #','',$id);
+		$result = '{'.$id."}@".get_resource_type($obj);
+	}else if(is_object($obj)){
+		$id = substr(md5(spl_object_hash($obj)),0,3);
+		$result = '{'.$id."}#".get_class($obj);
+	}
+	return $result;
+}
+
 
 /**
  * 打包返回AJAX请求的数据
@@ -1056,7 +1096,8 @@ function html2txt($document){
 		"'&(cent|#162);'i",
 		"'&(pound|#163);'i",
 		"'&(copy|#169);'i",
-		"'&#(\d+);'e"); // 作为 PHP 代码运行
+		// "'&#(\d+);'e");
+		"'&#(\d+);'"); // 作为 PHP 代码运行
 	$replace = array ("",
 		"",
 		"",
@@ -1070,7 +1111,7 @@ function html2txt($document){
 		chr(163),
 		chr(169),
 		"chr(\\1)");
-	$text = preg_replace ($search, $replace, $document);
+	$text = preg_replace_callback ($search, function(){return $replace;}, $document);
 	return $text;
 } 
 
@@ -1143,9 +1184,11 @@ function pr_replace_callback($matches){
 	return "\n".str_repeat(" ",strlen($matches[1])*2).$matches[2];
 }
 function pr_trace(){
-	$args = func_get_args();
-	$args[] = get_caller_info();
-	call_user_func('pr',$args);
+	$result = func_get_args();
+	$result['memory'] = sprintf("%.3fM",memory_get_usage()/(1024*1024));
+	$result['call'] = get_caller_info();
+	$result['sql']  = think_trace('[sql]');	
+	call_user_func('pr',$result);
 }
 
 function pr(){
@@ -1282,7 +1325,6 @@ function make_password(){
 	}
 	return md5($temp);
 }
-
 
 /**
  * php DES解密函数

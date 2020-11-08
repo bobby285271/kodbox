@@ -19,11 +19,10 @@ class adminerPlugin extends PluginBase{
 			'subMenu'	=> $config['menuSubMenu'],
 			'use'		=> '1'
 		);
-		// Action('admin/setting')->addMenu($menu);
 		return ActionCall('admin.setting.addMenu',$options,$menu);
 	}
 	
 	public function index(){
-		header('Location: '.$this->pluginHost.'adminer/index.php');
+		header('Location: '.$this->pluginHost.'adminer/');
 	}
 }

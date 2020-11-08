@@ -64,8 +64,10 @@ function think_exception($msg) {
 		$error = $msg;
 	}
 	
+	write_log($desc.';'.$error."\n".get_caller_msg(),'error');
     if(defined('GLOBAL_DEBUG') && !GLOBAL_DEBUG ){
 		$error = "<div class='desc'>$desc</div>".$error;
+		$error = str_replace(BASIC_PATH,'./',$error); //去除路径前缀;
         show_tips($error,'',0,'',false);
     }else{
 		if(is_object($msg)){ //系统错误或警告;
@@ -183,7 +185,11 @@ function think_config($name = null, $value = null) {
  */
 function think_parse_name($name, $type = 0) {
     if ($type) {
-        return ucfirst(preg_replace("/_([a-zA-Z])/e", "strtoupper('\\1')", $name));
+		$result = preg_replace_callback("/_([a-zA-Z])/", function($matches) {
+			return strtoupper($matches[1]);
+		},$name);
+		return ucfirst($result);
+        // return ucfirst(@preg_replace("/_([a-zA-Z])/e", "strtoupper('\\1')", $name));
     } else {
         return lcfirst($name);//数据库字段以小驼峰命名方式
         // return strtolower(trim(preg_replace("/[A-Z]/", "_\\0", $name), "_"));
@@ -296,12 +302,21 @@ function think_status($start, $end = '', $dec = 4) {
  * @return void
  */
 function think_trace($value = '[think]', $label = '', $level = 'DEBUG', $record = false) {
-	if(defined('GLOBAL_DEBUG') && !GLOBAL_DEBUG) return;
+	if(defined('GLOBAL_DEBUG') && !GLOBAL_DEBUG ){
+		if($level == 'ERR'){// 运行异常; 抛出异常
+			$info = ($label ? $label . ':' : '') . print_r($value, true);
+			return think_exception($info);
+		}
+		return;	
+	}
     static $_trace = array();
     if ('[sql]' === $value) {
 		$level = 'SQL';
 		if(!isset($_trace[$level])){
 			return $_trace;
+		}
+		if(empty($_trace[$level]['sql'])){
+			$_trace[$level]['sql'] = array();
 		}
 		$_trace[$level] = array_merge($_trace[$level]['sql'],$_trace[$level]);
 		$_trace[$level]['timeTotal'] = sprintf("%.4f",$_trace[$level]['timeTotal']);
@@ -310,10 +325,10 @@ function think_trace($value = '[think]', $label = '', $level = 'DEBUG', $record 
     }else if ('[think]' === $value) { // 获取trace信息
         think_exception($_trace);
     } else {
-        $info = ($label ? $label . ':' : '') . print_r($value, true);
-        if ('ERR' == $level) {// 抛出异常
-            think_exception($info);
-        }
+		$info = ($label ? $label . ':' : '') . print_r($value, true);
+		if($level == 'ERR'){// 运行异常; 抛出异常
+			return think_exception($info);
+		}
         $level = strtoupper($level);
         if (!isset($_trace[$level])) {
 			$_trace[$level] = array(
@@ -325,14 +340,15 @@ function think_trace($value = '[think]', $label = '', $level = 'DEBUG', $record 
 			);
 		}
 		
-		$logMax = 100;//最多纪录前30条sql; 避免额外开销及内存不可控		
+		$logMax = 50;//最多纪录前30条sql; 避免额外开销及内存不可控		
 		$useTime = substr($info,strrpos($info,'[ RunTime:')+10,-3);
 		$_trace[$level]['timeTotal'] += floatval($useTime);
 		$_trace[$level]['sqlTotal']  += 1;
 		if($_trace[$level]['sqlTotal'] < $logMax){
-			$_trace[$level]['sql'][] = $info;
-			$_trace[$level]['trace'][] = get_caller_info();
-			$_trace[$level]['time'][]  = $useTime;
+			$index = count($_trace[$level]['sql']) . '';
+			$_trace[$level]['sql'][$index] = $info;
+			$_trace[$level]['trace'][$index] = get_caller_info();
+			$_trace[$level]['time'][$index]  = $useTime;
 		}
         if ($record) {
             write_log($info, $record, $level);

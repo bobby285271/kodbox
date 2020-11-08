@@ -16,7 +16,7 @@ class userView extends Controller{
 				'phpVersion'	=> PHP_VERSION,
 				'appApi'		=> rtrim(APP_HOST,'/').'/index.php?',
 				'APP_HOST'		=> APP_HOST,
-				'ENV_DEV'		=> !!STATIC_DEV,
+				'ENV_DEV'		=> GLOBAL_DEBUG,
 				'staticPath'	=> STATIC_PATH,
 				'version'		=> KOD_VERSION,
 				'build'			=> KOD_VERSION_BUILD,
@@ -61,7 +61,7 @@ class userView extends Controller{
 			$api = $options['system']['settings']['kodApiServer'];
 			$options['system']['settings']['kodApiServer'] = str_replace('http://','https://',$api);
 		}
-		
+
 		$optionsGet = Hook::filter('user.view.options.before',$options);
 		$options 	= is_array($optionsGet) ? $optionsGet : $options;
 		$optionsGet = Hook::filter('user.view.options.after',$options);
@@ -69,7 +69,7 @@ class userView extends Controller{
 		$options    = $this->parseMenu($options);
 		show_json($options);
 	}
-	
+
 	/**
 	 * 根据权限设置筛选菜单;
 	 */
@@ -112,6 +112,7 @@ class userView extends Controller{
 	public function call(){
 		http_close();
 		ActionCall('explorer.index.clearCache');
+		AutoTask::start();
 		Cache::clearTimeout();
 	}
 	
@@ -139,7 +140,7 @@ class userView extends Controller{
 		$url = $this->in['url'];
 		if (function_exists('imagecolorallocate')) {
 			ob_get_clean();
-			QRcode::png($this->in['url']);
+			QRcode::png($this->in['url'],false,QR_ECLEVEL_L,7,2);
 		} else {
 			header('location: http://qr.topscan.com/api.php?text=' . rawurlencode($url));
 		}

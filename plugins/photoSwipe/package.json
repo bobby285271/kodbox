@@ -1,8 +1,8 @@
 {
 	"id":"photoSwipe",
-	"name":"PhotoSwipe Image",
-	"title":"PhotoSwipe Image Viewer",
-	"version":"1.37",
+	"name":"PhotoSwipe",
+	"title":"图片浏览器",
+	"version":"1.41",
 	"source":{
 		"className":"x-item-icon x-png",
 		"screenshoot":[

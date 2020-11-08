@@ -34,7 +34,7 @@ class explorerApi extends Controller{
 		if(!$config['apiKey']) return;
 
 		$timeTo = isset($this->in['timeTo'])?intval($this->in['timeTo']):'';
-		$token = md5($config['apiKey'].$this->in['path'].$timeTo);
+		$token = md5($this->in['path'].$timeTo.$config['apiKey']);
 		if($token != $this->in['token']){
 			show_tips('token ' . LNG('common.error'));
 		}

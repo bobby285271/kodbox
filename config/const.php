@@ -9,5 +9,6 @@ define("REPEAT_SKIP",			'skip');			// 已存在则跳过;
 //错误码定义
 define("ERROR_CODE_LOGOUT",'10001');		// 需要登录；token过期等情况；
 define("ERROR_CODE_USER_INVALID",'10002');	// 登录：账号被禁用或尚未启用；
+
 define("KOD_DECODE_INSERT_SIZE",'60003');
 define("KOD_DECODE_INLINE",'60004');

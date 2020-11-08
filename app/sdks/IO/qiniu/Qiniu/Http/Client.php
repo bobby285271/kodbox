@@ -96,7 +96,8 @@ final class Client
         if (!ini_get('safe_mode') && !ini_get('open_basedir')) {
             $options[CURLOPT_FOLLOWLOCATION] = true;
         }
-
+		curl_setopt($ch, CURLOPT_NOPROGRESS, false);//add by warlee;
+		curl_setopt($ch, CURLOPT_PROGRESSFUNCTION,'curl_progress');curl_progress_start($ch);
         if (!empty($request->headers)) {
             $headers = array();
             foreach ($request->headers as $key => $val) {
@@ -109,8 +110,8 @@ final class Client
         if (!empty($request->body)) {
             $options[CURLOPT_POSTFIELDS] = $request->body;
         }
-        curl_setopt_array($ch, $options);
-        $result = curl_exec($ch);
+		curl_setopt_array($ch, $options);
+		$result = curl_exec($ch);curl_progress_end($ch);
         $t2 = microtime(true);
         $duration = round($t2 - $t1, 3);
         $ret = curl_errno($ch);

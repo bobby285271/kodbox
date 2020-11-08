@@ -30,7 +30,7 @@ class adminJob extends Controller{
 			"name" 		=> array("check"=>"require"),
 			"desc" 		=> array("default"=>""),
 		));
-		$res = $this->model->add($data['name'],$data['desc']);
+		$res = $this->model->add($data);
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.error') . '! ' . LNG('explorer.pathExists');
 		show_json($msg,!!$res);
 	}
@@ -44,7 +44,7 @@ class adminJob extends Controller{
 			"name" 		=> array("check"=>"require"),
 			"desc" 		=> array("default"=>""),
 		));
-		$res = $this->model->update($data['id'],$data['name'],$data['desc']);
+		$res = $this->model->update($data['id'],$data);
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.error') . '! ' . LNG('explorer.pathExists');
 		show_json($msg,!!$res);
 	}
@@ -59,16 +59,13 @@ class adminJob extends Controller{
 		show_json($msg,!!$res);
 	}
 	
-	/**
-	 * 排序：上移、下移
-	 */
+	// 移动排序、拖拽排序
 	public function sort() {
-		$data = Input::getArray(array(
-			"id"		=> array("check"=>"int"),
-			"sort" 		=> array("check"=>"require","default"=>''),
-		));
-		$res = $this->model->sort($data['id'], $data['sort']);
-		$msg = $res ? LNG('explorer.success') : LNG('explorer.error');
-		show_json($msg,!!$res);
+		$ids = Input::get('ids', 'require');
+		$ids = explode(',', $ids);
+		foreach($ids as $i => $id) {
+			$this->model->update($id,array("sort"=> $i));
+		}
+		show_json(LNG('explorer.success'));
 	}
 }

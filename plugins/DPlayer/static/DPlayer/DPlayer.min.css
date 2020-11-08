@@ -36,13 +36,11 @@ div.dialog-simple.dplayer-dialog .aui-title{background:none;opacity: 0;}
 body div.dialog-simple.dplayer-dialog .aui-outer .aui-min, 
 body div.dialog-simple.dplayer-dialog .aui-outer .aui-max, 
 body div.dialog-simple.dplayer-dialog .aui-outer .aui-close{
-	border-radius: 50%;
+	border-radius:4px;
 	background-image: none;
 	background: rgba(255, 255, 255, 0.3);
-	width: 18px;
-	height: 18px;
-	font-size: 12px;
-	line-height: 18px;
+	width: 20px;height: 20px;line-height: 20px;
+    font-size: 12px;    
 }
 body div.dialog-simple.dplayer-dialog .aui-outer .aui-min:hover{background: #ffeb3b;color: #8e810d;}
 body div.dialog-simple.dplayer-dialog .aui-outer .aui-max:hover{background: #4CAF50;color: #19581c;}
@@ -50,9 +48,6 @@ body div.dialog-simple.dplayer-dialog .aui-outer .aui-close:hover{background:#f3
 body div.dialog-simple.dplayer-dialog .aui-outer .aui-close{right:6px;}
 body div.dialog-simple.dplayer-dialog .aui-outer .aui-max{right: 28px;} 
 body div.dialog-simple.dplayer-dialog .aui-outer .aui-min{right: 50px;}
-body div.dialog-simple.dplayer-dialog .aui-outer .aui-close:before{content: "\f00d";}
-body div.dialog-simple.dplayer-dialog .aui-outer .aui-max:before{content: "\f065";} 
-body div.dialog-simple.dplayer-dialog .aui-outer .aui-min:before{content: "\f068";}
 .dplayer-controller .dplayer-icons.dplayer-comment-box .dplayer-comment-setting-box label {
     cursor: pointer;display: inline;
 }

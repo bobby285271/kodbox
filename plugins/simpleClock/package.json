@@ -2,9 +2,10 @@
 	"id":"simpleClock",
 	"name":"clock",
 	"title":"时钟 clock",
-	"version":"1.1",
+	"version":"1.12",
+	"category":"tools",
 	"source":{
-		"className":"font-icon icon-time bg-blue-6"
+		"className":"font-icon ri-time-line bg-blue-6"
 	},
 	"description":"桌面时钟挂件(desktop widget)",
 	"auther":{

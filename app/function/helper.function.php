@@ -1,5 +1,9 @@
 <?php
 
+if(!function_exists('gzinflate')){
+    show_tips("不支持gzinflate ,<br/>请安装php-zlib 扩展后再试");exit;
+}
+
 //扩展名权限判断 有权限则返回1 不是true
 function checkExt($file){
 	if($GLOBALS['isRoot']) return 1;
@@ -32,6 +36,7 @@ function checkExt($file){
 //ACT=zip——压缩到当前
 //ACT=zipDownload---打包下载[判断浏览器&UA——得到地区自动转换为目标编码]；
 function zip_pre_name($fileName,$toCharset=false){
+	Hook::trigger('zip.nameParse',$fileName);
 	if(get_path_this($fileName) == '.DS_Store') return '';//过滤文件
 	if (!function_exists('iconv')){
 		return $fileName;
@@ -72,6 +77,7 @@ function unzip_filter_ext($name){
 }
 //解压到kod，文件名处理;识别编码并转换到当前系统编码
 function unzip_pre_name($fileName){
+	Hook::trigger('unzip.nameParse',$fileName);
 	$fileName = str_replace(array('../','..\\',''),'',$fileName);
 	if (!function_exists('iconv')){
 		return unzip_filter_ext($fileName);

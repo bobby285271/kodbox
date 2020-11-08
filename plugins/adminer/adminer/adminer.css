@@ -735,3 +735,65 @@ h2, h3 {
     background: #2196f3;
 }
 .footer > div{padding-left:10px;}
+
+
+/* #menu h1 {background: rgba(255,255,255,0.15);} */
+
+#menu{background:#001529;}
+#menu #tables a{color:rgba(255, 255, 255, 0.8);}
+#menu #dbs {background:rgba(255,255,255,0.12);color: #3c5165;}
+#menu .links{border-top:none;background:rgba(255,255,255,0.18);}
+#menu .links a:hover{background:rgba(255,255,255,0.2);}
+
+#tables a[title]:hover, #tables a.active, #tables a.select:hover + a, #tables a.select.active + a,
+#tables a:hover{background-color:rgba(255, 255, 255, 0.2);}
+#tables a.active, #tables a.active:hover{background-color: #1890ff;}
+a, a:visited {color: #1890ff;}
+h2, h3{color:#666;}
+
+
+input[type="number"],input[type="text"],form pre,textarea{border-radius: 3px;}
+input:not([type]):hover, 
+input[type="color"]:hover,
+input[type="email"]:hover, 
+input[type="number"]:hover, 
+input[type="password"]:hover, 
+input[type="tel"]:hover, 
+input[type="url"]:hover, 
+input[type="text"]:hover, 
+input[type="search"]:hover,
+textarea:hover,
+form pre:hover
+{
+    border:1px solid  #1890ff !important;
+}
+
+input:not([type]):active, 
+input[type="color"]:active,
+input[type="email"]:active, 
+input[type="number"]:active, 
+input[type="password"]:active, 
+input[type="tel"]:active, 
+input[type="url"]:active, 
+input[type="text"]:active, 
+input[type="search"]:active,
+textarea:active,
+form pre:active,
+input:not([type]):focus, 
+input[type="color"]:focus,
+input[type="email"]:focus, 
+input[type="number"]:focus, 
+input[type="password"]:focus, 
+input[type="tel"]:focus, 
+input[type="url"]:focus, 
+input[type="text"]:focus, 
+input[type="search"]:focus,
+textarea:focus,
+form pre:focus
+{
+    border:1px solid #1890ff  !important;
+    box-shadow: 0 0 0 3px #1890ff3d;
+}
+
+input[type=submit]{color:#fff;background-color: #1890ff;}
+input[type=submit]:hover{color:#fff;background-color: #2070e5;}

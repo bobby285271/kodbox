@@ -7,7 +7,6 @@
 */
 
 class explorerFileView extends Controller{
-	private $model;
 	public function __construct(){
 		parent::__construct();
 		$this->model = Model("Source");
@@ -15,11 +14,18 @@ class explorerFileView extends Controller{
 	public function index(){
 		$file = $this->in['path'];	
 		$fileInfo = IO::info($file);
-		$app = $this->getAppUser($fileInfo['ext']);
+		$app = $this->getAppUser($fileInfo['ext']); 
 		$fileUri = rawurlencode($file);
+
 		if(!$app){
 			return header('Location: '.APP_HOST.'#fileView&path='.$fileUri);
 		}
+		$object = Action($app.'Plugin');
+		$existMethod = method_exists($object,'index');	
+		if(!$existMethod){
+			return header('Location: '.APP_HOST.'#fileView&path='.$fileUri);
+		}		
+		
 		$link = APP_HOST.'?plugin/'.$app.'&path='.$fileUri;
 		$link .= '&ext='.rawurlencode($fileInfo['ext']).'&name='.rawurlencode($fileInfo['name']);
 		header('Location: '.$link);

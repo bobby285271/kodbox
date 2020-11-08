@@ -1,8 +1,10 @@
 <?php
 return array(
-	"officeLive.meta.name"				=> "Officelive Viewer",
-	"officeLive.meta.title"				=> "Officelive Viewer",
+	"officeLive.meta.name"				=> "Officelive",
+	"officeLive.meta.title"				=> "Office file online preview",
 	"officeLive.meta.desc"				=> "Officelive Viewer",
+	'officeLive.meta.netwrokDesc'		=> "<h4>Description:</h4>During the operation of the application, it will request an external network interface to analyze the office file through the interface to achieve online preview of the file.",
+	'officeLive.meta.netwrokUrl'		=> "Interface URL",	
 
 	"officeLive.Config.apiServer"		=> "Server Api",
 	"officeLive.Config.apiServerDesc"	=> "<div class='can-select pt-10'>

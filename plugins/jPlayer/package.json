@@ -1,8 +1,8 @@
 {
 	"id":"jPlayer",
-	"name":"jPlayer",
-	"title":"jPlayer",
-	"version":"1.41",
+	"name":"jPlayer播放器",
+	"title":"jPlayer视频播放器",
+	"version":"1.46",
 	"source":{
 		"icon":"{{pluginHost}}static/images/icon.png",
 		"screenshoot":[

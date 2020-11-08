@@ -29,6 +29,15 @@ h(Math,"acosh",Cr.acosh,Math.acosh(Number.MAX_VALUE)===Infinity);h(Math,"acosh",
 //es6-shim;
 (function(t,e){if(typeof define==="function"&&define.amd){define(e)}else if(typeof exports==="object"){module.exports=e()}else{t.returnExports=e()}})(this,function(){"use strict";var t=new Function("return this;");var e=t();var r=e.Object;var n=Function.call.bind(Function.call);var o=Function.toString;var i=String.prototype.match;var f=function(t){try{t();return false}catch(e){return true}};var u=function(){return!f(function(){r.defineProperty({},"x",{get:function(){}})})};var a=!!r.defineProperty&&u();(function(){if(r.setPrototypeOf){return}var t=r.getOwnPropertyNames;var e=r.getOwnPropertyDescriptor;var n=r.create;var o=r.defineProperty;var i=r.getPrototypeOf;var f=r.prototype;var u=function(r,n){t(n).forEach(function(t){o(r,t,e(n,t))});return r};var a=function(t,e){return u(n(e),t)};var c,s;try{c=e(f,"__proto__").set;c.call({},null);s=function(t,e){c.call(t,e);return t}}catch(p){c={__proto__:null};if(c instanceof r){s=a}else{c.__proto__=f;if(c instanceof r){s=function(t,e){t.__proto__=e;return t}}else{s=function(t,e){if(i(t)){t.__proto__=e;return t}else{return a(t,e)}}}}}r.setPrototypeOf=s})();if(a&&function foo(){}.name!=="foo"){r.defineProperty(Function.prototype,"name",{configurable:true,enumerable:false,get:function(){if(this===Function.prototype){return""}var t=n(o,this);var e=n(i,t,/\s*function\s+([^(\s]*)\s*/);var f=e&&e[1];r.defineProperty(this,"name",{configurable:true,enumerable:false,writable:false,value:f});return f}})}});
 
+/*!
+ * weakmap-polyfill v2.0.2 - ECMAScript6 WeakMap polyfill
+ * https://github.com/polygonplanet/weakmap-polyfill
+ * Copyright (c) 2015-2020 Polygon Planet <polygon.planet.aqua@gmail.com>
+ * @license MIT
+ */
+(function(e){"use strict";if(e.WeakMap){return}var r=Object.prototype.hasOwnProperty;var n=function(e,t,r){if(Object.defineProperty){Object.defineProperty(e,t,{configurable:true,writable:true,value:r})}else{e[t]=r}};e.WeakMap=function(){function WeakMap(){if(this===void 0){throw new TypeError("Constructor WeakMap requires 'new'")}n(this,"_id",genId("_WeakMap"));if(arguments.length>0){throw new TypeError("WeakMap iterable is not supported")}}n(WeakMap.prototype,"delete",function(e){checkInstance(this,"delete");if(!isObject(e)){return false}var t=e[this._id];if(t&&t[0]===e){delete e[this._id];return true}return false});n(WeakMap.prototype,"get",function(e){checkInstance(this,"get");if(!isObject(e)){return void 0}var t=e[this._id];if(t&&t[0]===e){return t[1]}return void 0});n(WeakMap.prototype,"has",function(e){checkInstance(this,"has");if(!isObject(e)){return false}var t=e[this._id];if(t&&t[0]===e){return true}return false});n(WeakMap.prototype,"set",function(e,t){checkInstance(this,"set");if(!isObject(e)){throw new TypeError("Invalid value used as weak map key")}var r=e[this._id];if(r&&r[0]===e){r[1]=t;return this}n(e,this._id,[e,t]);return this});function checkInstance(e,t){if(!isObject(e)||!r.call(e,"_id")){throw new TypeError(t+" method called on incompatible receiver "+typeof e)}}function genId(e){return e+"_"+rand()+"."+rand()}function rand(){return Math.random().toString().substring(2)}n(WeakMap,"_polyfill",true);return WeakMap}();function isObject(e){return Object(e)===e}})(typeof self!=="undefined"?self:typeof window!=="undefined"?window:typeof global!=="undefined"?global:this);
+
+
 if (!String.prototype.includes) {
 	String.prototype.includes = function (search, start) {
 		if (typeof start !== 'number') {
@@ -164,4 +173,242 @@ if (!String.prototype.padEnd) {
         return String(this) + padString.slice(0, targetLength);
     };
 }
-//# sourceMappingURL=es5-sham.map
+
+
+/*! 
+https://mths.be/scrollingelement v1.5.2 by @diegoperini & @mathias | MIT license 
+https://www.zhangxinxu.com/wordpress/2019/02/document-scrollingelement/
+*/
+if (!('scrollingElement' in document)) (function() {
+	function computeStyle(element) {
+		if (window.getComputedStyle) {
+			// Support Firefox < 4 which throws on a single parameter.
+			return getComputedStyle(element, null);
+		}
+		// Support Internet Explorer < 9.
+		return element.currentStyle;
+	}
+
+	function isBodyElement(element) {
+		// The `instanceof` check gives the correct result for e.g. `body` in a
+		// non-HTML namespace.
+		if (window.HTMLBodyElement) {
+			return element instanceof HTMLBodyElement;
+		}
+		// Fall back to a `tagName` check for old browsers.
+		return /body/i.test(element.tagName);
+	}
+
+	function getNextBodyElement(frameset) {
+		// We use this function to be correct per spec in case `document.body` is
+		// a `frameset` but there exists a later `body`. Since `document.body` is
+		// a `frameset`, we know the root is an `html`, and there was no `body`
+		// before the `frameset`, so we just need to look at siblings after the
+		// `frameset`.
+		var current = frameset;
+		while (current = current.nextSibling) {
+			if (current.nodeType == 1 && isBodyElement(current)) {
+				return current;
+			}
+		}
+		// No `body` found.
+		return null;
+	}
+
+	// Note: standards mode / quirks mode can be toggled at runtime via
+	// `document.write`.
+	var isCompliantCached;
+	var isCompliant = function() {
+		var isStandardsMode = /^CSS1/.test(document.compatMode);
+		if (!isStandardsMode) {
+			// In quirks mode, the result is equivalent to the non-compliant
+			// standards mode behavior.
+			return false;
+		}
+		if (isCompliantCached === void 0) {
+			// When called for the first time, check whether the browser is
+			// standard-compliant, and cache the result.
+			var iframe = document.createElement('iframe');
+			iframe.style.height = '1px';
+			(document.body || document.documentElement || document).appendChild(iframe);
+			var doc = iframe.contentWindow.document;
+			doc.write('<!DOCTYPE html><div style="height:9999em">x</div>');
+			doc.close();
+			isCompliantCached = doc.documentElement.scrollHeight > doc.body.scrollHeight;
+			iframe.parentNode.removeChild(iframe);
+		}
+		return isCompliantCached;
+	};
+
+	function isRendered(style) {
+		return style.display != 'none' && !(style.visibility == 'collapse' &&
+			/^table-(.+-group|row|column)$/.test(style.display));
+	}
+
+	function isScrollable(body) {
+		// A `body` element is scrollable if `body` and `html` both have
+		// non-`visible` overflow and are both being rendered.
+		var bodyStyle = computeStyle(body);
+		var htmlStyle = computeStyle(document.documentElement);
+		return bodyStyle.overflow != 'visible' && htmlStyle.overflow != 'visible' &&
+			isRendered(bodyStyle) && isRendered(htmlStyle);
+	}
+
+	var scrollingElement = function() {
+		if (isCompliant()) {
+			return document.documentElement;
+		}
+		var body = document.body;
+		// Note: `document.body` could be a `frameset` element, or `null`.
+		// `tagName` is uppercase in HTML, but lowercase in XML.
+		var isFrameset = body && !/body/i.test(body.tagName);
+		body = isFrameset ? getNextBodyElement(body) : body;
+		// If `body` is itself scrollable, it is not the `scrollingElement`.
+		return body && isScrollable(body) ? null : body;
+	};
+
+	if (Object.defineProperty) {
+		// Support modern browsers that lack a native implementation.
+		Object.defineProperty(document, 'scrollingElement', {
+			'get': scrollingElement
+		});
+	} else if (document.__defineGetter__) {
+		// Support Firefox ≤ 3.6.9, Safari ≤ 4.1.3.
+		document.__defineGetter__('scrollingElement', scrollingElement);
+	} else {
+		// IE ≤ 4 lacks `attachEvent`, so it only gets this one assignment. IE ≤ 7
+		// gets it too, but the value is updated later (see `propertychange`).
+		document.scrollingElement = scrollingElement();
+		document.attachEvent && document.attachEvent('onpropertychange', function() {
+			// This is for IE ≤ 7 only.
+			// A `propertychange` event fires when `<body>` is parsed because
+			// `document.activeElement` then changes.
+			if (window.event.propertyName == 'activeElement') {
+				document.scrollingElement = scrollingElement();
+			}
+		});
+	}
+}());
+
+window.matchMedia || (window.matchMedia = function() {
+    "use strict";
+
+    // For browsers that support matchMedium api such as IE 9 and webkit
+    var styleMedia = (window.styleMedia || window.media);
+
+    // For those that don't support matchMedium
+    if (!styleMedia) {
+        var style       = document.createElement('style'),
+            script      = document.getElementsByTagName('script')[0],
+            info        = null;
+
+        style.type  = 'text/css';
+        style.id    = 'matchmediajs-test';
+
+        if (!script) {
+          document.head.appendChild(style);
+        } else {
+          script.parentNode.insertBefore(style, script);
+        }
+        // 'style.currentStyle' is used by IE <= 8 and 'window.getComputedStyle' for all other browsers
+        info = ('getComputedStyle' in window) && window.getComputedStyle(style, null) || style.currentStyle;
+
+        styleMedia = {
+            matchMedium: function(media) {
+                var text = '@media ' + media + '{ #matchmediajs-test { width: 1px; } }';
+
+                // 'style.styleSheet' is used by IE <= 8 and 'style.textContent' for all other browsers
+                if (style.styleSheet) {
+                    style.styleSheet.cssText = text;
+                } else {
+                    style.textContent = text;
+                }
+
+                // Test if media query is true or false
+                return info.width === '1px';
+            }
+        };
+    }
+
+    return function(media) {
+        return {
+            matches: styleMedia.matchMedium(media || 'all'),
+            media: media || 'all'
+        };
+    };
+}());
+/*! matchMedia() polyfill addListener/removeListener extension. Author & copyright (c) 2012: Scott Jehl. MIT license */
+(function(){
+    // Bail out for browsers that have addListener support
+    if (window.matchMedia && window.matchMedia('all').addListener) {
+        return false;
+    }
+
+    var localMatchMedia = window.matchMedia,
+        hasMediaQueries = localMatchMedia('only all').matches,
+        isListening     = false,
+        timeoutID       = 0,    // setTimeout for debouncing 'handleChange'
+        queries         = [],   // Contains each 'mql' and associated 'listeners' if 'addListener' is used
+        handleChange    = function(evt) {
+            // Debounce
+            clearTimeout(timeoutID);
+
+            timeoutID = setTimeout(function() {
+                for (var i = 0, il = queries.length; i < il; i++) {
+                    var mql         = queries[i].mql,
+                        listeners   = queries[i].listeners || [],
+                        matches     = localMatchMedia(mql.media).matches;
+
+                    // Update mql.matches value and call listeners
+                    // Fire listeners only if transitioning to or from matched state
+                    if (matches !== mql.matches) {
+                        mql.matches = matches;
+
+                        for (var j = 0, jl = listeners.length; j < jl; j++) {
+                            listeners[j].call(window, mql);
+                        }
+                    }
+                }
+            }, 30);
+        };
+
+    window.matchMedia = function(media) {
+        var mql         = localMatchMedia(media),
+            listeners   = [],
+            index       = 0;
+
+        mql.addListener = function(listener) {
+            // Changes would not occur to css media type so return now (Affects IE <= 8)
+            if (!hasMediaQueries) {
+                return;
+            }
+
+            // Set up 'resize' listener for browsers that support CSS3 media queries (Not for IE <= 8)
+            // There should only ever be 1 resize listener running for performance
+            if (!isListening) {
+                isListening = true;
+                window.addEventListener('resize', handleChange, true);
+            }
+
+            // Push object only if it has not been pushed already
+            if (index === 0) {
+                index = queries.push({
+                    mql         : mql,
+                    listeners   : listeners
+                });
+            }
+
+            listeners.push(listener);
+        };
+
+        mql.removeListener = function(listener) {
+            for (var i = 0, il = listeners.length; i < il; i++){
+                if (listeners[i] === listener){
+                    listeners.splice(i, 1);
+                }
+            }
+        };
+
+        return mql;
+    };
+}());

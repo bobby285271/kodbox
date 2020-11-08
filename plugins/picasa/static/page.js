@@ -1,35 +1,29 @@
 define(function(require, exports) {
 	var getImageArr = function(filePath,name){
-		var $files 	 = $("[data-path="+hashEncode(filePath)+"]");
-		var $images  = $files.parent().find(".file .picture-show");
-		var itemsArr = [];
-		var index 	 = 0;
-		var makeItem = function(filePath,name,$dom){
-			itemsArr.push([
+		var imageList = kodApp.imageList;
+		kodApp.imageList = false;
+		if(!imageList) {
+			imageList = {items:[{
+				src:core.pathImage(filePath,1200),
+				msrc:core.pathImage(filePath,250),
+				trueImage:core.pathImage(filePath,false),
+				title:htmlEncode(name || ''),
+			}],index:0};
+		}
+		var items  = [];
+		_.each(imageList.items,function(item){
+			var parse = $.parseUrl(item.src);
+			var title = item.title || _.get(parse,'params.name') || pathTools.pathThis(item.src);
+			items.push([
 				[
-					core.pathImage(filePath,250),
-					core.pathImage(filePath,1200),
-					core.pathImage(filePath,false)
+					item.msrc || item.src,
+					item.src,
+					item.trueImage || item.src
 				],
-				htmlEncode(name || ''),
-				[0,0],
-				''
+				htmlEncode(title),[0,0],''
 			]);
-		}
-		if($images.length > 0){
-			$images.each(function(i){
-				var $curFile = $(this).parents('.file');
-				var curPath  = hashDecode($curFile.attr('data-path'));
-				makeItem(curPath,$curFile.attr('data-name'),$(this));
-				if(curPath == filePath){
-					index = i;
-				}
-			});
-		}else{
-			makeItem(filePath,name,false);
-		}
-		// console.log(7777,$images,itemsArr);
-		return {items:itemsArr,index:index};
+		});
+		return {items:items,index:imageList.index};
 	};
 	
 	//播放幻灯片时，删除图片.

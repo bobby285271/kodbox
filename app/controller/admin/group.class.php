@@ -14,9 +14,16 @@ class adminGroup extends Controller{
 	}
 
 	public function get() {
-		$groupRootID = 0;
-		$id    = Input::get('parentID','int',$groupRootID);
-		$items = $this->model->listChild($id);
+		$data = Input::getArray(array(
+			"parentID"		=> array("check"=>"int",'default'=>0),
+			"containCurrent"=> array("check"=>"int",'default'=>0),
+		));
+		if($data['containCurrent'] == '1'){
+			$item = $this->model->getInfo($data['parentID']);
+			$items = array("list"=>array($item));
+		}else{
+			$items = $this->model->listChild($data['parentID']);
+		}
 		show_json($items,true);
 	}
 
@@ -81,14 +88,14 @@ class adminGroup extends Controller{
 	 */
 	public function edit() {
 		$data = Input::getArray(array(
-			"name" 		=> array("check"=>"require"),
+			"name" 		=> array("default"=>null),
 			"sizeMax" 	=> array("check"=>"float","default"=>null),
 			"groupID" 	=> array("check"=>"int"),
-			"parentID"	=> array(),
+			"parentID"	=> array("default"=>null),
 		));
-		if($data['groupID'] != '1' && !$data['parentID']){
-			show_json(LNG('admin.group.parentNullError'), false);
-		}
+		// if($data['groupID'] != '1' && !$data['parentID']){
+		// 	show_json(LNG('admin.group.parentNullError'), false);
+		// }
 		$res = $this->model->groupEdit($data['groupID'],$data);
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.error');
 		return show_json($msg,!!$res,$data['groupID']);

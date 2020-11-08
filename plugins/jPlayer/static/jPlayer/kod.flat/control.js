@@ -1,6 +1,6 @@
 var jPlayerConfigInit = function($player,config){
 	var playerConfig = {
-		supplied: "flv,webma,webmv,oga,ogv,m4v,mp3,wav,rtmpa,rtmpv",
+		supplied: "flv,webma,webmv,oga,ogv,m4v,mp3,wav,rtmpa,rtmpv,flac",
 		solution: "html,flash",
 		wmode:"transparent",
 		volume:0.8,

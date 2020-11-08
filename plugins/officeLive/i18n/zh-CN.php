@@ -1,8 +1,10 @@
 <?php
 return array(
-	"officeLive.meta.name"				=> "Officelive预览",
-	"officeLive.meta.title"				=> "Officelive预览",
+	"officeLive.meta.name"				=> "Officelive",
+	"officeLive.meta.title"				=> "office文件在线预览",
 	"officeLive.meta.desc"				=> "office系列文件在线预览",
+	'officeLive.meta.netwrokDesc'		=> "<h4>说明:</h4>该应用在运行过程中，将请求外网接口，通过接口对office文件进行解析，实现文件的在线预览。",
+	'officeLive.meta.netwrokUrl'		=> "接口地址",
 
 	"officeLive.Config.apiServer"		=> "服务器接口",
 	"officeLive.Config.apiServerDesc"	=> "<div class='can-select pt-10'>

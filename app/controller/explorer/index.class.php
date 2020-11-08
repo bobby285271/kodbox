@@ -32,6 +32,8 @@ class explorerIndex extends Controller{
 		$path = $item['path'];
 		if($item['type'] == 'full'){
 			$result = IO::infoFull($path);
+		}else if($item['type'] == 'simple'){
+			$result = IO::info($path);
 		}else{
 			$result = IO::infoWithChildren($path);
 		}
@@ -70,7 +72,7 @@ class explorerIndex extends Controller{
 		));
 		
 		$result = false;
-		$info   = IO::info($data['path']);
+		$info   = IO::infoSimple($data['path']);
 		if($info && $info['sourceID']){
 			$result = $this->model->setDesc($info['sourceID'],$data['desc']);
 		}
@@ -78,6 +80,45 @@ class explorerIndex extends Controller{
 		show_json($data['desc'],!!$result);
 	}
 	
+	/**
+	 * 设置文档描述;
+	 */
+	public function setMeta(){
+		$data = Input::getArray(array(
+			'path'	=> array('check'=>'require'),
+			'data'	=> array('check'=>'require'),
+		));
+		$meta = json_decode($data['data'],true);
+		if(!$meta || !is_array($meta)){
+			show_json(LNG('explorer.error'),false);
+		}
+
+		$info = IO::infoSimple($data['path']);
+		if($info && $info['sourceID']){
+			foreach ($meta as $key => $value) {
+				if( !$this->metaKeyCheck($key) ){
+					show_json("key error!",false);
+				}
+				$value = $value === '' ? null:$value; //为空则删除;
+				$this->model->metaSet($info['sourceID'],$key,$value);
+			}
+			show_json(IO::info($data['path']),true);
+		}
+		show_json(LNG('explorer.error'),false);
+	}
+	private function metaKeyCheck($key){
+		static $metaKeys = false;
+		if(!$metaKeys){
+			$metaKeys = array_keys($this->config['settings']['sourceMeta']);
+			$metaKeys = array_merge($metaKeys,array(
+				'systemSort',		// 置顶
+				'systemLock',		// 编辑锁定
+				'systemLockTime',	// 编辑锁定时间
+			));
+		}
+		return in_array($key,$metaKeys);
+	}
+		
 	/**
 	 * 设置权限
 	 */
@@ -89,8 +130,9 @@ class explorerIndex extends Controller{
 		));
 
 		$result = false;
-		$info   = IO::info($data['path']);
-		if($info && $info['sourceID'] && $info['targetType'] == 'group'){//只能设置部门文档;
+		$info   = IO::infoSimple($data['path']);
+		if( $info && $info['sourceID'] && 
+			$info['targetType'] == SourceModel::TYPE_GROUP){//只能设置部门文档;
 			if($data['action'] == 'getData'){
 				$result = Model('SourceAuth')->getAuth($info['sourceID']);
 				show_json($result);
@@ -148,7 +190,12 @@ class explorerIndex extends Controller{
 	}
 	public function pathRename(){
 		$this->pathAllowCheck($this->in['newName']);
-		$result = IO::rename($this->in['path'],$this->in['newName']);
+		$path = $this->in['path'];
+		if(IO::isTypeObject($path)){
+			$this->taskCopyCheck(array(array("path"=>$path)));
+		}
+		
+		$result = IO::rename($path,$this->in['newName']);
 		$msg = !!$result ? LNG('explorer.success') : LNG("explorer.pathExists");
 		show_json($msg,!!$result,$result);
 	}
@@ -238,8 +285,11 @@ class explorerIndex extends Controller{
 		show_json($clipboard,true,Session::get('pathCopyType'));
 	}
 	public function pathLog(){
-		$sourceID = KodIO::sourceID($this->in['path']);
-		$data = Model('SourceEvent')->listBySource($sourceID);
+		$info = IO::infoSimple($this->in['path']);
+		if(!$info['sourceID']){
+			show_json('path error',false);
+		}
+		$data = Model('SourceEvent')->listBySource($info['sourceID']);
 		show_json($data);
 	}
 
@@ -261,6 +311,7 @@ class explorerIndex extends Controller{
 		if (count($list) == 0 || !$pathTo) {
 			show_json(LNG('explorer.clipboardNull'),false);
 		}
+		$this->taskCopyCheck($list);
 		
 		$error = '';
 		$repeat = Model('UserOption')->get('fileRepeat');
@@ -290,9 +341,19 @@ class explorerIndex extends Controller{
 		show_json($msg,$code,$result);
 	}
 
+	// 文件移动; 耗时任务;
+	private function taskCopyCheck($list){
+		$defaultID = 'copyMove-'.USER_ID.'-'.rand_string(8);
+		$taskID = $this->in['longTaskID'] ? $this->in['longTaskID']:$defaultID;
+		
+		$task = new TaskFileTransfer($taskID,'copyMove');
+		for ($i=0; $i < count($list); $i++) {
+			$task->addPath($list[$i]['path']);
+		}
+	}
+	
 	/**
 	 * 压缩下载
-	 * @return void
 	 */
 	public function fileDownloadRemove(){
 		$path = Input::get('path', 'require');
@@ -358,7 +419,6 @@ class explorerIndex extends Controller{
 	/**
 	 * 压缩
 	 * @param string $zipPath
-	 * @return void
 	 */
 	public function zip($zipPath=''){
 		ignore_timeout();
@@ -366,16 +426,32 @@ class explorerIndex extends Controller{
 		$fileType = Input::get('type', 'require','zip');
 		$repeat   = Model('UserOption')->get('fileRepeat');
 		$repeat   = !empty($this->in['fileRepeat']) ? $this->in['fileRepeat'] :$repeat;
-		
+
+		$this->taskZip($dataArr);
 		$zipFile = IOArchive::zip($dataArr, $fileType, $zipPath,$repeat);
 		if($zipPath != '') return $zipFile;
 		$info = IO::info($zipFile);
 		$data = LNG('explorer.zipSuccess').LNG('explorer.file.size').":".size_format($info['size']);
 		show_json($data,true,$zipFile);
 	}
+	
+	private function taskZip($list){
+		$defaultID = 'zip-'.USER_ID.'-'.rand_string(8);
+		$taskID = $this->in['longTaskID'] ? $this->in['longTaskID']:$defaultID;
+		$task = new TaskZip($taskID,'zip');
+		for ($i=0; $i < count($list); $i++) {
+			$task->addPath($list[$i]['path']);
+		}
+	}
+	private function taskUnzip($data){
+		$defaultID = 'unzip-'.USER_ID.'-'.rand_string(8);
+		$taskID = $this->in['longTaskID'] ? $this->in['longTaskID']:$defaultID;
+		$task = new TaskUnzip($taskID,'zip');
+		$task->addFile($data['path']);
+	}
+	
 	/**
 	 * 解压缩
-	 * @return void
 	 */
 	public function unzip(){
 		ignore_timeout();
@@ -387,13 +463,13 @@ class explorerIndex extends Controller{
 		
 		$repeat = Model('UserOption')->get('fileRepeat');
 		$repeat = !empty($this->in['fileRepeat']) ? $this->in['fileRepeat'] :$repeat;
+		$this->taskUnzip($data);
 		IOArchive::unzip($data,$repeat);
 		show_json(LNG('explorer.unzipSuccess'));
 	}
 
 	/**
 	 * 查看压缩文件列表
-	 * @return void
 	 */
 	public function unzipList(){
 		$data = Input::getArray(array(
@@ -402,6 +478,7 @@ class explorerIndex extends Controller{
 			'download' => array('check' => 'require', 'default' => false),
 			'name' => array('check' => 'require', 'default' => ''),
 		));
+		$this->taskUnzip($data);
 		$list = IOArchive::unzipList($data);
 		show_json($list);
 	}

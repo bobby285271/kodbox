@@ -9,6 +9,7 @@ return array(
 	'webdav.config.pathAllowDesc'	=> "登陆挂载后根路径位置; 全部---包含个人网盘企业网盘收藏夹等(收藏夹支持收藏任何路径)",
 	'webdav.config.pathAllowAll'	=> "全部",
 	'webdav.config.pathAllowSelf'	=> "个人网盘",
+	'webdav.user.morePath'			=> "挂载更多位置",
 	
 	'webdav.tips.https'			=> "<b>https:</b> 推荐使用https, 加密传输更安全; (windows挂载webdav默认限制必须https,可以去除限制)",
 	'webdav.tips.upload'		=> "<b>上传下载限制:</b> 支持上传最大文件取决于服务器上传限制及超时时间,	

@@ -73,8 +73,6 @@ class I18n{
 		}else{
 			$lang = self::defaultLang();
 		}
-
-		$lang = str_replace(array('/','\\','..','.'),'',$lang);
 		//兼容旧版本
 		if($lang == 'zh_CN') $lang = 'zh-CN';
 		if($lang == 'zh_TW') $lang = 'zh-TW';
@@ -86,6 +84,9 @@ class I18n{
 	}
 
 	private static function setLanguage($lang){
+		if(!preg_match('/^[0-9a-zA-z_\-]+$/', $lang)){
+			$lang = 'zh-CN';
+		}
 		$langFile = LANGUAGE_PATH.$lang.'/index.php';
 		if(!file_exists($langFile)){//allow remove some I18n folder
 			$lang = 'zh-CN';

@@ -31,7 +31,7 @@ class explorerTag extends Controller{
 	 * tag列表
 	 */
 	public function get() {
-		show_json($this->listData());
+		show_json($this->data());
 	}
 	private function data(){
 		return $this->model->listData();
@@ -40,17 +40,31 @@ class explorerTag extends Controller{
 	 * 用户文件标签列表
 	 */
 	public function tagList(){
+		$this->initUserData();
 		$dataList = $this->data();
+		$tagSource = $this->modelSource->listData();
 		$list = array();
 		foreach ($dataList as $item) {
-			$style = $item['style']? $item['style'] : 'label-grey-normal';
-			$list[] = array(
-				"name"	=> $item['name'],
-				"path"	=> KodIO::makeFileTagPath($item['id']),
-				"icon"	=> 'tag-label label ' . $style,
+			$style  = $item['style']? $item['style'] : 'label-grey-normal';
+			$find   = array_filter_by_field($tagSource,'tagID',$item['id']);
+			$list[$item['id']] = array(
+				"name"		=> $item['name'],
+				"path"		=> KodIO::makeFileTagPath($item['id']),
+				"icon"		=> 'tag-label label ' . $style,
+				'tagInfo' 	=> $item,
+				'tagHas' 	=> count($find),
 			);
 		}
 		return $list;
+	}
+	
+	private function initUserData(){
+		if(Model('UserOption')->get('userTagInit','flag') == 'ok') return;
+		$list = $GLOBALS['config']['settings']['userDefaultTag'];
+		foreach ($list as $item) {
+			$this->model->add(LNG($item['name']),$item['style']);
+		}
+		Model('UserOption')->set('userTagInit','ok','flag');
 	}
 
 	/**
@@ -73,7 +87,7 @@ class explorerTag extends Controller{
 		$data = Input::getArray(array(
 			"tagID"		=> array("check"=>"int"),
 			"name"		=> array('default'=>null),
-			"style"		=> array("check"=>"require"),
+			"style"		=> array('default'=>null),
 		));
 		$res = $this->model->update($data['tagID'],$data);
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.repeatError');
@@ -127,43 +141,57 @@ class explorerTag extends Controller{
 	
 	
 	//======== tag关联资源管理 =========
-	
-	//添加文档到tag;
-	public function sourceAddToTag(){
-		$data = Input::getArray(array(
-			"tagID"		=> array("check"=>"int"),
-			"sourceID"	=> array("check"=>"int"),
-		));
-		$res = $this->modelSource->addToTag($data['sourceID'],$data['tagID']);
-		$msg = $res ? LNG('explorer.success') : LNG('explorer.repeatError');
-		show_json($msg,!!$res);
-	}
 	//重置某个文档所在的tag
-	public function sourceResetTag(){
+	public function filesResetTag(){
 		$data = Input::getArray(array(
-			"tagList"	=> array("check"=>"require"),
-			"sourceID"	=> array("check"=>"int"),
+			"tags"	=> array("check"=>"require"),
+			"files"	=> array("check"=>"require"),
 		));
-		$tagArray = explode(',',$data['tagList']);
-		if(!$tagArray) {
+		$tags  = explode(',',$data['tags']);
+		$files = explode(',',$data['files']);
+		if(!$tags || !$files){
 			show_json(LNG('explorer.error'),false);
 		}
-		
-		$this->modelSource->removeBySource($data['sourceID']);
-		for ($i=0; $i < count($tagArray); $i++) {
-			$this->modelSource->addToTag($data['sourceID'],$tagArray[$i]);
+		foreach ($files as $file) {
+			$res = $this->modelSource->removeBySource($file);
+			foreach($tags as $tag) {
+				$this->modelSource->addToTag($file,$tag);
+			}
 		}
 		show_json(LNG('explorer.success'));
 	}
 	
 	//将文档从某个tag中移除
-	public function sourceRemoveFromTag(){
+	public function filesRemoveFromTag(){
 		$data = Input::getArray(array(
-			"tagID"		=> array("check"=>"int"),
-			"sourceID"	=> array("check"=>"int"),
+			"tagID"	=> array("check"=>"int"),
+			"files"	=> array("check"=>"require"),
 		));
-		$res = $this->modelSource->removeFromTag($data['sourceID'],$data['tagID']);
+		$files = explode(',',$data['files']);
+		if(!$files){
+			show_json(LNG('explorer.error'),false);
+		}
+		foreach ($files as $file) {
+			$res = $this->modelSource->removeFromTag($file,$data['tagID']);
+		}
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.error');
 		show_json($msg,!!$res);
 	}
+	
+	//添加文档到tag;
+	public function filesAddToTag(){
+		$data = Input::getArray(array(
+			"tagID"	=> array("check"=>"int"),
+			"files"	=> array("check"=>"require"),
+		));
+		$files = explode(',',$data['files']);
+		if(!$files){
+			show_json(LNG('explorer.error'),false);
+		}
+		foreach ($files as $file) {
+			$res = $this->modelSource->addToTag($file,$data['tagID']);
+		}
+		$msg = $res ? LNG('explorer.success') : LNG('explorer.repeatError');
+		show_json($msg,!!$res);
+	}	
 }

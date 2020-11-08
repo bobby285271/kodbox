@@ -27,13 +27,13 @@ class Mailer {
 		
 		$mail = new PHPMailer(true);
 		try {
-			// $config = $this->plugin->typeConfig($this->type);
-
-			$mail->setLanguage('zh_cn', './language/');
+			if(i18n::getType() == 'zh-CN') {
+				$mail->setLanguage('zh_cn', __DIR__ . '/Mailer/language/');
+			}
 		    //Server settings
 		    // $mail->SMTPDebug = SMTP::DEBUG_SERVER;				// Enable verbose debug output
 		    $mail->isSMTP();										// Send using SMTP
-		    $mail->Host			= $config['host'];						// Set the SMTP server to send through
+		    $mail->Host			= $config['host'];					// Set the SMTP server to send through
 		    $mail->SMTPAuth		= true;								// Enable SMTP authentication
 		    $mail->Username		= $config['email'];					// SMTP username
 		    $mail->Password		= $config['password'];						// SMTP password
@@ -41,8 +41,8 @@ class Mailer {
 		    // $mail->SMTPSecure	= false;         					// Enable TLS encryption; `PHPMailer::ENCRYPTION_SMTPS` also accepted
 		    $mail->SMTPSecure	= PHPMailer::ENCRYPTION_SMTPS;
 		    // $mail->Port       	= 587;                             // TCP port to connect to
-		    $mail->Port       	= 465;
-			$mail->setFrom($config['email'], '可道云');
+		    $mail->Port       	= $config['port'];	// 465
+			$mail->setFrom($config['email'], $config['signature']);
 		    $mail->CharSet		= 'UTF-8';
 
 		    //Recipients
@@ -86,6 +86,12 @@ class Mailer {
 				return array('code' => false, 'data' => LNG('User.Regist.emailSetError'));
 			}
 		}
+		// 允许自定义端口
+		$parts = parse_url($data['host']);
+		$data['host'] = isset($parts['host']) ? $parts['host'] : $parts['path'];
+		$data['port'] = isset($parts['port']) ? $parts['port'] : 465;
+		if(!isset($data['signature'])) $data['signature'] = 'kodbox';
+
 		return array_merge($data, $result);
 	}
 }

@@ -11,18 +11,44 @@ class commentIndex extends Controller {
 	public function __construct(){
 		parent::__construct();
 		$this->model = Model("Comment");
+		Action('comment.auth')->autoCheck();
+	}
+
+	/**
+	 * 评论列表
+	 * 
+	 * 通用请求参数:sortField|sortType; page|pageNum
+	 * CommentModel::TYPE_SHARE|TYPE_SOURCE|TYPE_USER|TYPE_GROUP
+	 */
+	public function listData(){
+		$data = Input::getArray(array(
+			"targetType"	=> array("check"=>"in","param"=>CommentModel::$TYPEALL),
+			"targetID"		=> array("check"=>"number"),
+			
+			"idFrom"		=> array("check"=>"number","default"=>0),
+			"idTo"			=> array("check"=>"number","default"=>0),
+		));
+		// $this->in['pageNum'] = 5;
+		$list = $this->model->listData($data);
+		
+		// 自动标记已读;
+		if(USER_ID && !$data['idFrom'] && !!$data['idTo']){
+			Action("comment.topic")->read();
+		}		
+		show_json($list,!!$list);
 	}
 
 	/**
 	 * 添加评论
 	*/
-	public function addComment(){
+	public function add(){
 		$data = Input::getArray(array(
-			"targetType"    => array("check"=>"email"),
+			"targetType"	=> array("check"=>"in","param"=>CommentModel::$TYPEALL),
 			"targetID"      => array("check"=>"require"),
-			"title"         => array("default"=>""),
 			"content"       => array("check"=>"require"),
-			"pid"           => array("default"=>0),
+			
+			"title"         => array("default"=>""),
+			"pid"           => array("check"=>"number","default"=>0),
 		));
 		$data['userID'] = USER_ID;
 		$result = $this->model->addComment($data);
@@ -35,7 +61,7 @@ class commentIndex extends Controller {
 	public function remove(){
 		$id = Input::get("id","number");
 		$result = $this->model->remove($id);
-		show_json($result,true);
+		show_json($result,!!$result);
 	}
 
 	/**
@@ -44,40 +70,36 @@ class commentIndex extends Controller {
 	public function prasise(){
 		$id = Input::get("id","number");
 		$result = $this->model->prasise($id);
-		show_json($result,true);
+		show_json($result,!!$result);
 	}
-
+	
 	/**
-	 * 编辑
-	*/
-	public function edit(){
-		$data = Input::getArray(array(
-			"id"		=> array("check"=>"number"),
-			"content"	=> array("check"=>"require"),
-		));
-		$result = $this->model->edit($data['id'],$data['content']);
-		show_json($result,true);
-	}
-
-	/**
-	 * 评论列表
+	 * 查询用户评论
 	 * 
 	 * 通用请求参数:sortField|sortType; page|pageNum
 	 * CommentModel::TYPE_SHARE|TYPE_SOURCE|TYPE_USER|TYPE_GROUP
 	 */
-	public function listData(){
-		$data = Input::getArray(array(
-			"targetType"	=> array("check"=>"number"),
-			"targetID"		=> array("check"=>"number"),
-		));
-		return $this->model->listData($data['targetType'],$data['targetID']);
+	public function listByUser(){
+		$userID = Input::get("userID","number");
+		$data   = array('userID'=>$userID);
+		$list   = $this->model->listData($data);
+		show_json($list,!!$list);
 	}
-
+	
+	// 自己的评论;
+	public function listSelf(){
+		$data   = array('userID'=>USER_ID);
+		$list   = $this->model->listData($data);
+		show_json($list,!!$list);
+	}
+	
 	/**
 	 * 评论子评论
 	 */
 	public function listChildren(){
-		$id = Input::get("id","number");
-		return $this->model->listChildren($id);
+		$pid   = Input::get("pid","number");
+		$data  = array('pid'=>$pid);
+		$list  = $this->model->listData($data);
+		show_json($list,!!$list);
 	}
 }

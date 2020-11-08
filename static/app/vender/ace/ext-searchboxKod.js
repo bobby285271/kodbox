@@ -156,13 +156,13 @@ ace.define("ace/ext/searchboxKod", ["require", "exports", "module", "ace/lib/dom
 				<input class="ace_search_field" placeholder="Search for" spellcheck="false"></input>\
 				<span class="search-info"></span>\
 				<div class="history-list dropup">\
-					<span class="dropmenu" data-toggle="dropdown" id="history_search" aria-haspopup="true" aria-expanded="false"><i class="font-icon icon-time"></i></span>\
+					<span class="dropmenu" data-toggle="dropdown" id="history_search" aria-haspopup="true" aria-expanded="false"><i class="font-icon ri-time-line"></i></span>\
 					<ul class="dropdown-menu menu-top" aria-labelledby="history_search"></ul>\
 				</div>\
 			</div>\
 			<div class="ace_search_action">\
-				<button type="button" action="findPrev" class="ace_searchbtn prev"><i class="font-icon icon-angle-left"></i></button>\
-				<button type="button" action="findNext" class="ace_searchbtn next"><i class="font-icon icon-angle-right"></i></button>\
+				<button type="button" action="findPrev" class="ace_searchbtn prev"><i class="font-icon ri-arrow-left-s-line"></i></button>\
+				<button type="button" action="findNext" class="ace_searchbtn next"><i class="font-icon ri-arrow-right-s-line"></i></button>\
 				<button type="button" action="findAll" class="ace_searchbtn" title="Alt-Enter">All</button>\
 			</div>\
 		</div>\
@@ -170,7 +170,7 @@ ace.define("ace/ext/searchboxKod", ["require", "exports", "module", "ace/lib/dom
 			<div class="ace_search_input">\
 				<input class="ace_search_field" placeholder="Replace with" spellcheck="false"></input>\
 				<div class="history-list dropup">\
-					<span class="dropmenu" data-toggle="dropdown" id="history_replace" aria-haspopup="true" aria-expanded="false"><i class="font-icon icon-time"></i></span>\
+					<span class="dropmenu" data-toggle="dropdown" id="history_replace" aria-haspopup="true" aria-expanded="false"><i class="font-icon ri-time-line"></i></span>\
 					<ul class="dropdown-menu menu-top" aria-labelledby="history_replace"></ul>\
 				</div>\
 			</div>\

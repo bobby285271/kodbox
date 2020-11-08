@@ -35,7 +35,7 @@ class yzOfficePlugin extends PluginBase{
 		$step     = count($app->task['steps']) - 1;
 		$infoData = $app->task['steps'][$step]['result'];
 		if( !is_array($infoData['data']) ){
-			$app->clearChche();
+			$app->clearCache();
 			show_tips($infoData['message']);
 		}
 		$link = $infoData['data'][0];
@@ -49,12 +49,12 @@ class yzOfficePlugin extends PluginBase{
 				$content = str_replace($title,'<title>'.$fileName.'</title>',$result['data']);
 				$this->pluginCacheFileSet($this->cachePath . $name, $content);
 			}else{
-				$app->clearChche();
+				$app->clearCache();
 				show_tips($result);
 			}
 		}
 		if(strstr($content,'location.href = ')){
-			$app->clearChche();
+			$app->clearCache();
 			show_tips("请求转换异常，请重试！");
 		}
 
@@ -104,7 +104,7 @@ class yzOfficePlugin extends PluginBase{
 
 	public function restart(){
 		$app = $this->getObj();
-		$res = $app->clearChche();
+		$res = $app->clearCache();
 		show_json('success');
 	}
 }

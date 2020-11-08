@@ -6,8 +6,8 @@
 		<meta name="google" content="notranslate">
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<title><?php echo $fileName;?></title>
-		<link rel="stylesheet" href="<?php echo $this->pluginHost;?>static/Djvu/style.css">
-		<script type="text/javascript" src="<?php echo $this->pluginHost;?>static/Djvu/render.js"></script>
+		<?php $this->link('static/Djvu/style.css');?>
+		<?php $this->link('static/Djvu/render.js');?>
 	</head>
 	<body>
 		<div id="djvuContainer"></div>

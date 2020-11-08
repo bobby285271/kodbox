@@ -57,8 +57,9 @@ function get_url_scheme($url){
 	$res = parse_url($url);
 	return $res['scheme'];
 }
-function is_domain($url){
-	return !filter_var(get_url_domain($url), FILTER_VALIDATE_IP);
+function is_domain($host){
+	if(!$host) return false;
+	return !filter_var($host, FILTER_VALIDATE_IP);
 }
 
 function http_type(){
@@ -85,8 +86,8 @@ function this_url(){
 }
 
 //解决部分主机不兼容问题
-function webroot_path($basic_path){
-	$index = path_clear(BASIC_PATH.'index.php');
+function webroot_path($basicPath){
+	$index = path_clear($basicPath.'index.php');
 	$uri   = path_clear($_SERVER["DOCUMENT_URI"]);
 	
 	// 兼容 index.php/explorer/list/path; 路径模式;
@@ -104,6 +105,21 @@ function webroot_path($basic_path){
 		$path = substr($index,0,strlen($index)-strlen($uri));
 		return rtrim($path,'/').'/';
 	}
+	
+	// 子目录sso调用情况兼容;
+	if($_SERVER['SCRIPT_FILENAME'] && $_SERVER["DOCUMENT_URI"]){
+		$index = path_clear($_SERVER['SCRIPT_FILENAME']);
+		$uri   = path_clear($_SERVER["DOCUMENT_URI"]);		
+		// 兼容 index.php/test/todo 情况;
+		if( strstr($uri,'.php/')){
+			$uri = substr($uri,0,strpos($uri,'.php/')).'.php';
+		}		
+		if( substr($index,- strlen($uri) ) == $uri){
+			$path = substr($index,0,strlen($index)-strlen($uri));
+			return rtrim($path,'/').'/';
+		}
+	}
+	
 	return $_SERVER['DOCUMENT_ROOT'];
 }
 
@@ -136,7 +152,10 @@ function is_wap(){
  * 后续代码可以继续运行；例如日志、统计等代码；后续输出将不再生效；
  */
 function http_close(){
-	ignore_timeout(0);
+	ignore_timeout();
+	static $firstRun = false;
+	if($firstRun) return; //避免重复调用;
+	
 	if(function_exists('fastcgi_finish_request')) {
 		fastcgi_finish_request();
 	} else {
@@ -147,6 +166,7 @@ function http_close(){
 		ob_end_flush();
 		flush();
 	}
+	$firstRun = true;
 }
 
 function parse_headers($raw_headers){
@@ -175,148 +195,42 @@ function parse_headers($raw_headers){
 	return $headers;
 }
 
-function cacheProgress($cacheKey, $data = ''){
-	$cacheData = array(
-		'data' => $data,
-		'time' => time()
-	);
-	// $initData = Cache::get($cacheKey);
-	// if($data === '' && !empty($initData['data'])){
-	// 	$cacheData['data'] = $initData['data'];
-	// }
-	return Cache::set($cacheKey, $cacheData);
-}
 
-//多人同时上传同一个文件；或上传到多个服务;
-$curlCurrentFile = false;
-function curl_progress_bind($file,$uuid='',$download=false){
-	if(!$GLOBALS['curlCurrentFile']){
-		$cacheKey = md5("{$file}{$uuid}.log");
-		if(!cacheProgress($cacheKey)) return;
-		$GLOBALS['curlCurrentFile'] = array(
-			'path'		 => $file,		// 本地文件
-			'uuid'		 => $uuid,
-			'time'		 => 0,
-			'setNum'	 => 0,
-			'cacheKey'	 => $cacheKey,	// 日志信息存缓存
-			'download' 	 => $download
-		);
-	}
-	curl_progress_set(false,0,0,0,0);
+$GLOBALS['curlKodLastTime'] = 0; // 间隔100ms;
+$GLOBALS['curlKodLast'] = false;
+function curl_progress_start($curl){
+	$GLOBALS['curlKodLastTime'] = 0;
+	$GLOBALS['curlKodLast'] = $curl;
+	Hook::trigger('curl.progressStart',$curl);
 }
-function curl_progress_set(){
-	$fileInfo = $GLOBALS['curlCurrentFile'];
-	$file = $fileInfo['path'];
-	$cacheKey = $fileInfo['cacheKey'];
-	if( !is_array($fileInfo) || 
-		mtime() - $fileInfo['time'] <= 0.3){//每300ms做一次记录
-		return;
-	}
-	//进度文件被删除则终止传输;
-	clearstatcache();
-	$cacheInfo = Cache::get($cacheKey);
-	if( $cacheInfo === false || 
-		!file_exists($file) ){
-		exit;
-	}
-
-	$GLOBALS['curlCurrentFile']['time'] = mtime();
-	$GLOBALS['curlCurrentFile']['setNum'] += 1;
+function curl_progress_end($curl){
+	$GLOBALS['curlKodLastTime'] = 0;
+	$GLOBALS['curlKodLast'] = false;
+	Hook::trigger('curl.progressEnd',$curl);
+}
+function curl_progress(){
 	$args = func_get_args();
-	if (is_resource($args[0])) {// php 5.5
+	if (is_resource($args[0])) { // php5.5+ 第一个为$curl; <5.5则只有4个参数;
 		array_shift($args);
 	}
-	$downTotal = $args[0];
-	$downSize = $args[1];
-	$upTotal = $args[2];
-	$upSize = $args[3];
-
-	//默认上传
-	$size = @filesize($file);
-	$sizeSuccess = $upSize;
-	if($fileInfo['download']){
-		$size = $downTotal;
-		$sizeSuccess = $downSize;
-	}
-	$json = array(
-		'name'			=> substr(rawurlencode(get_path_this($file)),-10),
-		'taskUuid'		=> $fileInfo['uuid'],
-		'type'		 	=> $fileInfo['download']?'fileDownload':'fileUpload',
-		'timeStart' 	=> time(),
-
-		'sizeTotal'		=> $size,
-		'sizeSuccess'	=> $sizeSuccess,
-		'progress'	 	=> 0,
-		'timeUse'	 	=> 0,
-		'timeNeed'		=> 0,
-		'speed'			=> 0,
-		'logList'		=> array()
-	);
-	if(time() - $cacheInfo['time'] <= 30){//10s内才处理;同一个文件	TODO
-		$json = $cacheInfo['data']?$cacheInfo['data']:$json;
-	}else{
-		cacheProgress($cacheKey);
-	}
-
-	//更新数据
-	$logList = &$json['logList'];
-	if(count($logList) >=10 ){
-		$logList = array_slice($logList,-10);
-	}
-
-	$current = array('time'=>time(),'sizeSuccess'=>$sizeSuccess);
-	if(count($logList) == 0){
-		$logList[] = $current;
-	}else{
-		$last = $logList[count($logList)-1];
-		if(time() == $last['time']){
-			$logList[count($logList)-1] = $current;
-		}else{
-			$logList[] = $current;
-		}
-	}
-
-	//计算速度
-	$first = $logList[0];
-	$last  = $logList[count($logList)-1];
-	$time  = $last['time'] - $first['time'];
-	$speed = $time?($last['sizeSuccess'] - $first['sizeSuccess'])/$time : 0;
-	if($speed <0 || $speed>500*1024*1024){
-		$speed = 0;
-	}
-	$timeNeed = $speed ? ($size - $sizeSuccess)/$speed:0;
-	$progress = 0;
-	if($size != 0 ){
-		$progress  = ($sizeSuccess>=$size)?1:$sizeSuccess/$size;
-	}
-	$json['sizeTotal']  	= $size;
-	$json['sizeSuccess']	= $sizeSuccess;
-	$json['progress'] 		= $progress;
-	$json['timeUse']  		= time() - $json['timeStart'];
-	$json['timeNeed'] 		= intval($timeNeed);
-	$json['speed'] = intval($speed);
-
-	cacheProgress($cacheKey, $json);
+	$downloadSize 	= $args[0];
+	$download 		= $args[1];
+	$uploadSize 	= $args[2];
+	$upload 		= $args[3];
+	if(!$download && !$upload ) return;
+	if(timeFloat() - $GLOBALS['curlKodLastTime'] < 0.1) return;
+	
+	$GLOBALS['curlKodLastTime'] = timeFloat();
+	Hook::trigger('curl.progress',$GLOBALS['curlKodLast'],$downloadSize,$download,$uploadSize,$upload);
 }
-function curl_progress_get($file,$uuid=''){
-	$cacheKey = md5("{$file}{$uuid}.log");
-	if(!$data = Cache::get($cacheKey)) return -1;
-	if(isset($data['data']) && is_array($data['data'])){
-		unset($data['data']['logList']);
-		return $data['data'];
-	}
-	return -3;
-}
+
 
 // https://segmentfault.com/a/1190000000725185
 // http://blog.csdn.net/havedream_one/article/details/52585331 
 // php7.1 curl上传中文路径文件失败问题？【暂时通过重命名方式解决】
 function url_request($url,$method='GET',$data=false,$headers=false,$options=false,$json=false,$timeout=3600){
-	if(!$url){
-		return array(
-			'data'		=> 'url error! url='.$url,
-			'code'		=> 0
-		);
+	if(!$url || !request_url_safe($url) ){
+		return array('data'=> 'url error! url='.$url,'code'=> 0);
 	}
 	ignore_timeout();
 	$ch = curl_init();
@@ -345,11 +259,6 @@ function url_request($url,$method='GET',$data=false,$headers=false,$options=fals
 				curl_setopt($ch, CURLOPT_INFILE,@fopen($path,'r'));
 				curl_setopt($ch, CURLOPT_INFILESIZE,@filesize($path));				
 			}
-
-			//上传进度记录并处理
-			curl_progress_bind($path);
-			curl_setopt($ch, CURLOPT_NOPROGRESS, false);
-			curl_setopt($ch, CURLOPT_PROGRESSFUNCTION,'curl_progress_set');
 		}
 	}
 	if($upload){
@@ -394,6 +303,8 @@ function url_request($url,$method='GET',$data=false,$headers=false,$options=fals
 	// curl_setopt($ch, CURLOPT_SSLVERSION,1);//1|5|6; http://t.cn/RZy5nXF
 	curl_setopt($ch, CURLOPT_TIMEOUT,$timeout);
 	curl_setopt($ch, CURLOPT_REFERER,get_url_link($url));
+	curl_setopt($ch, CURLOPT_NOPROGRESS, false);
+	curl_setopt($ch, CURLOPT_PROGRESSFUNCTION,'curl_progress');curl_progress_start($ch);
 	curl_setopt($ch, CURLOPT_USERAGENT,'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.94 Safari/537.36');
 	if($headers){
 		if(is_string($headers)){
@@ -408,12 +319,7 @@ function url_request($url,$method='GET',$data=false,$headers=false,$options=fals
 			break;
 		case 'DOWNLOAD':
 			//远程下载到指定文件；进度条
-			$downTemp = $data.'.'.rand_string(5);
-			$fp = fopen ($downTemp,'w+');
-			curl_progress_bind($downTemp,'',true);//下载进度
-			curl_setopt($ch, CURLOPT_NOPROGRESS, false);
-			curl_setopt($ch, CURLOPT_PROGRESSFUNCTION,'curl_progress_set');
-
+			$fp = fopen ($data.'.'.rand_string(5),'w+');
 			curl_setopt($ch, CURLOPT_HTTPGET,1);
 			curl_setopt($ch, CURLOPT_HEADER,0);//不输出头
 			curl_setopt($ch, CURLOPT_FILE, $fp);
@@ -439,7 +345,7 @@ function url_request($url,$method='GET',$data=false,$headers=false,$options=fals
 	if(!empty($options)){
 		curl_setopt_array($ch, $options);
 	}
-	$response = curl_exec($ch);
+	$response = curl_exec($ch);curl_progress_end($ch);
 	$header_size = curl_getinfo($ch,CURLINFO_HEADER_SIZE);
 	$response_info = curl_getinfo($ch);
 	$http_body   = substr($response, $header_size);
@@ -497,9 +403,8 @@ function curl_get_contents($url){
 }
 
 function get_headers_curl($url,$timeout=10,$depth=0,&$headers=array()){
-	if(!function_exists('curl_init')){
-		return false;
-	}
+	if(!function_exists('curl_init')) return false;
+	if(!request_url_safe($url)) return false;
 	if ($depth >= 10) return false;
 	$ch = curl_init(); 
 	curl_setopt($ch, CURLOPT_URL,$url);
@@ -559,8 +464,7 @@ function request_url_safe($url){
 	while (strstr($link,'../')) {
 		$link = str_replace('../', '/', $link);
 	}
-	if( substr($link,0,6) != "ftp://" &&
-		substr($link,0,7) != "http://" &&
+	if( substr($link,0,7) != "http://" &&
 		substr($link,0,8) != "https://" ){
 		return false;
 	}
@@ -763,6 +667,11 @@ function parse_incoming(){
 	}	
 	$return = array();
 	$return = array_merge($_GET,$_POST);
+	foreach ($return as $itemKey => $itemValue) {
+		if(is_array($itemValue)){
+			unset($return[$itemKey]);
+		}
+	}
 	$remote = array_get_index($return,0);
 	
 	//路由支持以参数形式传入;兼容没有value的GET参数key被忽略掉的情况;UC手机浏览器;
@@ -1039,7 +948,8 @@ function get_broswer(){
             }
             $name = count($value) == 1 ? $key : $value[1];
             preg_match($value[0], $agent, $match);
-            $broswer = $name . '(' . $match[1] . ')';
+			$broswer = $name . '(' . $match[1] . ')';
+			return $broswer;
         }
     }
     if ($broswer == '') {$broswer = "Unknown";}
@@ -1109,7 +1019,11 @@ function get_file_mime($ext){
 				"wsdl","xslt","atom","mathml","mml","xul","xbl","xaml","xq","yaml","yml","htm",
 				"xib","storyboard","plist","csproj");
 	if (array_key_exists($ext,$mimetypes)){
-		return $mimetypes[$ext];
+		$result = $mimetypes[$ext];
+		if($result == 'text/html'){
+			// $result = "text/plain"; //禁用html网页输出;
+		}
+		return $result;
 	}else{
 		if(in_array($ext,$text) || in_array($ext,$code)){
 			return "text/plain";

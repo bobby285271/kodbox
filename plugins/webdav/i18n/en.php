@@ -9,6 +9,7 @@ return array(
 	'webdav.config.pathAllowDesc'	=> "Root path location after login and mount; all - including personal network disk and enterprise network disk favorites (favorites support any path of collection)",
 	'webdav.config.pathAllowAll'	=> "All",
 	'webdav.config.pathAllowSelf'	=> "Owner Space",
+	'webdav.user.morePath'			=> "More Path",
 	
 	'webdav.tips.https'			=> "<b>https:</b> HTTPS is recommended, encrypted transmission is more secure; (the default limit for windows mount WebDAV must be HTTPS, which can be removed)",
 	'webdav.tips.upload'		=> "<b>Upload and download restrictions:</b> The maximum file upload support depends on the upload limit and timeout of the server,It can be set according to your own needs; recommended upload file size limit: 500MB; timeout 3600; <a href='https://doc.kodcloud.com/#/others/options' target='_blank'>Learn more</a>",

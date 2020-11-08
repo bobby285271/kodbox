@@ -31,6 +31,7 @@ class adminRole extends Controller{
 			"display" 	=> array("check"=>"int","default"=>null),
 			"auth" 		=> array("check"=>"require"),
 			"label" 	=> array("check"=>"require","default"=>null),
+			"desc"		=> array("default"=>''),
 			"ignoreExt" => array("check"=>"require","default"=>''),
 			"ignoreFileSize" => array("check"=>"require","default"=>''),
 		));
@@ -49,6 +50,7 @@ class adminRole extends Controller{
 			"display" 	=> array("check"=>"int","default"=>null),
 			"auth" 		=> array("check"=>"require","default"=>''),
 			"label" 	=> array("check"=>"require","default"=>null),
+			"desc"		=> array("default"=>''),
 			"ignoreExt" => array("check"=>"require","default"=>''),
 			"ignoreFileSize" => array("check"=>"require","default"=>''),
 		));
@@ -62,21 +64,21 @@ class adminRole extends Controller{
 	 */
 	public function remove() {
 		$id  = Input::get('id','int');
+		// 判断是否有用户使用
+		$cnt = Model('User')->where(array('roleID' => $id))->count();
+		if($cnt) show_json(LNG('admin.role.delErrTips'), false);
 		$res = $this->model->remove($id);
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.error');
 		show_json($msg,!!$res);
 	}
 
-	/**
-	 * 排序：上移、下移
-	 */
+	// 移动排序、拖拽排序
 	public function sort() {
-		$data = Input::getArray(array(
-			"id"		=> array("check"=>"int"),
-			"sort" 		=> array("check"=>"require","default"=>''),
-		));
-		$res = $this->model->sort($data['id'], $data['sort']);
-		$msg = $res ? LNG('explorer.success') : LNG('explorer.error');
-		show_json($msg,!!$res);
+		$ids = Input::get('ids', 'require');
+		$ids = explode(',', $ids);
+		foreach($ids as $i => $id) {
+			$this->model->sort($id,array("sort"=> $i));
+		}
+		show_json(LNG('explorer.success'));
 	}
 }

@@ -22,9 +22,13 @@ class explorerEditor extends Controller{
 		}
 		$pathInfo = IO::info($data['path']);
 		if(!$pathInfo) return show_json(LNG('common.pathNotExists'),false);
-
+		
+		if($pathInfo['size'] >= 1024*1024*20){
+			show_json(LNG('explorer.editor.fileTooBig'),false);
+		}
 		$content = IO::getContent($data['path']);
-		if($pathInfo['size'] == 0){
+		// $content = IO::fileSubstr($data['path'],1024*1024*0.5,1024*1024*0.5);		
+		if(isset($pathInfo['size']) && $pathInfo['size'] == 0){
 			$content = '';//空文件处理;
 		}
 		$charset = strtolower($data['charset']);
@@ -47,6 +51,9 @@ class explorerEditor extends Controller{
 		$urlInfo = parse_url_query($path);
 		$displayName = rawurldecode($urlInfo['name']);
 		$fileContents = file_get_contents($path);
+		if(strlen($fileContents) >= 1024*1024*20){
+			show_json(LNG('explorer.editor.fileTooBig'),false);
+		}
 		if(isset($this->in['charset']) && $this->in['charset']){
 			$charset = strtolower($this->in['charset']);
 		}else{
@@ -97,8 +104,9 @@ class explorerEditor extends Controller{
 			) {
 			$content = @mb_convert_encoding($content,$charset,'utf-8');
 		}
-		IO::setContent($data['path'],$content);
-		show_json(LNG("explorer.saveSuccess"),true);
+		$result = IO::setContent($data['path'],$content);
+		$msg = $result ? LNG("explorer.saveSuccess") : LNG('explorer.saveError');
+		show_json($msg,!!$result);
 	}
 
 	/*

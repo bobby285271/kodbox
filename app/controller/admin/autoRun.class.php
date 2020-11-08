@@ -16,7 +16,11 @@ class adminAutoRun extends Controller {
             $user = Session::get('kodUser');
             $data = array(
                 'code' => true,
-                'data' => array('userID' => $user['userID'], 'name' => $user['name'])
+                'data' => array(
+                    'userID'    => $user['userID'], 
+                    'name'      => $user['name'],
+                    'nickName'  => $user['nickName'],
+                )
             );
             return $this->log($data);
         }

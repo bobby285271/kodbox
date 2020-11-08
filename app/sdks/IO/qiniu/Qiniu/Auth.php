@@ -57,7 +57,8 @@ final class Auth
 
     public function privateDownloadUrl($baseUrl, $expires = 3600)
     {
-        $deadline = time() + $expires;
+        // $deadline = time() + $expires;
+        $deadline = strtotime(date('Ymd 23:59:59')); // kodbox：签名链接有效期，改为当天有效
 
         $pos = strpos($baseUrl, '?');
         if ($pos !== false) {

@@ -12,16 +12,36 @@ class userBind extends Controller {
 	const BIND_META_UNIONID = 'Unionid';
 	private $addUser;
 	private $withApp;
-	private static $TYPE_LIST = array();
+	public $typeList = array();
 
 	public function __construct() {
 		parent::__construct();
-		SELF::$TYPE_LIST = array(
+		$this->typeList = array(
 			'qq' => 'QQ',
 			'github' => 'GitHub',
 			'weixin' => LNG('common.wechat')
 		);
 		$this->addUser = $this->withApp = false;
+		$this->checkAuth();
+	}
+	
+	private function checkAuth(){
+		if(!Session::get('kodUser')) return;
+		$check = array(
+			'user.bind.bind',
+			'user.bind.bindApi',
+			'user.bind.unbind',
+			'user.bind.oauth',
+			'user.bind.bindWithApp',
+		);
+		$action = strtolower(ACTION);
+		foreach ($check as &$theAction){
+			$theAction = strtolower($theAction);
+		}
+		if(!in_array($action,$check)) return;
+		if(!Action('user.authRole')->authCan('user.edit')){
+			show_json(LNG('explorer.noPermissionAction'),false);
+		}
 	}
 
 	/**
@@ -38,7 +58,7 @@ class userBind extends Controller {
 			'data'		 => array('check' => 'require')
 		));
 		$type = $input['type'];
-		if (!isset(SELF::$TYPE_LIST[$type])) {
+		if (!isset($this->typeList[$type])) {
 			show_json(LNG('common.invalidRequest'), false);
 		}
 		// 验证签名
@@ -101,7 +121,7 @@ class userBind extends Controller {
 	 */
 	public function bind(){
 		$data = Input::getArray(array(
-			'type'		=> array('check' => 'in', 'param' => array_keys(SELF::$TYPE_LIST)),
+			'type'		=> array('check' => 'in', 'param' => array_keys($this->typeList)),
 			'openid' 	=> array('check' => 'require'),
 			'unionid' 	=> array('check' => 'require'),
 			'nickName' 	=> array('check' => 'require'),
@@ -227,7 +247,7 @@ class userBind extends Controller {
 		Model('User')->metaSet($data['userID'],'passwordSalt','');
 		Model('User')->where(array('userID' => $data['userID']))->save(array('password' => ''));
 		// 4.写入用户meta信息
-		if (!$this->bindSave($data)) return array('code' => false, 'data' => LNG('user.bindUpdateError'));
+		if (!$this->bindSave($data, $data['userID'])) return array('code' => false, 'data' => LNG('user.bindUpdateError'));
 		$this->addUser = true;
 		return array('code' => true, 'data' => $data['userID']);
 	}
@@ -240,7 +260,8 @@ class userBind extends Controller {
 	private function bindBack($type, $data) {
 		$data['bind'] = true;
 		// 绑定信息存储
-		if (!$ret = $this->bindSave($data, true)) {
+		$userID = Session::get("kodUser.userID");
+		if (!$ret = $this->bindSave($data, $userID, true)) {
 			return $this->bindHtml($type, $data, false, array('bind', 'update_error'));
 		}
 		return $this->bindHtml($type, $data, true, array('bind'));
@@ -258,11 +279,11 @@ class userBind extends Controller {
 		$act = $msgData[0];
 		$msg = isset($msgData[1]) ? $msgData[1] : '';
 		if ($success) {
-			return LNG('common.congrats') . SELF::$TYPE_LIST[$type] . LNG('common.' . $act . 'Success');
+			return LNG('common.congrats') . $this->typeList[$type] . LNG('common.' . $act . 'Success');
 		}
-		$errTit = LNG('common.sorry') . SELF::$TYPE_LIST[$type];
+		$errTit = LNG('common.sorry') . $this->typeList[$type];
 		if ($act == 'login') {
-			return $errTit . LNG('common.loginError') . ';'.SELF::$TYPE_LIST[$type] . LNG('user.thirdBindFirst');
+			return $errTit . LNG('common.loginError') . ';'.$this->typeList[$type] . LNG('user.thirdBindFirst');
 		}
 		// 2.2 尚未启用
 		if ($act == 'invalid') {
@@ -272,7 +293,7 @@ class userBind extends Controller {
 		$errList = array(
 			'sign_error'	 => LNG('user.bindSignError'),
 			'update_error'	 => LNG('user.bindUpdateError'),
-			'bind_others'	 => SELF::$TYPE_LIST[$type] . LNG('user.bindOthers') . "[{$msgData[2]}]"
+			'bind_others'	 => $this->typeList[$type] . LNG('user.bindOthers') . "[{$msgData[2]}]"
 		);
 		return $errTit . LNG('common.bindError') .';' . (isset($errList[$msg]) ? $errList[$msg] : $msg);
 	}
@@ -287,7 +308,7 @@ class userBind extends Controller {
 	private function bindHtml($type, $data, $success, $msgData) {
 		$return = array(
 			'type'		 => $type, // 绑定类型
-			'typeTit'	 => SELF::$TYPE_LIST[$type], // 绑定类型名称
+			'typeTit'	 => $this->typeList[$type], // 绑定类型名称
 			'success'	 => (int) $success, // 绑定结果
 			'bind'		 => $data['bind'], // 是否已绑定
 			'client'	 => (int) $data['client'], // 前后端
@@ -309,8 +330,8 @@ class userBind extends Controller {
 	 */
 	public function sendMsg() {
 		$data = Input::getArray(array(
-				'type'	 => array('check' => 'require'),
-				'input'	 => array('check' => 'require'),
+			'type'	 => array('check' => 'require'),
+			'input'	 => array('check' => 'require'),
 		));
 		$type = $data['type'];
 
@@ -411,12 +432,13 @@ class userBind extends Controller {
 			);
 		}
 		// 参数拼接
-		$systemName = Model('SystemOption')->get('systemName'); // 落款-系统名称
+		$systemName = Model('SystemOption')->get('systemName'); // 签名-系统名称
 		$subject = isset($param['subject']) ? $param['subject'] : LNG('user.emailVerify'); // 主题
 		$data = array(
 			'address'	 => $param['address'], // 收件人
 			'subject'	 => "[{$systemName}]" . $subject, // 主题
 			'content'	 => $this->emailContent($content), // 内容
+			'signature'  => $systemName,
 			'html'		 => 1
 		);
 		// 邮件发送
@@ -437,7 +459,7 @@ class userBind extends Controller {
 			'type'		 => $type,
 			'input'		 => $param['address'], // 邮箱or手机
 			'language'	 => i18n::getType(),
-			'company'	 => Model('SystemOption')->get('systemName')
+			'signature'	 => Model('SystemOption')->get('systemName')
 		);
 		return $this->apiRequest('email', $data);
 	}
@@ -458,17 +480,17 @@ class userBind extends Controller {
 		$type = $content['type'];
 
 		$data = array(
-			'type' => $type,
-			'dear' => LNG('admin.dearUser'),
-			'codeDesc' => sprintf(LNG('admin.emailThxUse'), $tmp['systemName']) . LNG('admin.emailVerifyCode'),
-			'code' => $tmp['code'],
-			'codeTips' => LNG('admin.emailVerifyInTime'),
-			'dearName' => LNG('admin.dear') . $tmp['nickname'],
-			'linkDesc' => sprintf(LNG('admin.emailResetLink'), $tmp['systemName']),
-			'link' => $tmp['url'],
-			'linkTips' => LNG('admin.emailExpireTime'),
-			'name' => $tmp['systemName'],
-			'date' => $tmp['date'],
+			'type'		=> $type,
+			'dear'		=> LNG('admin.dearUser'),
+			'codeDesc'	=> sprintf(LNG('admin.emailThxUse'), $tmp['systemName']) . LNG('admin.emailVerifyCode'),
+			'code'		=> $tmp['code'],
+			'codeTips'	=> LNG('admin.emailVerifyInTime'),
+			'dearName'	=> LNG('admin.dear') . $tmp['nickname'],
+			'linkDesc'	=> sprintf(LNG('admin.emailResetLink'), $tmp['systemName']),
+			'link'		=> $tmp['url'],
+			'linkTips'	=> LNG('admin.emailExpireTime'),
+			'name'		=> $tmp['systemName'],
+			'date'		=> $tmp['date'],
 		);
 		ob_end_clean();
 		ob_start();
@@ -571,7 +593,7 @@ class userBind extends Controller {
 			'client' 	=> array('default' => 1),
 			'platform'	=> array('default' => 'open'),
 		));
-		if (!isset(self::$TYPE_LIST[$data['type']])) {
+		if (!isset($this->typeList[$data['type']])) {
 			show_json(LNG('common.invalidParam'), false);
 		}
 
@@ -608,15 +630,15 @@ class userBind extends Controller {
 	 */
 	public function unbind() {
 		$type = Input::get('type','require', '');
-		if(!isset(SELF::$TYPE_LIST[$type])){
+		if(!isset($this->typeList[$type])){
 			show_json(LNG('user.bindTypeError'), false);
 		}
 		$info = Session::get('kodUser');
 		if($this->isEmptyPwd($info['userID'])) show_json(LNG('user.unbindWarning'), false);
 
 		Model('User')->startTrans();
-		$del = Model('User')->metaSet($info['userID'], $type . SELF::BIND_META_INFO);
-		$del = Model('User')->metaSet($info['userID'], $type . SELF::BIND_META_UNIONID);
+		$del = Model('User')->metaSet($info['userID'], $type . self::BIND_META_INFO);
+		$del = Model('User')->metaSet($info['userID'], $type . self::BIND_META_UNIONID);
 		Model('User')->commit();
 
 		if ($del === false) {
@@ -635,7 +657,7 @@ class userBind extends Controller {
 	 */
 	private function isBind($key, $unionid, $client = 1) {
 		// 根据metadata.unionid获取用户信息
-		$user = Model('User')->getInfoByMeta($key . SELF::BIND_META_UNIONID, $unionid);
+		$user = Model('User')->getInfoByMeta($key . self::BIND_META_UNIONID, $unionid);
 		if (empty($user)) return false;
 		// 后端,要判断该微信/QQ是否已经绑定了其他账号
 		// 通过绑定信息获取到的用户，不是当前登录用户，说明已绑定其他账号
@@ -653,14 +675,16 @@ class userBind extends Controller {
 	/**
 	 * 第三方信息绑定保存
 	 */
-	private function bindSave($data, $back=false) {
+	private function bindSave($data, $userID, $back=false) {
 		// 更新头像、meta信息
-		$userID = isset($data['userID']) ? $data['userID'] : Session::get("kodUser.userID");
+		if(!$userID){
+			show_json('not login!',false);
+		}
 		if($back) Model("User")->userEdit($userID, array("avatar" => $data['avatar']));
 
 		$metadata = array(
-			$data['type'] . SELF::BIND_META_UNIONID	 => $data['unionid'],
-			$data['type'] . SELF::BIND_META_INFO	 => json_encode($data)
+			$data['type'] . self::BIND_META_UNIONID	 => $data['unionid'],
+			$data['type'] . self::BIND_META_INFO	 => json_encode($data)
 		);
 		$ret = Model('User')->metaSet($userID, $metadata);
 		if ($ret && !$data['client']) {

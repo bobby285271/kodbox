@@ -1,34 +1,28 @@
 define(function(require, exports) {
 	var getImageArr = function(filePath,name){
-		var itemsArr = [];
-		var index 	 = 0;
-		var makeItem = function(filePath,name,$dom){
-			itemsArr.push({
+		var imageList = kodApp.imageList;
+		kodApp.imageList = false;
+		if(!imageList) {
+			imageList = {items:[{
 				src:core.pathImage(filePath,1200),
 				msrc:core.pathImage(filePath,250),
 				trueImage:core.pathImage(filePath,false),
 				title:htmlEncode(name || ''),
-				w:0,h:0,
-				$dom:$dom
-			});
+			}],index:0};
 		}
-		
-		var $files 	 = $("[data-path="+hashEncode(filePath)+"]");
-		var $images  = $files.parent().find(".file .picture-show");
-		if($images.length > 0){
-			$images.each(function(i){
-				var $file = $(this).parents('.file');
-				var curPath  = hashDecode($file.attr('data-path'));
-				makeItem(curPath,$file.attr('data-name'),$(this));
-				if(curPath == filePath){
-					index = i;
-				}
+		var items  = [];
+		_.each(imageList.items,function(item){
+			var parse = $.parseUrl(item.src);
+			var title = item.title || _.get(parse,'params.name') || pathTools.pathThis(item.src);
+			items.push({
+				src:item.src,
+				$dom:item.$dom || false,
+				msrc:item.msrc || item.src,
+				title:htmlEncode(title),
+				w:item.width  || 0,h:item.height  || 0
 			});
-		}else{
-			makeItem(filePath,name,false);
-		}
-		// console.log(7777,$images,itemsArr);
-		return {items:itemsArr,index:index};
+		});
+		return {items:items,index:imageList.index};
 	};
 	
 	var initView = function(path,ext,name,photoSwipeTpl){
@@ -62,8 +56,8 @@ define(function(require, exports) {
 				
 				// 图片没有完全显示时(相册模式,高宽固定,定宽定高,超出从中间截取)
 				if(rect.width == rect.height){
-					var width  = parseInt(item.$dom.attr('img-width'));
-					var height = parseInt(item.$dom.attr('img-height'));
+					var width  = parseInt(item.$dom.attr('img-width')  || item.$dom.width());
+					var height = parseInt(item.$dom.attr('img-height') || item.$dom.height());
 					var boxSize = rect.width;
 					if(height > width){
 						rect.height = (rect.width * height) / width; //重新计算高度; 保持比例不变;
@@ -111,7 +105,11 @@ define(function(require, exports) {
 			},300);
 		});
 		gallery.init();
+		
+		// 解决滚动穿透问题;(UC,内嵌网页等情况)
+		$(".pswp__bg").scrollTop($(".pswp__bg").scrollInnerHeight() / 2);
 	};
+	
 	
 	var bindCloseTag = false;
 	var bindClose = function(){
@@ -122,6 +120,10 @@ define(function(require, exports) {
 			if(needClose){
 				$(".pswp__button--close").trigger("click");
 			}
+
+			setTimeout(function(){
+				$(".pswp__bg").scrollTop($(".pswp__bg").scrollInnerHeight() / 2);
+			},10);
 		});
 	}
 

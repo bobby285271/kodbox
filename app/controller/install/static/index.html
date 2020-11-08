@@ -19,20 +19,22 @@
 				</div>
 				<div class="body">
 					<div class="content-main">
+						<?php $hide = $fastInstall ? 'hidden' : '';?>
+						<div class="fast-install hidden"><?php echo $fastInstall; ?></div>
 						<div class="check-result">
 							<div class="title-box"><?php echo LNG('admin.install.install'); ?></div>
 							<div class="progress-box">
 								<!-- <div class="active"><span>使用协议</span><span class="btm-line"></span></div> -->
-								<div class="active"><span><?php echo LNG('common.env.check');?></span><span class="btm-line"></span></div>
-								<div><span><?php echo LNG('admin.install.databaseSet'); ?></span><span class="btm-line"></span></div>
-								<div><span><?php echo LNG('admin.setting.account'); ?></span><span class="btm-line"></span></div>
+								<div class="active <?php echo $hide;?>"><span><?php echo LNG('common.env.check');?></span><span class="btm-line"></span></div>
+								<div class="<?php echo $hide;?>"><span><?php echo LNG('admin.install.databaseSet'); ?></span><span class="btm-line"></span></div>
+								<div class="<?php echo $fastInstall ? 'active' : '';?>"><span><?php echo LNG('admin.setting.account'); ?></span><span class="btm-line"></span></div>
 							</div>
 							<!-- <div class="step-box agreement">
 								<div class="message-content">
 									<div class=""></div>
 								</div>
 							</div> -->
-							<div class="step-box env">
+							<div class="step-box env <?php echo $hide; ?>">
 								<div class="message-content form-box">
 									<div class="env-table">
 										<div class="form-row panel-form-body clear"><hr></div>
@@ -40,7 +42,7 @@
 											<div class="setting-title"></div>
 											<div class="setting-content">
 												<button class="form-save-button"><?php echo LNG('common.ok'); ?></button>
-												<a class="help hidden" target="_blank" href="http://doc.kodcloud.com/#/help/install"><?php echo LNG('explorer.editor.help'); ?></a>
+												<a class="help hidden" target="_blank" href="http://doc.kodcloud.com/v2/#/help/install"><?php echo LNG('explorer.editor.help'); ?></a>
 											</div>
 										</div>
 									</div>
@@ -52,7 +54,7 @@
 									<div class="db-table"></div>
 								</div>
 							</div>
-							<div class="step-box user hidden">
+							<div class="step-box user <?php echo $fastInstall ? '' : 'hidden';?>" style="height:274px">
 								<div class="message-content">
 									<div class="user-table"></div>
 								</div>
