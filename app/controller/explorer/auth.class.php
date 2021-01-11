@@ -23,7 +23,7 @@ class explorerAuth extends Controller {
 				'explorer.index'=>'fileOut,fileOutBy,fileView,fileThumb',
 				'explorer.editor' =>'fileGet'
 			),
-			'download'	=> array('explorer.index'=>'fileDownload',),// 下载/复制;下载/复制/文件预览打印
+			'download'	=> array('explorer.index'=>'fileDownload'),// 下载/复制;下载/复制/文件预览打印
 			'upload'	=> array('explorer.upload'=>'fileUpload,serverDownload'),
 			'edit'		=> array(
 				'explorer.index'	=>'mkdir,mkfile,setDesc,fileSave,pathRename,pathPast,pathCopyTo,pathCuteTo,setMeta',
@@ -55,9 +55,6 @@ class explorerAuth extends Controller {
 		
 		//直接检测；定义在actionPathCheck中的方法；参数为path，直接检测
 		$actionParse = $this->actionParse();
-		if(isset($actionParse[$theAction])){
-			return $this->can($this->in['path'],$actionParse[$theAction]);
-		}
 		// 多个请求或者包含来源去向的，分别进行权限判别；
 		switch ($theAction) {//小写
 			case 'explorer.index.pathinfo':$this->checkAuthArray('show');break;
@@ -82,7 +79,11 @@ class explorerAuth extends Controller {
 				$this->checkAuthArray('remove');
 				$this->canWrite($this->in['path']);
 				break;
-			default:break;
+			default:
+				if(isset($actionParse[$theAction])){
+					$this->can($this->in['path'],$actionParse[$theAction]);
+				}
+				break;
 		}
 	}
 	
@@ -108,38 +109,52 @@ class explorerAuth extends Controller {
 	}
 
 	public function checkSpaceOnCreate($sourceInfo){
+		$space = false;
 		if($sourceInfo['targetType'] == SourceModel::TYPE_GROUP){
-			$space = Model('Group')->getInfo($sourceInfo['targetID']);
+			$space = $this->space('group',$sourceInfo['targetID']);
 		}else if($sourceInfo['targetType'] == SourceModel::TYPE_USER){
-			$space = Model('User')->getInfo($sourceInfo['targetID']);
-		}else{
-			return;
+			$space = $this->space('user',$sourceInfo['targetID']);
 		}
-
-		$space['sizeMax'] = $space['sizeMax']*1024*1024*1024;
-		$space['sizeUse'] = intval($space['sizeUse']);
-		if($space['sizeMax']==0 ) return; // 上限为0则放过;
+		
+		if(!$space || $space['sizeMax']==0 ) return true; // 没有大小信息,或上限为0则放过;
 		if($space['sizeMax']  <= $space['sizeUse']+ $sourceInfo['size'] ){
 			show_json(LNG('explorer.spaceIsFull'),false);
 		}
 	}
 	
+	// 用户空间占用集中处理;
+	public function space($targetType,$targetID){
+		if($targetType == 'user'){//空间追加处理;
+			$target = Model('User')->getInfo($targetID);
+		}else{
+			$target = Model('Group')->getInfo($targetID);
+		}
+		$result = array(
+			'targetType'	=> $targetType,
+			'targetID' 		=> $targetID,
+			'targetName'	=> $target['name'],
+			"sizeMax" 		=> floatval($target['sizeMax'])*1024*1024*1024,
+    		"sizeUse" 		=> intval($target['sizeUse']),
+		);
+		$result = Hook::filter("explorer.targetSpace",$result);
+		return $result;
+	}
+	
+	
 	// 外部获取文件读写权限; Action("explorer.auth")->fileCanRead($path);
 	public function fileCanRead($file){
-		if(request_url_safe($file)) return true;
-		$this->isShowError = false;
 		if(!ActionCall('user.authRole.authCanRead')) return false;
-		$result = $this->canView($file) && $this->canRead($file);
-		$this->isShowError = true;
-		return $result;
+		return $this->fileCan($file,'view');
+	}
+	public function fileCanDownload($file){
+		if(!ActionCall('user.authRole.authCanRead')) return false;
+		return $this->fileCan($file,'download');
 	}
 	public function fileCanWrite($file){
-		$this->isShowError = false;
 		if(!ActionCall('user.authRole.authCanEdit')) return false;
-		$result = $this->canWrite($file);
-		$this->isShowError = true;
-		return $result;
+		return $this->fileCan($file,'edit');
 	}
+	
 	public function fileCan($file,$action){
 		if(request_url_safe($file)) return true;
 		$this->isShowError = false;
@@ -175,7 +190,9 @@ class explorerAuth extends Controller {
 		//个人挂载目录；跨空间移动复制根据身份处理；
 		if( $ioType == KodIO::KOD_USER_DRIVER ) return true;
 		if( $ioType == KodIO::KOD_SHARE_LINK){
-			if(Action('explorer.share')->sharePathInfo($path)) return true;
+			$shareAllow = array('view','show','download');
+			$allow = in_array($action,$shareAllow);
+			if( Action('explorer.share')->sharePathInfo($path) && $allow) return true;
 			return $this->errorMsg(LNG('explorer.pathNotSupport'),1108);
 		}
 
@@ -297,22 +314,27 @@ class explorerAuth extends Controller {
 			return $this->errorMsg("source share root can't remove !");
 		}
 
+		// 物理路径,io路径;
+		if($shareInfo['sourceID'] == '0'){
+			$sharePath = KodIO::clear($shareInfo['sourcePath']);
+			$thisPath  = KodIO::clear($shareInfo['sourcePath'].$sourceID);
+			if(substr($thisPath,0,strlen($sharePath)) != $sharePath) return false;
+			return $this->checkAuthMethod($shareInfo['auth']['authValue'],$method);
+		}
+		
 		$sourceInfo = Model('Source')->sourceInfo($sourceID);
 		$parent = Model('Source')->parentLevelArray($sourceInfo['parentLevel']);
 		array_push($parent,$sourceID);
-		// pr($parent,$sourceID,$method,$sourceInfo,$shareInfo);exit;
 		
 		if(!$sourceInfo || !in_array($sourceID,$parent) ){
 			return $this->errorMsg(LNG('explorer.share.notExist'));
 		}
-
 		// 自己的分享，不判断权限；协作中添加了自己或自己所在的部门；
 		if( $sourceInfo['targetType'] == SourceModel::TYPE_USER && 
 			$sourceInfo['targetID'] == USER_ID ){
 			return true;
 		}
-		$auth = $shareInfo['auth']['authValue'];
-		return $this->checkAuthMethod($auth,$method);
+		return $this->checkAuthMethod($shareInfo['auth']['authValue'],$method);
 	}
 	
 	//解析上述配置到action列表；统一转为小写;

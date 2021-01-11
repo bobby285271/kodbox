@@ -76,6 +76,10 @@ define(function(require, exports) {
 				};
 			}
 		};
+		
+		if($.isWindowSmall()){
+			options.history = true;
+		}
 		options.index = imageList.index;
 		var gallery = new PhotoSwipe($('.pswp').get(0),PhotoSwipeUI_Default,imageList.items,options);
 		gallery.loadFinished = false;

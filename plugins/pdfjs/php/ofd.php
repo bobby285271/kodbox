@@ -12,15 +12,20 @@
 	<?php $this->link('static/ofd/lib/asn1.js');?>
 	<?php $this->link('static/ofd/lib/touch.js');?>
 	<?php $this->link('static/ofd/lib/ofd.js');?>
-
 	<?php $this->link('static/ofd/css/lib.css');?>
 	<?php $this->link('static/ofd/css/main.css');?>
 	<?php $this->link('static/ofd/css/add.css');?>
+	<style>.ant-tabs-bar{display: flex;height: 40px;}</style>
 </head>
 
 <body>
 	<div id="root"></div>
-	<script>var ofdReaderParams = {file: "<?php echo $fileUrl;?>"};</script>
+	<script>
+		var ofdReaderParams = {
+			file: "<?php echo $fileUrl;?>",
+			canDownload:"<?php echo intval($canDownload);?>"
+		};
+	</script>
 	<?php $this->link('static/ofd/load.js');?>
 	<?php $this->link('static/ofd/vendor.js');?>
 	<?php $this->link('static/ofd/main.js');?>

@@ -202,11 +202,19 @@ function curl_progress_start($curl){
 	$GLOBALS['curlKodLastTime'] = 0;
 	$GLOBALS['curlKodLast'] = $curl;
 	Hook::trigger('curl.progressStart',$curl);
+	think_status('curlTimeStart');
 }
 function curl_progress_end($curl){
 	$GLOBALS['curlKodLastTime'] = 0;
 	$GLOBALS['curlKodLast'] = false;
 	Hook::trigger('curl.progressEnd',$curl);
+	
+	// 网络请求记录;
+	$curlInfo = curl_getinfo($curl);
+	think_status('curlTimeEnd');
+	$runTime = '[ RunTime:'.think_status('curlTimeStart','curlTimeEnd',6).'s ]';
+	$runInfo = "sizeUp={$curlInfo['size_upload']};sizeDown={$curlInfo['download_content_length']};";//json_encode($curlInfo)
+	think_trace(" ".$curlInfo['url'].";".$runInfo.$runTime,'','CURL');
 }
 function curl_progress(){
 	$args = func_get_args();
@@ -370,7 +378,7 @@ function url_request($url,$method='GET',$data=false,$headers=false,$options=fals
 	}
 
 	curl_close($ch);
-	if(is_array($GLOBALS['curlCurrentFile'])){
+	if(isset($GLOBALS['curlCurrentFile']) && is_array($GLOBALS['curlCurrentFile'])){
 		Cache::remove($GLOBALS['curlCurrentFile']['cacheKey']);
 	}
 	$success = $response_info['http_code'] >= 200 && $response_info['http_code'] <= 299;
@@ -660,7 +668,7 @@ function parse_url_route(){
 function parse_incoming(){
 	parse_url_route();
 	global $_GET, $_POST,$_COOKIE;
-	if (get_magic_quotes_gpc()) {
+	if (function_exists('get_magic_quotes_gpc') && get_magic_quotes_gpc()) {
 		$_COOKIE = stripslashes_deep($_COOKIE);
 		$_GET	 = stripslashes_deep($_GET);
 		$_POST	 = stripslashes_deep($_POST);
@@ -680,7 +688,7 @@ function parse_incoming(){
 		unset($return['API_ROUTE']);
 	}
 	
-	$router = trim($remote[0],'/');
+	$router = isset($remote[0]) ? trim($remote[0],'/') : '';
 	preg_match_all('/[0-9a-zA-Z\/_]*/',$router,$arr);
     $router = join('',$arr[0]);
     $router = str_replace('/','.',$router);
@@ -689,6 +697,7 @@ function parse_incoming(){
 	// 微信等追加到根地址后面参数情况处理;  domain.com/?a=1&b=2; 
 	if( count($remote) == 1 && 
 		$remote[0] == $router &&
+		isset($return[$router]) &&
 		$return[$router] !='' ){
 		$router = '';
 		$remote = array('');

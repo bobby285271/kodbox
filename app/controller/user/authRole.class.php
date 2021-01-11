@@ -17,7 +17,7 @@ class userAuthRole extends Controller {
 	public function authCanDownload(){
 		return $this->authCan('explorer.download');
 	}
-	public function isRoot(){return !!$GLOBALS['isRoot'];} 
+	public function isRoot(){return isset($GLOBALS['isRoot'])?!!$GLOBALS['isRoot']:false;} 
 	public function authCanSearch(){return $this->authCan('explorer.search');}
 	public function authCanRead(){return $this->authCan('explorer.view');}
 	public function authCanEdit(){return $this->authCan('explorer.edit');}

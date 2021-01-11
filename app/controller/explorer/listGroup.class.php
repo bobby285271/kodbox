@@ -63,21 +63,19 @@ class explorerListGroup extends Controller{
 		return $result;
 	}
 	
-	
 	/**
 	 * 部门根目录;罗列子部门;
 	 */
-	public function groupChildAppend($data){
+	public function groupChildAppend(&$data){
 		$pathInfo = $data['current'];
-		if(!$this->groupChildAppendCheck($pathInfo)) return $data;
-		if(!$this->enableListGroup($pathInfo['targetID'])) return $data;
+		if(!$this->groupChildAppendCheck($pathInfo)) return;
+		if(!$this->enableListGroup($pathInfo['targetID'])) return;
 		$groupID = $pathInfo['targetID'];
 		$groupList  = $this->modelGroup->where(array('parentID'=>$groupID))->select();
 	
 		$data['groupList'] = $this->groupArray($groupList);
 		$data['pageInfo']['totalNum'] += count($data['groupList']);
 		// pr($groupList,$data,$groupListItem);exit;
-		return $data;
 	}
 	
 	//是否追加子部门检测; 部门根目录;分页第一页;

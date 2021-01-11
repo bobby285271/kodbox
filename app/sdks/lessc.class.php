@@ -2321,7 +2321,7 @@ class lessc_parser {
             // If there is whitespace before the operator, then we require
             // whitespace after the operator for it to be an expression
             $needWhite = $whiteBefore && !$this->inParens;
-            if ($this->match(self::$operatorString.($needWhite ? '\s' : ''), $m) && self::$precedence[$m[1]] >= $minP) {
+            if ($this->matchReg(self::$operatorString.($needWhite ? '\s' : ''), $m) && self::$precedence[$m[1]] >= $minP) {
                 if (!$this->inParens && isset($this->env->currentProperty) && $m[1] == "/" && empty($this->env->supressedDivision)) {
                     foreach (self::$supressDivisionProps as $pattern) {
                         if (preg_match($pattern, $this->env->currentProperty)) {
@@ -2421,7 +2421,7 @@ class lessc_parser {
             $this->seek($s);
         }
         // css hack: \0
-        if ($this->literal('\\') && $this->match('([0-9]+)', $m)) {
+        if ($this->literal('\\') && $this->matchReg('([0-9]+)', $m)) {
             $value = array('keyword', '\\'.$m[1]);
             return true;
         } else {
@@ -2504,7 +2504,7 @@ class lessc_parser {
         $patt = '(.*?)('.implode("|", $stop).')';
         $nestingLevel = 0;
         $content = array();
-        while ($this->match($patt, $m, false)) {
+        while ($this->matchReg($patt, $m, false)) {
             if (!empty($m[1])) {
                 $content[] = $m[1];
                 if ($nestingOpen) {
@@ -2558,7 +2558,7 @@ class lessc_parser {
             lessc::preg_quote($delim).')';
         $oldWhite = $this->eatWhiteDefault;
         $this->eatWhiteDefault = false;
-        while ($this->match($patt, $m, false)) {
+        while ($this->matchReg($patt, $m, false)) {
             $content[] = $m[1];
             if ($m[2] == "@{") {
                 $this->count -= strlen($m[2]);
@@ -2609,7 +2609,7 @@ class lessc_parser {
             $char = $this->buffer[$this->count];
             if (!ctype_digit($char) && $char != ".") return false;
         }
-        if ($this->match('([0-9]+(?:\.[0-9]*)?|\.[0-9]+)([%a-zA-Z]+)?', $m)) {
+        if ($this->matchReg('([0-9]+(?:\.[0-9]*)?|\.[0-9]+)([%a-zA-Z]+)?', $m)) {
             $unit = array("number", $m[1], empty($m[2]) ? "" : $m[2]);
             return true;
         }
@@ -2617,7 +2617,7 @@ class lessc_parser {
     }
     // a # color
     protected function color(&$out) {
-        if ($this->match('(#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3}))', $m)) {
+        if ($this->matchReg('(#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3}))', $m)) {
             if (strlen($m[1]) > 7) {
                 $out = array("string", "", array($m[1]));
             } else {
@@ -2758,7 +2758,7 @@ class lessc_parser {
                     $this->count--;
                     break; // get out early
                 }
-                if ($this->match('\s+', $m)) {
+                if ($this->matchReg('\s+', $m)) {
                     $attrParts[] = " ";
                     continue;
                 }
@@ -2781,7 +2781,7 @@ class lessc_parser {
                     continue;
                 }
                 // operator, handles attr namespace too
-                if ($this->match('[|-~\$\*\^=]+', $m)) {
+                if ($this->matchReg('[|-~\$\*\^=]+', $m)) {
                     $attrParts[] = $m[0];
                     continue;
                 }
@@ -2814,7 +2814,7 @@ class lessc_parser {
         $oldWhite = $this->eatWhiteDefault;
         $this->eatWhiteDefault = false;
         while (true) {
-            if ($this->match('(['.$chars.'0-9]['.$chars.']*)', $m)) {
+            if ($this->matchReg('(['.$chars.'0-9]['.$chars.']*)', $m)) {
                 $parts[] = $m[1];
                 if ($simple) break;
                 while ($this->tagBracket($parts, $hasExpression));
@@ -2855,7 +2855,7 @@ class lessc_parser {
     // a css function
     protected function func(&$func) {
         $s = $this->seek();
-        if ($this->match('(%|[\w\-_][\w\-_:\.]+|[\w_])', $m) && $this->literal('(')) {
+        if ($this->matchReg('(%|[\w\-_][\w\-_:\.]+|[\w_])', $m) && $this->literal('(')) {
             $fname = $m[1];
             $sPreArgs = $this->seek();
             $args = array();
@@ -2915,7 +2915,7 @@ class lessc_parser {
     }
     // consume a keyword
     protected function keyword(&$word) {
-        if ($this->match('([\w_\-\*!"][\w\-_"]*)', $m)) {
+        if ($this->matchReg('([\w_\-\*!"][\w\-_"]*)', $m)) {
             $word = $m[1];
             return true;
         }
@@ -2994,7 +2994,7 @@ class lessc_parser {
         if (!isset(self::$literalCache[$what])) {
             self::$literalCache[$what] = lessc::preg_quote($what);
         }
-        return $this->match(self::$literalCache[$what], $m, $eatWhitespace);
+        return $this->matchReg(self::$literalCache[$what], $m, $eatWhitespace);
     }
     protected function genericList(&$out, $parseItem, $delim="", $flatten=true) {
         $s = $this->seek();
@@ -3025,13 +3025,13 @@ class lessc_parser {
         } else {
             $validChars = $allowNewline ? "." : "[^\n]";
         }
-        if (!$this->match('('.$validChars.'*?)'.lessc::preg_quote($what), $m, !$until)) return false;
+        if (!$this->matchReg('('.$validChars.'*?)'.lessc::preg_quote($what), $m, !$until)) return false;
         if ($until) $this->count -= strlen($what); // give back $what
         $out = $m[1];
         return true;
     }
     // try to match something on head of buffer
-    protected function match($regex, &$out, $eatWhitespace = null) {
+    protected function matchReg($regex, &$out, $eatWhitespace = null) {
         if ($eatWhitespace === null) $eatWhitespace = $this->eatWhiteDefault;
         $r = '/'.$regex.($eatWhitespace && !$this->writeComments ? '\s*' : '').'/Ais';
         if (preg_match($r, $this->buffer, $out, null, $this->count)) {
@@ -3055,7 +3055,7 @@ class lessc_parser {
             }
             return $gotWhite;
         } else {
-            $this->match("", $m);
+            $this->matchReg("", $m);
             return strlen($m[0]) > 0;
         }
     }

@@ -41,6 +41,12 @@ kodReady.push(function(){
 				callback(myPlayer);
 			});
 		}
+		
+		if($.isWap && !window.jplayerInit){
+			window.jplayerInit = true;
+			$(".jPlayer-music .play-list .remove").trigger("click");
+			$.addStyle('.music-player-dialog{visibility:visible;}');
+		}
 	};
 
 	Events.bind('explorer.kodApp.before',function(appList){
@@ -63,12 +69,6 @@ kodReady.push(function(){
 					name:name,//zip内文件播放
 					ext:ext
 				}];
-
-				if($.isWap && !window.jplayerInit){
-					window.jplayerInit = true;
-					$(".jPlayer-music .play-list .remove").trigger("click");
-					$.addStyle('.music-player-dialog{visibility:visible;}');
-				}
 				loadMyPlayer(function(player){
 					player.play(list);
 				});

@@ -48,12 +48,27 @@ var pdfLoaded = function(){
 }
 
 $(document).ready(function (){
-	// webpack 中 PDFViewerApplication.eventBus尚未加载初始化完成;
-	setTimeout(function(){
+	$('.print,.download').hide();
+	var checkTimer = setInterval(function(){
+		if(!window.PDFViewerApplication || !PDFViewerApplication.eventBus) return;
+
+		clearInterval(checkTimer);
 		pdfLoaded();
 		enablePinchZoom();
-	},20);
-	$('.print,.download').remove();
+		
+		setTimeout(function(){
+			if(pdfOptions.canDownload == '1'){
+				$('.print,.download').show();
+				return;
+			}
+			PDFViewerApplication.eventBus._listeners['print'] = [];
+			PDFViewerApplication.eventBus._listeners['afterprint'] = [];
+			PDFViewerApplication.eventBus._listeners['beforeprint'] = [];
+			PDFViewerApplication.supportsPrinting = false;
+			window.print = function(){}
+			$('.print,.download').remove();
+		},200);
+	},50);
 });
 
 // / Pinch Zoom

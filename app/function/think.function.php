@@ -49,7 +49,7 @@ function think_exception($msg) {
 		$callTrace = $msg->getTrace();
 		$last = $callTrace[0];
 		$desc = $last['function'].'(); ';
-		if($last['class']){
+		if(isset($last['class'])){
 			$desc = $last['class'].'->'.$desc;
 		}
 		$desc  = $fileLine.$desc;
@@ -302,56 +302,38 @@ function think_status($start, $end = '', $dec = 4) {
  * @return void
  */
 function think_trace($value = '[think]', $label = '', $level = 'DEBUG', $record = false) {
-	if(defined('GLOBAL_DEBUG') && !GLOBAL_DEBUG ){
-		if($level == 'ERR'){// 运行异常; 抛出异常
-			$info = ($label ? $label . ':' : '') . print_r($value, true);
-			return think_exception($info);
-		}
-		return;	
+	static $_trace = array();
+	$info = ($label ? $label.':':'').print_r($value, true);
+	if ($level == 'ERR') return think_exception($info);
+	if (defined('GLOBAL_DEBUG') && !GLOBAL_DEBUG ) return;
+    if ($value == '[trace]') return $_trace;
+	if ($value == '[think]') return think_exception($_trace);
+
+	$logMax = 50;//最多纪录前30条sql; 避免额外开销及内存不可控		
+	$level = strtoupper($level);
+	if (!isset($_trace[$level])) {
+		$_trace[$level] = array(
+			'totalTime' => 0.0,
+			'totalCount'=> 0,
+			'time' 		=> array(),
+			'list' 		=> array(),
+			'trace' 	=> array(),
+		);
 	}
-    static $_trace = array();
-    if ('[sql]' === $value) {
-		$level = 'SQL';
-		if(!isset($_trace[$level])){
-			return $_trace;
+	
+	$useTime = substr($info,strrpos($info,'[ RunTime:')+10,-3);
+	$_trace[$level]['totalTime'] += floatval($useTime);
+	$_trace[$level]['totalTime'] = sprintf('%.6f',$_trace[$level]['totalTime']);
+	$_trace[$level]['totalCount']  += 1;
+	if($_trace[$level]['totalCount'] < $logMax){
+		if(!is_array($_trace[$level]['list'])){
+			$_trace[$level]['list'] = array();
 		}
-		if(empty($_trace[$level]['sql'])){
-			$_trace[$level]['sql'] = array();
-		}
-		$_trace[$level] = array_merge($_trace[$level]['sql'],$_trace[$level]);
-		$_trace[$level]['timeTotal'] = sprintf("%.4f",$_trace[$level]['timeTotal']);
-		unset($_trace[$level]['sql']);		
-        return count($_trace) == 1 ? $_trace[$level]:$_trace;
-    }else if ('[think]' === $value) { // 获取trace信息
-        think_exception($_trace);
-    } else {
-		$info = ($label ? $label . ':' : '') . print_r($value, true);
-		if($level == 'ERR'){// 运行异常; 抛出异常
-			return think_exception($info);
-		}
-        $level = strtoupper($level);
-        if (!isset($_trace[$level])) {
-			$_trace[$level] = array(
-				'timeTotal' => 0.0,
-				'sqlTotal' 	=> 0,
-				'sql' 		=> array(),
-				'time' 		=> array(),
-				'trace' 	=> array(),
-			);
-		}
-		
-		$logMax = 50;//最多纪录前30条sql; 避免额外开销及内存不可控		
-		$useTime = substr($info,strrpos($info,'[ RunTime:')+10,-3);
-		$_trace[$level]['timeTotal'] += floatval($useTime);
-		$_trace[$level]['sqlTotal']  += 1;
-		if($_trace[$level]['sqlTotal'] < $logMax){
-			$index = count($_trace[$level]['sql']) . '';
-			$_trace[$level]['sql'][$index] = $info;
-			$_trace[$level]['trace'][$index] = get_caller_info();
-			$_trace[$level]['time'][$index]  = $useTime;
-		}
-        if ($record) {
-            write_log($info, $record, $level);
-        }
-    }
+		$index = count($_trace[$level]['list']).' ';
+		$_trace[$level]['list'][$index]  = $info;
+		// 过滤重复无效内容;1-4(路由处理);最后2行:记录日志,本函数;
+		$_trace[$level]['trace'][$index] = array_slice(get_caller_info(),4,-2);
+		$_trace[$level]['time'][$index]  = $useTime;
+	}
+	if ($record){write_log($info,$level);}
 }

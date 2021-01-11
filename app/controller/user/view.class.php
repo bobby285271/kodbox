@@ -43,10 +43,7 @@ class userView extends Controller{
 		);
 
 		if($user){//空间大小信息;
-			$options['user']['targetSpace'] = array(
-				"sizeMax" => intval($user['sizeMax']) * 1024*1024*1024,
-				"sizeUse" => intval($user['sizeUse']),
-			);
+			$options['user']['targetSpace'] = Action('explorer.auth')->space('user',USER_ID);
 			$options['user']['role'] = $options['user']['role']['roleList'];
 			$options['user']['config'] = array_merge($this->config['settingDefault'],Model('UserOption')->get());
 			$options['user']['editorConfig'] = array_merge($this->config['editorDefault'],Model('UserOption')->get(false,'editor'));
@@ -62,11 +59,9 @@ class userView extends Controller{
 			$options['system']['settings']['kodApiServer'] = str_replace('http://','https://',$api);
 		}
 
-		$optionsGet = Hook::filter('user.view.options.before',$options);
-		$options 	= is_array($optionsGet) ? $optionsGet : $options;
-		$optionsGet = Hook::filter('user.view.options.after',$options);
-		$options 	= is_array($optionsGet) ? $optionsGet : $options;
-		$options    = $this->parseMenu($options);
+		$options = Hook::filter('user.view.options.before',$options);
+		$options = Hook::filter('user.view.options.after',$options); 
+		$options = $this->parseMenu($options);
 		show_json($options);
 	}
 
@@ -111,7 +106,7 @@ class userView extends Controller{
 	// 计划任务触发;
 	public function call(){
 		http_close();
-		ActionCall('explorer.index.clearCache');
+		Action('explorer.index')->clearCache();
 		AutoTask::start();
 		Cache::clearTimeout();
 	}
@@ -140,9 +135,12 @@ class userView extends Controller{
 		$url = $this->in['url'];
 		if (function_exists('imagecolorallocate')) {
 			ob_get_clean();
-			QRcode::png($this->in['url'],false,QR_ECLEVEL_L,7,2);
+			QRcode::png($url,false,QR_ECLEVEL_L,7,2);
 		} else {
-			header('location: http://qr.topscan.com/api.php?text=' . rawurlencode($url));
+			// https://api.pwmqr.com/qrcode/create/?url=
+			// https://demo.kodcloud.com/?user/view/qrcode&url=
+			// https://api.qrserver.com/v1/create-qr-code/?data=
+			header('location: https://api.pwmqr.com/qrcode/create/?url='.rawurlencode($url));
 		}
 	}
 	public function manifest(){

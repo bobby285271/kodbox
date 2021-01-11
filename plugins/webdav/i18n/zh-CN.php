@@ -21,8 +21,10 @@ return array(
 	
 	'webdav.help.title'			=> "如何使用",
 	'webdav.help.connect'		=> "立即连接使用",
-	'webdav.help.windows'		=> "<b>Window:</b> 右键桌面[我的电脑/此电脑] —— 映射网络驱动器 —— 粘贴上述webdav地址,点击完成——输入账号密码即可",
+	'webdav.help.windows'		=> "<b>Window:</b> 右键桌面[我的电脑/此电脑] —— 映射网络驱动器 —— 粘贴上述webdav地址,点击完成——输入账号密码即可;
+	<br/>推荐使用:<a href='https://www.raidrive.com/download' target='_blank'>RaiDrive</a>,更强大,兼容性更好",
 	'webdav.help.mac'			=> "<b>Mac:</b>  右键finder —— 连接服务器 —— 粘贴上述webdav地址,点击连接 —— 输入账号密码即可",
-	'webdav.help.others'		=> "<b>其他客户端及系统</b>: 明确地址为上述webdav地址,账号密码为自己登陆账号即可，基本流程类似",
+	'webdav.help.others'		=> "<b>其他客户端及系统</b>: 明确地址为上述webdav地址,账号密码为自己登陆账号即可，基本流程类似
+	<br/>Android,iOS移动端设备推荐:<a href='http://www.estrongs.com/' target='_blank'>ES文件浏览器</a>",
 	'webdav.help.windowsTips'	=> "首次使用需要取消上传及http限制,下载此文件后双击运行",
 );

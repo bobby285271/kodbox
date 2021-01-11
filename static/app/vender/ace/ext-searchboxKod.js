@@ -512,12 +512,13 @@ ace.define("ace/ext/searchboxKod", ["require", "exports", "module", "ace/lib/dom
 				searchCurrent = (index + 1);
 				searchNum = ranges.length;
 			}
+			var $searchInfo = $(".ace_search_form .search-info");
 			html ='<span class="search_at_index">'+ searchCurrent +'</span>of<span class="search_total_num">' + searchNum + '</span>';
-			$(".search-info").html(html);
+			$searchInfo.html(html);
 			if(searchCurrent == 1){
-				$(".search-info").addClass('search-first');
+				$searchInfo.addClass('search-first');
 			}else{
-				$(".search-info").removeClass('search-first');
+				$searchInfo.removeClass('search-first');
 			}
 		};
 		this.findNext = function() {

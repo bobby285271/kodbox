@@ -16,11 +16,37 @@ class adminGroup extends Controller{
 	public function get() {
 		$data = Input::getArray(array(
 			"parentID"		=> array("check"=>"int",'default'=>0),
-			"containCurrent"=> array("check"=>"int",'default'=>0),
+			"rootParam" 	=> array("check"=>"require",'default'=>''),
 		));
-		if($data['containCurrent'] == '1'){
-			$item = $this->model->getInfo($data['parentID']);
-			$items = array("list"=>array($item));
+
+		if(isset($_REQUEST['rootParam']) ){
+			$groupCurrent = $this->model->getInfo($data['parentID']);
+			$items = array("list"=>array($groupCurrent));
+			if($data['rootParam'] == 'appendRootGroup'){
+				$items['list'][] = array(
+					"groupID" 		=> "1",
+					"parentID" 		=> "0",
+					"name" 			=> LNG('explorer.auth.toOuter'),
+					"isParent"		=> true,
+					"disableSelect" => true,
+					"nodeAddClass" 	=> 'node-append-group',
+				);
+			}
+			if($data['rootParam'] == 'appendShareHistory'){
+				$shareHistory = array(
+					"groupID" 		=> "-",
+					"parentID" 		=> "0",
+					"name" 			=> urldecode(LNG('explorer.groupAuthRecent')),
+					"isParent"		=> true,
+					"disableSelect" => true,
+					"nodeAddClass" 	=> 'node-append-shareTarget',
+					'children'		=> Action('explorer.userShareTarget')->get(10),
+					'icon' 			=> '<i class="font-icon ri-star-fill"></i>',
+				);
+				if(count($shareHistory['children']) > 0){
+				    $items['list'] = array($shareHistory,$items['list'][0]);
+				}
+			}
 		}else{
 			$items = $this->model->listChild($data['parentID']);
 		}

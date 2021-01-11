@@ -11,10 +11,19 @@ class userRegist extends Controller {
 	public function __construct() {
 		parent::__construct();
 	}
+	
+	public function checkAllow(){
+		$regist = Model("SystemOption")->get("regist");
+		if($regist['openRegist'] != '1'){
+			show_json("未开启注册,请联系管理员!",false);
+		}
+	}
+	
 	/**
 	 * 发送验证码——注册、找回密码
 	 */
 	public function sendMsgCode() {
+		$this->checkAllow();
 		$data = Input::getArray(array(
 			'type'		=> array('check' => 'require'),
 			'input'		=> array('check' => 'require'),
@@ -98,6 +107,7 @@ class userRegist extends Controller {
 	 * 注册
 	 */
 	public function regist() {
+		$this->checkAllow();
 		$data = Input::getArray(array(
 			'type'		 => array('check' => 'require'),
 			'input'		 => array('check' => 'require'),
@@ -138,6 +148,8 @@ class userRegist extends Controller {
 		}
 		$this->addUser($data);
 	}
+	
+	
 
 	/**
 	 * 新增/注册用户
@@ -156,20 +168,6 @@ class userRegist extends Controller {
 				return show_json(LNG('common.' . $param['type']) . LNG('user.registed'), false);
 			}
 		}
-		if(!$nickName) {
-			$where = array('name' => $name);
-		}else{
-			$where = array('name' => $name, 'nickName' => $nickName, '_logic' => 'OR');
-		}
-		$info = Model('User')->where($where)->find();
-		if($info){
-			if($info['name'] == $name){
-				return show_json(LNG('user.name') . "[{$name}]" . LNG('user.registed'), false);
-			}
-			if($nickName && $info['nickName'] == $nickName){
-				return show_json(LNG('user.nickName') . "[{$nickName}]" . LNG('user.registed'), false);
-			}
-		}
 		// 3.1用户基础信息保存
 		$regist = Model("SystemOption")->get("regist");
 		$this->in = array(
@@ -185,10 +183,14 @@ class userRegist extends Controller {
 		);
 		!$bindRegist && $this->in[$param['type']] = $param['input'];
 
+        if(!defined('USER_ID')) define('USER_ID', 0);
 		$res = ActionCallHook('admin.member.add');
 		// 绑定注册，直接返回新增结果
 		if ($bindRegist) return $res;	// show_json(true, true, userID)
-		if(!$res['code']) show_json(LNG('explorer.error'), false);
+		if(!$res['code']) {
+			$msg = $res['data'] ? $res['data'] : LNG('explorer.error');
+			show_json($msg, false);
+		}
 
 		Session::remove('checkCode');
 		$code = true;
@@ -239,12 +241,11 @@ class userRegist extends Controller {
 			Session::remove($name);
 			show_json(LNG('common.' . $type) . LNG('user.codeErrorTooMany'), false);
 		}
-		if ($sess['code'] != $code) {
+		if (strtolower($sess['code']) != strtolower($code)) {
 			$sess['cnt'] ++;
 			Session::set($name, $sess);
 			show_json(LNG('common.' . $type) . LNG('user.codeError'), false);
 		}
 		Session::remove($name);
 	}
-
 }

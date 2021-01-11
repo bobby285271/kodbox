@@ -20,7 +20,7 @@ class adminAutoTask extends Controller {
 			'enable' => '0',
 			'system' => '1',
 		);
-		$this->model->add($data) ? $data : null;
+		if(!$this->model->add($data)) return; 
 		Model('systemOption')->set('autoTaskInit','ok','backup');
 	}
 	

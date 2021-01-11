@@ -689,18 +689,23 @@ function path_search($path,$search,$is_content=false,$file_ext='',$is_case=false
 }
 
 // 文件搜索；返回行及关键词附近行
-// 优化搜索算法 提高100被性能
 function file_search($path,$search,$is_case){
-	$strpos = 'stripos';//是否区分大小写
-	if ($is_case) $strpos = 'strpos';
-
-	//文本文件 超过40M不再搜索
-	if(@filesize($path) >= 1024*1024*40){
-		return false;
-	}
+	if(@filesize($path) >= 1024*1024*20) return false;
 	$content = file_get_contents($path);
+	$result  = content_search($content,$search,$is_case);
+	unset($content);
+	if(!$result) return false;
+
+	$info = file_info($path);
+	$info['searchInfo'] = $result;
+	return $info;
+}
+
+// 文本搜索；返回行及关键词附近行
+function content_search($content,$search,$is_case){
+	$strpos = 'stripos';//是否区分大小写
+	if( $is_case) $strpos = 'strpos';
 	if( $strpos($content,"\0") > 0 ){// 不是文本文档
-		unset($content);
 		return false;
 	}
 	$charset = get_charset($content);
@@ -709,12 +714,8 @@ function file_search($path,$search,$is_case){
 	if($notAscii && !in_array($charset,array('utf-8','ascii'))){
 		$content = iconv_to($content,$charset,'utf-8');
 	}
-
 	//文件没有搜索到目标直接返回
-	if ($strpos($content,$search) === false){
-		unset($content);
-		return false;
-	}
+	if ($strpos($content,$search) === false) return false;
 
 	$pose = 0; 
 	$fileSize = strlen($content);
@@ -775,12 +776,9 @@ function file_search($path,$search,$is_case){
 			}
 		}
 	}
-
-	$info = file_info($path);
-	$info['searchInfo'] = $result;
-	unset($content);
-	return $info;
+	return $result;
 }
+
 
 /**
  * 修改文件、文件夹权限
@@ -980,7 +978,7 @@ function write_log($log, $type = 'default', $level = 'log'){
 	$target   = LOG_PATH . strtolower($type) . '/';
 	mk_dir($target);
 	if (!path_writeable($target)){
-		exit('path can not write!');
+		exit('path can not write! ['.$target.']');
 	}
 	$ext = '.php';//.php .log;
 	$target .= date('Y_m_d').'__'.$level.$ext;

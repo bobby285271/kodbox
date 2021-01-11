@@ -120,6 +120,31 @@ CREATE INDEX 'idx_io_file_createTime' ON 'io_file' ("createTime");
 CREATE INDEX 'idx_io_file_ioType' ON 'io_file' ("ioType");
 CREATE INDEX 'idx_io_file_hashMd5' ON 'io_file' ("hashMd5");
 
+DROP TABLE IF EXISTS "io_file_contents";
+CREATE TABLE "io_file_contents" (
+  "fileID" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+  "content" mediumtext NOT NULL,
+  "createTime" integer NOT NULL
+);
+-- index io_file_contents:
+CREATE INDEX 'idx_io_file_contents_primary_key' ON 'io_file_contents' ("fileID");
+CREATE INDEX 'idx_io_file_contents_createTime' ON 'io_file_contents' ("createTime");
+
+DROP TABLE IF EXISTS "io_file_meta";
+CREATE TABLE "io_file_meta" (
+  "id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+  "fileID" integer NOT NULL,
+  "key" varchar(255) NOT NULL,
+  "value" text NOT NULL,
+  "createTime" integer NOT NULL,
+  "modifyTime" integer NOT NULL
+);
+-- index io_file_meta:
+CREATE INDEX 'idx_io_file_meta_primary_key' ON 'io_file_meta' ("id");
+CREATE INDEX 'idx_io_file_meta_fileID_key' ON 'io_file_meta' ("fileID","key");
+CREATE INDEX 'idx_io_file_meta_fileID' ON 'io_file_meta' ("fileID");
+CREATE INDEX 'idx_io_file_meta_key' ON 'io_file_meta' ("key");
+
 DROP TABLE IF EXISTS "io_source";
 CREATE TABLE "io_source" (
   "sourceID" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -164,7 +189,7 @@ CREATE TABLE "io_source_auth" (
   "targetType" smallint NOT NULL,
   "targetID" integer NOT NULL,
   "authID" integer NOT NULL,
-  "authDefine" int(11) NOT NULL,
+  "authDefine" integer NOT NULL,
   "createTime" integer NOT NULL,
   "modifyTime" integer NOT NULL
 );
@@ -200,7 +225,7 @@ CREATE TABLE "io_source_history" (
   "sourceID" integer NOT NULL,
   "userID" integer NOT NULL,
   "fileID" integer NOT NULL,
-  "size" bigint(20) NOT NULL,
+  "size" integer NOT NULL,
   "detail" varchar(1024) NOT NULL,
   "createTime" integer NOT NULL,
   "modifyTime" integer NOT NULL
@@ -253,6 +278,8 @@ CREATE TABLE "share" (
   "shareHash" varchar(50) NOT NULL,
   "userID" integer NOT NULL,
   "sourceID" integer NOT NULL,
+  "sourcePath" varchar(1024) NOT NULL,
+  "url" varchar(255) NOT NULL,
   "isLink" smallint NOT NULL,
   "isShareTo" smallint NOT NULL,
   "password" varchar(255) NOT NULL,
@@ -275,6 +302,31 @@ CREATE INDEX 'idx_share_timeTo' ON 'share' ("timeTo");
 CREATE INDEX 'idx_share_numView' ON 'share' ("numView");
 CREATE INDEX 'idx_share_numDownload' ON 'share' ("numDownload");
 CREATE INDEX 'idx_share_isShareTo' ON 'share' ("isShareTo");
+CREATE INDEX 'idx_share_url' ON 'share' ("url");
+
+DROP TABLE IF EXISTS "share_report";
+CREATE TABLE "share_report" (
+  "id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+  "shareID" integer NOT NULL,
+  "title" varchar(255) NOT NULL,
+  "sourceID" integer NOT NULL,
+  "fileID" integer NOT NULL,
+  "userID" integer NOT NULL,
+  "type" smallint NOT NULL,
+  "desc" text NOT NULL,
+  "status" smallint NOT NULL,
+  "createTime" integer NOT NULL,
+  "modifyTime" integer NOT NULL
+);
+-- index share_report:
+CREATE INDEX 'idx_share_report_primary_key' ON 'share_report' ("id");
+CREATE INDEX 'idx_share_report_shareID' ON 'share_report' ("shareID");
+CREATE INDEX 'idx_share_report_sourceID' ON 'share_report' ("sourceID");
+CREATE INDEX 'idx_share_report_fileID' ON 'share_report' ("fileID");
+CREATE INDEX 'idx_share_report_userID' ON 'share_report' ("userID");
+CREATE INDEX 'idx_share_report_type' ON 'share_report' ("type");
+CREATE INDEX 'idx_share_report_modifyTime' ON 'share_report' ("modifyTime");
+CREATE INDEX 'idx_share_report_createTime' ON 'share_report' ("createTime");
 
 DROP TABLE IF EXISTS "share_to";
 CREATE TABLE "share_to" (
@@ -283,7 +335,7 @@ CREATE TABLE "share_to" (
   "targetType" smallint NOT NULL,
   "targetID" integer NOT NULL,
   "authID" integer NOT NULL,
-  "authDefine" int(11) NOT NULL,
+  "authDefine" integer NOT NULL,
   "createTime" integer NOT NULL,
   "modifyTime" integer NOT NULL
 );
@@ -379,7 +431,7 @@ CREATE TABLE "user_fav" (
   "userID" integer NOT NULL,
   "tagID" integer NOT NULL,
   "name" varchar(255) NOT NULL,
-  "path" varchar(255) NOT NULL,
+  "path" varchar(2048) NOT NULL,
   "type" varchar(20) NOT NULL,
   "sort" integer NOT NULL,
   "modifyTime" integer NOT NULL,

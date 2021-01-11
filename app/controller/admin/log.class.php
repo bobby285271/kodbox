@@ -192,4 +192,17 @@ class adminLog extends Controller{
 		}
 		show_json($res);
     }
+    /**
+     * 用户登录日志
+     * @return void
+     */
+    public function userLogLogin(){
+        $data = Input::getArray(array(
+            'type'      => array('check' => 'require'),
+            'userID'    => array('check' => 'require'),
+        ));
+        $res = $this->model->get($data);
+        if(empty($res)) show_json(array());
+        show_json($res['list'], true, $res['pageInfo']);
+    }
 }

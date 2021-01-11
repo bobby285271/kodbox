@@ -219,18 +219,19 @@
      */
     var name = '';
     var password = '';
-    var userSet = function(){
+    var userSet = function(fast){
+        var auto = $(".step-box.user input[name='auto-install']").val().split('|');
         var FormData = {
             "name":{
                 "type":"text",
-                "value":"admin",
+                "value":auto[0] || 'admin',
                 "display":lng.text_account,
                 "attr":{"placeholder":lng.input_name},
                 "require":"1"
             },
             "password":{
                 "type":"password",
-                "value":"",
+                "value":auto[1] || '',
                 "display":lng.text_pwd,
                 "attr":{"placeholder":lng.input_pwd},
                 "require":"1"
@@ -259,6 +260,7 @@
                 stepLast(_this, update); // 安装成功，提示登录
             });
         });
+        if(fast == 2) $(".step-box.user .form-save-button").click();
     }
 
     // 下一步
@@ -330,11 +332,12 @@
     Events.bind('windowReady',function(){
         initLng();
         // 检测是否为一键安装，一键安装直接展示账号界面
-        if(!parseInt($('.install-box .fast-install').text())) {
+        var fast = parseInt($('.install-box .install-fast').text());
+        if(!fast) {
             envCheck(); // 1.环境检测
             dbSet();    // 2.数据库配置
         }
-        userSet();  // 3.管理员账号配置
+        userSet(fast);  // 3.管理员账号配置
         new kodApi.copyright();
         $(".content-main-message .body").perfectScroll();
     });

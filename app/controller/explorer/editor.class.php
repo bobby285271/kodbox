@@ -21,12 +21,14 @@ class explorerEditor extends Controller{
 			return $this->urlFileGet($data['path']);
 		}
 		$pathInfo = IO::info($data['path']);
-		if(!$pathInfo) return show_json(LNG('common.pathNotExists'),false);
+		if(!$pathInfo || $pathInfo['type'] == 'folder'){
+			return show_json(LNG('common.pathNotExists'),false);
+		}
 		
 		if($pathInfo['size'] >= 1024*1024*20){
 			show_json(LNG('explorer.editor.fileTooBig'),false);
 		}
-		$content = IO::getContent($data['path']);
+		$content = IO::getContent($pathInfo['path']);
 		// $content = IO::fileSubstr($data['path'],1024*1024*0.5,1024*1024*0.5);		
 		if(isset($pathInfo['size']) && $pathInfo['size'] == 0){
 			$content = '';//空文件处理;

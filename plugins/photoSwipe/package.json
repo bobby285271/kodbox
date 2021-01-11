@@ -2,7 +2,7 @@
 	"id":"photoSwipe",
 	"name":"PhotoSwipe",
 	"title":"图片浏览器",
-	"version":"1.41",
+	"version":"1.42",
 	"source":{
 		"className":"x-item-icon x-png",
 		"screenshoot":[

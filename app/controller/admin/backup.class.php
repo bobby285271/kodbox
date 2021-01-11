@@ -5,14 +5,23 @@ class adminBackup extends Controller{
 	function __construct()    {
 		parent::__construct();
 		$this->model = Model('Backup');
-    }
-    
+	}
+
     public function config(){
+		if(Input::get('last', null, 0)) {
+			$this->lastItem();
+		}
 		$data	= $this->model->config();
 		$last	= $this->model->lastItem();
 		$process= $this->model->process();
 		$info	= array('last' => $last, 'info' => $process);
 		show_json($data, true, $info);
+	}
+	// 最近一条备份记录
+	private function lastItem(){
+		$last = $this->model->lastItem();
+		if($last && $last['name'] != date('Ymd')) $last = null;
+		show_json($last);
 	}
 
 	/**
@@ -60,5 +69,4 @@ class adminBackup extends Controller{
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.error');
 		show_json($msg,!!$res);
 	}
-
 }

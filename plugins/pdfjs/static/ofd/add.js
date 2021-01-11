@@ -96,6 +96,13 @@ $(document).ready(function (){
 	$goFirst.remove();
 	$goEnd.remove();
 	
+	setTimeout(function(){
+		if(ofdReaderParams.canDownload == '1') return;
+		window.print = function(){};
+		OfdCore.print = function(){};
+		$('#printButton,.toolbar-file-open').remove();
+	},10);
+	
 	// 自适应界面; bug: 缩放后文字选中异常;
 	window.addEventListener("OfdFileOpened",function(){
 		if($.isWindowTouch()){

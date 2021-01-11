@@ -16,13 +16,13 @@ class adminMember extends Controller{
 	}
 
 	public function authCheck(){
-		if($GLOBALS['isRoot']) return;
+		if(isset($GLOBALS['isRoot']) && $GLOBALS['isRoot']) return;
 		if(MOD == 'install') return;
 		$data = Input::getArray(array(
 			"userID"	=> array("default"=>null),
 			"roleID"	=> array("default"=>2),
 		));
-		if($data['userID'] == '1') {
+		if(isset($data['userID']) && $data['userID'] == '1') {
 			show_json(LNG('admin.member.editNoAuth'), false);
 		}
 		if(!in_array(ACTION, array('admin.member.add', 'admin.member.edit'))) return;
@@ -184,7 +184,7 @@ class adminMember extends Controller{
 		
 		$res = $this->model->userEdit($data['userID'],$data);
 		$groupInfo = json_decode($this->in['groupInfo'],true);
-		if($res && isset($this->in['groupInfo'])){ 
+		if($res > 0 && isset($this->in['groupInfo'])){ 
 			// 编辑用户,必须有至少一个默认部门; 即便是没有权限;
 			$groupInfo = is_array($groupInfo) ? $groupInfo : array();
 			$this->model->userGroupSet($data['userID'],$groupInfo,true);

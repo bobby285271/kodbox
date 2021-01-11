@@ -15,7 +15,7 @@ class adminerPlugin extends PluginBase{
 			'name'		=> 'Adminer',
 			'icon'		=> $this->appIcon(),
 			'url'		=> $this->pluginApi,
-			'target'	=> '_blank',//_blank=新页面; 空/self=当前页面;inline=当前页面frame;
+			'target'	=> '_blank',
 			'subMenu'	=> $config['menuSubMenu'],
 			'use'		=> '1'
 		);

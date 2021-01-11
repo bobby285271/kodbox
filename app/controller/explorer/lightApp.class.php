@@ -59,7 +59,7 @@ class explorerLightApp extends Controller{
 	
 	public function getUrlTitle(){
 		$html = curl_get_contents($this->in['url']);
-		$result = match($html,"<title>(.*)<\/title>");
+		$result = match_text($html,"<title>(.*)<\/title>");
 		if (strlen($result)>50) {
 			$result = mb_substr($result,0,50,'utf-8');
 		}

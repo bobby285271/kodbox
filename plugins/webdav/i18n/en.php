@@ -20,8 +20,10 @@ return array(
 
 	'webdav.help.title'			=> "How to use",
 	'webdav.help.connect'		=> "Connect now",
-	'webdav.help.windows'		=> "<b>Window:</b> Right click the desktop[my computer/this computer] —— map the network drive —— paste the above WebDAV address, click Finish —— enter the account password",
+	'webdav.help.windows'		=> "<b>Window:</b> Right click the desktop[my computer/this computer] —— map the network drive —— paste the above WebDAV address, click Finish —— enter the account password
+	<br/>recommend: <a href='https://www.raidrive.com/download' target='_blank'>RaiDrive</a>,More powerful",
 	'webdav.help.mac'			=> "<b>Mac:</b>  Right click [Finder] —— connect to the server —— paste the above WebDAV address, click Connect —— enter the account password",
-	'webdav.help.others'		=> "<b>Other clients and systems</b>:Specify the address as the above WebDAV address and the account password as your login account. The basic process is similar",
+	'webdav.help.others'		=> "<b>Other clients and systems</b>:Specify the address as the above WebDAV address and the account password as your login account. The basic process is similar
+	<br/>Android,iOS:<a href='http://www.estrongs.com/' target='_blank'>ES File Explorer</a>",",",
 	'webdav.help.windowsTips'	=> "For the first use, you need to cancel the upload and HTTP restrictions. After downloading this file, double-click to run it",
 );

@@ -37,32 +37,59 @@ class KodSSO{
 		$link = rawurlencode(self::thisUrl());
 		$url  = $host.'index.php?user/sso/apiLogin&appName='.$appName.'&callbackUrl='.$link;
 		header('Location: '.$url);exit;
-		exit;
 	}
 	public static function checkToken($appName,$host,$token){
-		// return true;
 		if(!$token) return false;
-		$url  = $host.'index.php?user/sso/apiCheckToken&accessToken='.$token.'&appName='.$appName;
-		$streamContext = stream_context_create(
-			array('http'=>array('timeout' => 2,'method'=>"GET"))
-		);
+		$timeStart = microtime(true);
+		$uri = 'user/sso/apiCheckToken&accessToken='.$token.'&appName='.$appName;
+		$res = '';
+		$phpBin = self::phpBin();
+		if($phpBin && function_exists('shell_exec')){
+			$BASIC_PATH = str_replace('\\','/',dirname(dirname(dirname(__FILE__)))).'/';
+			$command = $phpBin.' '.$BASIC_PATH.'index.php '.escapeshellarg($uri);
+			$res = shell_exec($command);
+		}
+		if(!$res){
+			$streamContext = stream_context_create(
+				array('http'=>array('timeout' => 2,'method'=>"GET"))
+			);
+			$res = file_get_contents($host.'index.php?'.$uri,false,$streamContext);
+		}
+		// var_dump(microtime(true) - $timeStart,$res);exit;
 		
-		$res = file_get_contents($url,false,$streamContext);
-		$res = trim($res);
-		if($res === '[ok]') return true;
+		if(trim($res) === '[ok]') return true;
+		if(!strstr($res,'[error]:')){echo $res;exit;}
 		return false;
 	}
-	
-	
-	
-	
+
+
+	// 获取当前php执行目录; 
+	private static function phpBin(){
+		if(!defined('PHP_BINDIR')) return false; // PHP_BINDIR,PHP_BINARY
+		$includePath = get_include_path();// php_ini_loaded_file();//php.ini path;
+		$includePath = substr($includePath,strpos($includePath,'/'));
+
+		$isWindow 	= strtoupper(substr(PHP_OS, 0,3)) === 'WIN';
+		$binFile	= $isWindow ? 'php.exe':'php';
+		$checkPath 	= array(
+			PHP_BINDIR.'/',
+			dirname(dirname($includePath)).'/bin/',
+			dirname(dirname(dirname($includePath))).'/bin/',
+		);
+		foreach ($checkPath as $path) {
+			if(file_exists($path.$binFile)) return $path.$binFile;
+		}
+        return 'php';
+    }
+
 	private static function urlRemoveKey($url,$key){
 		$parse = parse_url($url);
 		parse_str($parse['query'],$get);
 		unset($get[$key]);
 		$query = http_build_query($get);
 		$query = $query ? '?'.$query : '';
-		return $parse['scheme'].'://'.$parse['host'].$parse['path'].$query;
+		$port  = (isset($parse['port']) && $parse['port'] != '80' ) ? ':'.$parse['port']:'';
+		return $parse['scheme'].'://'.$parse['host'].$port.$parse['path'].$query;
 	}
 	public static function thisUrl(){
 		return rtrim(self::host(),'/').'/'.ltrim($_SERVER['REQUEST_URI'],'/');

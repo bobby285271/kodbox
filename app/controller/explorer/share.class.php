@@ -16,7 +16,7 @@ class explorerShare extends Controller{
 		if( equal_not_case(ST,'share') && 
 			!in_array_not_case(ACT,$notCheck) ){
 			$shareID = $this->parseShareID();
-			$this->initShare($shareID); 
+			$this->initShare($shareID);
 			if(equal_not_case(MOD.'.'.ST,'explorer.share')){
 				$this->authCheck();
 			}
@@ -73,20 +73,29 @@ class explorerShare extends Controller{
 	 * 其他业务通过分享路径获取文档真实路径; 文件打开构造的路径 hash/xxx/xxx; 
 	 * 解析路径,检测分享存在,过期时间,下载次数,密码检测;
 	 */
-	public function sharePathInfo($path){
+	public function sharePathInfo($path,$encode=false){
 		$parse = KodIO::parse($path);
 		if(!$parse || $parse['type'] != KodIO::KOD_SHARE_LINK){
 			return false;
 		}
 		$check = ActionCallHook('explorer.share.initShare',$parse['id']);
-		if(is_array($check)) return false; // 不存在,时间过期,下载次数超出,需要登录,需要密码;
+		if(is_array($check)){
+			$GLOBALS['explorer.sharePathInfo.error'] = $check['data'];
+			return false; // 不存在,时间过期,下载次数超出,需要登录,需要密码;
+		} 
 		if($this->share['options']['notView'] == '1'){//
 			return false;
 		}
 
 		$truePath = $this->parsePath($path);
-		// $result = $this->itemInfo(IO::info($truePath));
 		$result = IO::infoWithChildren($truePath);
+		if(is_array($result)){
+			if($encode){
+				$result = $this->itemInfo($result);
+			}
+			$result['shareID'] = $this->share['shareID'];
+			$result['option']  = $this->share['options'];
+		}
 		return $result;
 	}
 
@@ -100,6 +109,8 @@ class explorerShare extends Controller{
 			'options','createTime','sourceInfo',
 		);
 		$data  = array_field_key($this->share,$field);
+		$data['shareUser']  = Model("User")->getInfoSimpleOuter($this->share['userID']);
+		$data['shareUser']  = $this->filterUserInfo($data['shareUser']);
 		$data['sourceInfo'] = $this->itemInfo($data['sourceInfo']);
 		if($get) return $data;
 		show_json($data);
@@ -116,6 +127,7 @@ class explorerShare extends Controller{
 	 * 下载次数，预览次数记录
 	 */
 	public function initShare($hash=''){
+		if($this->share) return;
 		$this->share = $share = $this->model->getInfoByHash($hash);
 		if(!$share || $share['isLink'] != '1'){
 			show_json(LNG('explorer.share.notExist'),30100);
@@ -186,7 +198,10 @@ class explorerShare extends Controller{
 		}
 		if( $share['options'] && 
 			$share['options']['notView'] == '1' && 
-			equal_not_case(ACT,'fileOut') ){
+			(	equal_not_case(ACT,'fileGet') ||
+				equal_not_case(ACT,'fileOut')
+			)
+		){
 			show_json(LNG('explorer.share.noViewTips'),false);
 		}
 		if( $share['options'] && 
@@ -353,22 +368,72 @@ class explorerShare extends Controller{
 		}
 	}
 
-	private function itemInfo($item){
+	public function itemInfo($item){
 		$rootPath = $this->share['sourceInfo']['pathDisplay'];
+		// 物理路径,io路径;
+		if($this->share['sourceID'] == '0'){
+			$rootPath = KodIO::clear($this->share['sourcePath']);
+		}
+		$item['pathDisplay'] = $item['pathDisplay'] ? $item['pathDisplay']:$item['path'];
+
 		$field = array(
 			'name','path','type','size','ext',
-			'createUser','modifyUser','createTime','modifyTime',
-			'hasChildFolder','hasChildFile','children','targetType','targetID',			
+			'createUser','modifyUser','createTime','modifyTime','sourceID',
+			'hasFolder','hasFile','children','targetType','targetID',			
 			'base64','content','charset','oexeContent',
 		);
 		$theItem = array_field_key($item,$field);
 		$path 	 = KodIO::makePath(KodIO::KOD_SHARE_LINK,$this->share['shareHash']);
-		$theItem['pathDisplay'] = '/'.substr($item['pathDisplay'],strlen($rootPath));
-		$theItem['path'] = rtrim($path,'/').$theItem['pathDisplay'];
+		$name    = $this->share['sourceInfo']['name'];
+		$theItem['pathDisplay'] = ltrim(substr($item['pathDisplay'],strlen($rootPath)),'/');
+		$theItem['path'] = rtrim($path,'/').'/'.$theItem['pathDisplay'];
+		$theItem['pathDisplay'] = $name.'/'.$theItem['pathDisplay'];
+
 		if($theItem['type'] == 'folder'){
 			$theItem['ext'] = 'folder';
 		}
 		$theItem['targetType'] = 'folder';
+		if(is_array($theItem['createUser'])) $theItem['createUser'] = $this->filterUserInfo($theItem['createUser']);
+		if(is_array($theItem['modifyUser'])) $theItem['modifyUser'] = $this->filterUserInfo($theItem['modifyUser']);
 		return $theItem;
+	}
+	private function filterUserInfo($userInfo){
+		$name = !empty($userInfo['nickName']) ? $userInfo['nickName'] : $userInfo['name'];
+		unset($userInfo['nickName'], $userInfo['name']);
+		$userInfo['nameDisplay'] = $this->parseName($name);
+		return $userInfo;
+	}
+	private function parseName($name){
+		$len = mb_strlen($name);
+		if($len > 3) {
+			$len = ($len > 5 ? 5 : $len) - 2;
+			$name = mb_substr($name, 0, 2) . str_repeat('*', $len);	// AA***
+		}else{
+			$name = mb_substr($name, 0, 1) . str_repeat('*', $len - 1);	// A**
+		}
+		return $name;
+	}
+
+	/**
+	 * 分享文件举报
+	 * @return void
+	 */
+	public function report(){
+		$data = Input::getArray(array(
+			'path'	=> array('check' => 'require'),
+			'type'	=> array('check' => 'in', 'param' => array('1','2','3','4','5')),
+			'desc'	=> array('default' => '')
+		));
+		$fileID = 0;
+		if($this->share['sourceInfo']['type'] == 'file') {
+			$info = $this->sharePathInfo($data['path']);
+			$fileID = $info['fileInfo']['fileID'];
+		}
+		$data['shareID']	= $this->share['shareID'];
+		$data['sourceID']	= $this->share['sourceID'];
+		$data['title']		= $this->share['title'];
+		$data['fileID']		= $fileID;
+		$res = $this->model->reportAdd($data);
+		show_json('OK', !!$res);
 	}
 }

@@ -29,6 +29,7 @@ class kodWebDav extends HttpDavServer {
 		$userInfo = Session::get("kodUser");
 	    if(!$userInfo || !is_array($userInfo)){
     	    $user = HttpAuth::get();
+    	    $this->plugin->log($user);
     		$find = ActionCall('user.index.userInfo', $user['user'],$user['pass']);
     		if ( !is_array($find) || !isset($find['userID']) ){
     			return HttpAuth::error();
@@ -109,6 +110,14 @@ class kodWebDav extends HttpDavServer {
 		if($info && $info['type'] == 'file'){ //单个文件;
 			return array('fileList'=>array($info));
 		}
+		
+		$pathParse = KodIO::parse($path);
+		// 分页大小处理--不分页; 搜索结果除外;
+		if($pathParse['type'] != KodIO::KOD_SEARCH){
+			$GLOBALS['in']['pageNum'] = -1;
+		}
+		// write_log([$path,$pathParse,$GLOBALS['in']],'test');
+		
 		return Action('explorer.list')->path($path);
 	}
 	

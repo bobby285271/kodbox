@@ -28,7 +28,13 @@ class explorerFav extends Controller{
 				$item['sourceInfo'] = array();
 			}
 			$item['sourceInfo']['isFav']   = 1;
-			$item['sourceInfo']['favName'] = $item['name'];
+			if(!$item['sourceInfo']['favName']){
+				$item['sourceInfo']['favName'] = $item['name'];
+			}
+			if(!$item['sourceInfo']['favID']){
+				$item['sourceInfo']['favID'] = $item['id'];
+			}
+			unset($item['id']);
 			if( $item['type'] == 'source' && $item['sourceID']){
 				$item['type'] = $item['isFolder'] == '1' ? 'folder':'file';
 				$item['path'] = KodIO::make($item['path']);
@@ -45,32 +51,37 @@ class explorerFav extends Controller{
 				$item = array_merge($item,$info);
 				if($item['type'] == 'file'){
 					$item['ext'] = get_path_ext($item['name']);
-				}else if(!isset($item["hasChildFolder"])){
-					$item["hasChildFolder"] = true;
-					$item["hasChildFile"] = true;
 				}
 			}
 		}
-		// pr($list);exit;
 		return $list;
 	}
 	
 	// 是否在收藏夹处理;
-	public function favAppend($data){
+	public function favAppend(&$data){
 		$favList = $this->model->listData();
+		if($favList[0] && !$favList[0]['id']){
+			$this->model->resetCache();
+			$favList = $this->model->listData();
+		}
+		
 		$favList = array_to_keyvalue($favList,'path');
 		foreach ($data as $type =>&$list) {
 			if(!in_array($type,array('fileList','folderList','groupList'))) continue;
 			foreach ($list as $key=>$item){
-				$list[$key] = $this->favAppendItem($item,$favList);
+				$list[$key] = $this->favAppendItem($item);
 			}
 		}
-		$data['current'] = $this->favAppendItem($data['current'],$favList);
-		// $data['favList'] = $favList;
-		// pr($data,$favList);exit;
-		return $data;
+		$data['current'] = $this->favAppendItem($data['current']);
+		// $data['favList'] = $favList;pr($data,$favList);exit;
 	}
-	private function favAppendItem($item,$favList){
+	public function favAppendItem($item){
+		static $favList = false;
+		if($favList === false){
+			$favList = $this->model->listData();
+			$favList = array_to_keyvalue($favList,'path');
+		}
+		
 		if(!isset($item['sourceInfo'])){
 			$item['sourceInfo'] = array();
 		}
@@ -84,14 +95,21 @@ class explorerFav extends Controller{
 		if( $favItem ){
 			$item['sourceInfo']['isFav'] = 1;
 			$item['sourceInfo']['favName'] = $favItem['name'];
+			$item['sourceInfo']['favID'] = $favItem['id'];
 		}
-		// $item['$favItem'] = $favItem;
+		// $item['$favItem'] = $favItem;		
 		// 收藏文件;
 		if($item['type'] == 'file'){
-			unset($item['hasChildFile']);
-			unset($item['hasChildFolder']);
 			$item['ext'] = get_path_ext($item['name']);
 		}
+		
+		// 下载权限处理;
+		$item['canDownload'] = true;
+		if(isset($item['auth'])){
+			$authValue = $item['auth']['authValue'];
+			$item['canDownload'] = Model('Auth')->authCheckDownload($authValue);
+		}
+		$item = Hook::filter('explorer.list.itemParse',$item);
 		return $item;
 	}
 
@@ -104,6 +122,10 @@ class explorerFav extends Controller{
 			"name"	=> array("check"=>"require"),
 			"type"	=> array("check"=>"require","default"=>'folder'),
 		));
+		if( count($this->model->listData()) > $GLOBALS['config']['systemOption']['favNumberMax'] ){
+			show_json(LNG("common.numberLimit"),false);
+		}
+		
 		$pathInfo = KodIO::parse($data['path']);
 		if($pathInfo['type'] == KodIO::KOD_SOURCE){
 			$data['type'] = 'source';
@@ -146,6 +168,20 @@ class explorerFav extends Controller{
 		$msg = !!$res ? LNG('explorer.success') : LNG('explorer.error');
 		show_json($msg,!!$res);
 	}
+
+	/**
+	 * 重置排序，根据id的顺序重排;
+	 */
+	public function resetSort() {
+		$idList = Input::get('favList',"require");
+		$idArray = explode(',',$idList);
+		if(!$idArray) {
+			show_json(LNG('explorer.error'),false);
+		}
+		$res = $this->model->resetSort($idArray);
+		$msg = $res ? LNG('explorer.success') : LNG('explorer.error');
+		show_json($msg,!!$res);
+	}	
 
 	/**
 	 * 删除

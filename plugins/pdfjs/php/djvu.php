@@ -8,11 +8,17 @@
 		<title><?php echo $fileName;?></title>
 		<?php $this->link('static/Djvu/style.css');?>
 		<?php $this->link('static/Djvu/render.js');?>
+		<?php $this->link('static/ofd/lib/jquery.min.js');?>
+		<?php $this->link('static/Djvu/add.js');?>
 	</head>
 	<body>
 		<div id="djvuContainer"></div>
 		<script type="text/javascript">
-			var DJVU_CONTEXT = {file: "<?php echo $fileUrl;?>",background: "#404040"};
+			var DJVU_CONTEXT = {
+				file: "<?php echo $fileUrl;?>",
+				canDownload:"<?php echo intval($canDownload);?>",
+				background: "#404040"
+			};
 		</script>
 	</body>
 </html>

@@ -111,6 +111,29 @@ CREATE TABLE `io_file` (
   KEY `hashMd5` (`hashMd5`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='文档存储表';
 
+DROP TABLE IF EXISTS `io_file_contents`;
+CREATE TABLE `io_file_contents` (
+  `fileID` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '文件ID',
+  `content` mediumtext NOT NULL COMMENT '文本文件内容',
+  `createTime` int(11) unsigned NOT NULL COMMENT '创建时间',
+  PRIMARY KEY (`fileID`),
+  KEY `createTime` (`createTime`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='文件id';
+
+DROP TABLE IF EXISTS `io_file_meta`;
+CREATE TABLE `io_file_meta` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '自增id',
+  `fileID` bigint(20) unsigned NOT NULL COMMENT '文件id',
+  `key` varchar(255) NOT NULL COMMENT '存储key',
+  `value` text NOT NULL COMMENT '对应值',
+  `createTime` int(11) unsigned NOT NULL COMMENT '创建时间',
+  `modifyTime` int(11) unsigned NOT NULL COMMENT '最后修改时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `fileID_key` (`fileID`,`key`),
+  KEY `fileID` (`fileID`),
+  KEY `key` (`key`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='文件扩展表';
+
 DROP TABLE IF EXISTS `io_source`;
 CREATE TABLE `io_source` (
   `sourceID` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -237,7 +260,9 @@ CREATE TABLE `share` (
   `title` varchar(255) NOT NULL COMMENT '分享标题',
   `shareHash` varchar(50) NOT NULL COMMENT 'shareid',
   `userID` bigint(20) unsigned NOT NULL COMMENT '分享用户id',
-  `sourceID` bigint(20) unsigned NOT NULL COMMENT '用户数据id',
+  `sourceID` bigint(20) NOT NULL COMMENT '用户数据id',
+  `sourcePath` varchar(1024) NOT NULL COMMENT '分享文档路径',
+  `url` varchar(255) NOT NULL COMMENT '分享别名,替代shareHash',
   `isLink` tinyint(4) unsigned NOT NULL COMMENT '是否外链分享；默认为0',
   `isShareTo` tinyint(4) unsigned NOT NULL COMMENT '是否为内部分享；默认为0',
   `password` varchar(255) NOT NULL COMMENT '访问密码,为空则无密码',
@@ -257,8 +282,32 @@ CREATE TABLE `share` (
   KEY `timeTo` (`timeTo`),
   KEY `numView` (`numView`),
   KEY `numDownload` (`numDownload`),
-  KEY `isShareTo` (`isShareTo`)
+  KEY `isShareTo` (`isShareTo`),
+  KEY `url` (`url`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='分享数据表';
+
+DROP TABLE IF EXISTS `share_report`;
+CREATE TABLE `share_report` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '自增id',
+  `shareID` bigint(20) unsigned NOT NULL COMMENT '分享id',
+  `title` varchar(255) NOT NULL COMMENT '分享标题',
+  `sourceID` bigint(20) unsigned NOT NULL COMMENT '举报资源id',
+  `fileID` bigint(20) unsigned NOT NULL COMMENT '举报文件id,文件夹则该处为0',
+  `userID` bigint(20) unsigned NOT NULL COMMENT '举报用户id',
+  `type` tinyint(3) unsigned NOT NULL COMMENT '举报类型 (1-侵权,2-色情,3-暴力,4-政治,5-其他)',
+  `desc` text NOT NULL COMMENT '举报原因（其他）描述',
+  `status` tinyint(3) unsigned NOT NULL COMMENT '处理状态(0-未处理,1-已处理,2-禁止分享)',
+  `createTime` int(11) unsigned NOT NULL COMMENT '创建时间',
+  `modifyTime` int(11) unsigned NOT NULL COMMENT '最后修改时间',
+  PRIMARY KEY (`id`),
+  KEY `shareID` (`shareID`),
+  KEY `sourceID` (`sourceID`),
+  KEY `fileID` (`fileID`),
+  KEY `userID` (`userID`),
+  KEY `type` (`type`),
+  KEY `modifyTime` (`modifyTime`),
+  KEY `createTime` (`createTime`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='分享举报表';
 
 DROP TABLE IF EXISTS `share_to`;
 CREATE TABLE `share_to` (
@@ -358,7 +407,7 @@ CREATE TABLE `user_fav` (
   `userID` bigint(20) unsigned NOT NULL COMMENT '用户id',
   `tagID` int(11) unsigned NOT NULL COMMENT '标签id,收藏则为0',
   `name` varchar(255) NOT NULL COMMENT '收藏名称',
-  `path` varchar(255) NOT NULL COMMENT '收藏路径,tag时则为sourceID',
+  `path` varchar(2048) NOT NULL COMMENT '收藏路径,tag时则为sourceID',
   `type` varchar(20) NOT NULL COMMENT 'source/path',
   `sort` int(11) unsigned NOT NULL COMMENT '排序',
   `modifyTime` int(11) unsigned NOT NULL COMMENT '最后修改时间',
@@ -369,7 +418,7 @@ CREATE TABLE `user_fav` (
   KEY `name` (`name`),
   KEY `sort` (`sort`),
   KEY `tagID` (`tagID`),
-  KEY `path` (`path`),
+  KEY `path` (`path`(333)),
   KEY `type` (`type`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='用户文档标签表';
 

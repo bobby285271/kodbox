@@ -192,7 +192,14 @@ function obj2array($obj){
 	} 
 }
 
+function check_abort(){
+	if(isset($GLOBALS['ignore_abort'])) return;
+	if(connection_aborted()){
+		exit;
+	}
+}
 function ignore_timeout(){
+	$GLOBALS['ignore_abort'] = 1;
 	@ignore_user_abort(true);
 	set_timeout();
 }
@@ -410,6 +417,7 @@ function array_get_value(&$array,$key,$default=null){
  * $out = array_sort_by($array,'price');
  */
 function array_sort_by($records, $field, $sortDesc=false){
+	if(!is_array($records) || !$records) return array();
 	$sortDesc = $sortDesc?SORT_DESC:SORT_ASC;
 	$recordsPicker = array();
 	foreach ($records as $item) {
@@ -811,7 +819,7 @@ END;
 }
 
 function get_caller_trace($trace) {//return array();
-	$traceText = array();
+	$traceText = array(); //var_dump($trace);exit;
 	$maxLoad = 50; //数据过多自动丢失后面内容;
 	if(count($trace) > $maxLoad){
 		$trace = array_slice($trace,count($trace) - $maxLoad);
@@ -819,15 +827,18 @@ function get_caller_trace($trace) {//return array();
 	foreach($trace as $i=>$call){
 		if (isset($call['object']) && is_object($call['object'])) {
 			$call['object'] = get_class_name($call['object']); 
+		}else if(isset($call['class'])){
+			$call['object'] = $call['class'];
 		}
-		$file = str_replace(BASIC_PATH,'',$call['file']);
-		$traceText[$i] = $file.'['.$call['line'].'] ';
-		$traceText[$i].= (!empty($call['object'])?$call['object'].$call['type']:'');
+        
+		$file = !isset($call['file']) ? null : str_replace(BASIC_PATH,'',$call['file']);
+		$traceText[$i] = !isset($call['line']) ? null : $file.'['.$call['line'].'] ';
+		$traceText[$i].= empty($call['object'])? '': $call['object'].$call['type']; 
 		if( $call['function']=='show_json' || 
 			$call['function'] =='think_trace'){
 			$traceText[$i].= $call['function'].'(args)';
 		}else{
-			$args  = is_array($call['args']) ? $call['args'] : array();
+			$args  = (isset($call['args']) && is_array($call['args'])) ? $call['args'] : array();
 			$param = json_encode(array_parse_deep($args));
 			$param = str_replace(array('\\/','\/','\\\\/','\"'),array('/','/','/','"'),$param);
 			if(substr($param,0,1) == '['){
@@ -854,7 +865,7 @@ function get_caller_msg() {
 	$msg = array_slice($msg,0,count($msg) - 1);
 
 	$msg['memory'] = sprintf("%.3fM",memory_get_usage()/(1024*1024));
-	$msg['sql']  = think_trace('[sql]');
+	$msg['trace']  = think_trace('[trace]');
 	$msg = json_encode_force($msg);
 	$msg = str_replace(array('\\/','\/','\\\\/','\"'),array('/','/','/','"'),$msg);
 	return $msg;
@@ -999,11 +1010,12 @@ function show_json($data=false,$code = true,$info=''){
 		}
 		return;
 	}
-	
+
+	check_abort();
 	if(defined("GLOBAL_DEBUG") && GLOBAL_DEBUG==1){
 		$result['memory'] = sprintf("%.3fM",memory_get_usage()/(1024*1024));
-		$result['call'] = get_caller_info();
-		$result['sql']  = think_trace('[sql]');
+		$result['call']   = get_caller_info();
+		$result['trace']  = think_trace('[trace]');
 	}
 	ob_get_clean();
 	if(!headers_sent()){
@@ -1095,7 +1107,7 @@ function html2txt($document){
 		"'&(iexcl|#161);'i",
 		"'&(cent|#162);'i",
 		"'&(pound|#163);'i",
-		"'&(copy|#169);'i",
+		"'&(copy|#169);'i", 
 		// "'&#(\d+);'e");
 		"'&#(\d+);'"); // 作为 PHP 代码运行
 	$replace = array ("",
@@ -1116,7 +1128,7 @@ function html2txt($document){
 } 
 
 // 获取内容第一条
-function match($content, $preg){
+function match_text($content, $preg){
 	$preg = "/" . $preg . "/isU";
 	preg_match($preg, $content, $result);
 	return $result[1];
@@ -1187,7 +1199,7 @@ function pr_trace(){
 	$result = func_get_args();
 	$result['memory'] = sprintf("%.3fM",memory_get_usage()/(1024*1024));
 	$result['call'] = get_caller_info();
-	$result['sql']  = think_trace('[sql]');	
+	$result['trace']  = think_trace('[trace]');
 	call_user_func('pr',$result);
 }
 
@@ -1207,11 +1219,11 @@ function pr(){
 	ob_start();
 	
 	$callFile = $trace[0];$callAt = $trace[1];
-	if($trace[2]['function'] == 'pr_trace'){
+	if(isset($trace[2]) && $trace[2]['function'] == 'pr_trace'){
 	    $callFile = $trace[2];$callAt = $trace[3];
 	}
 	$method = $callAt['function'];
-	if($callAt['class']){
+	if(isset($callAt['class'])){
 	    $method = $callAt['class'].'->'.$callAt['function'];
 	}
 	$fileInfo = get_path_this($callFile['file']).'; '.$method.'()';
@@ -1250,24 +1262,11 @@ function dump(){call_user_func('pr',func_get_args());}
 function debug_out(){call_user_func('pr',func_get_args());}
 
 /**
- * 取$from~$to范围内的随机数
- * 
- * @param  $from 下限
- * @param  $to 上限
- * @return unknown_type 
+ * 取$from~$to范围内的随机数,包含$from,$to;
  */
 function rand_from_to($from, $to){
-	$size = $to - $from; //数值区间
-	$max = 30000; //最大
-	if ($size < $max) {
-		return $from + mt_rand(0, $size);
-	} else {
-		if ($size % $max) {
-			return $from + random_from_to(0, $size / $max) * $max + mt_rand(0, $size % $max);
-		} else {
-			return $from + random_from_to(0, $size / $max) * $max + mt_rand(0, $max);
-		} 
-	} 
+	return mt_rand($from,$to);
+	// return $from + mt_rand(0, $to - $from);
 } 
 
 /**

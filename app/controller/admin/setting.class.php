@@ -168,4 +168,51 @@ class adminSetting extends Controller {
 		Cache::deleteAll();
 		show_json(LNG('explorer.success'));
 	}
+
+	/**
+	 * 新增、编辑会员
+	 * @return void
+	 */
+	public function vipEdit() {
+		$data = Input::getArray(array(
+            'userID'	=> array('check' => 'require'),
+			'vip'		=> array('check' => 'in', 'param' => array('vip1', 'vip2')),
+			'type'		=> array('check' => 'in', 'param' => array(1,3,12)),
+			'time'		=> array('check' => 'json')
+		));
+		$userID = $data['userID'];
+		unset($data['userID']);
+		$result = Model('Vip')->edit($userID, $data);
+		$msg = !!$result ? LNG('explorer.success') : LNG('explorer.error');
+		show_json($msg,!!$result);
+	}
+	/**
+	 * 会员列表
+	 * @return void
+	 */
+	public function vipList(){
+		$data = Input::getArray(array(
+            'timeFrom'	=> array('default' => null),
+            'timeTo'    => array('default' => null),
+            'type'      => array('default' => ''),
+		));
+        $res = Model('Vip')->vipList($data);
+        if(empty($res)) show_json(array());
+        show_json($res['list'], true, $res['pageInfo']);
+	}
+	/**
+	 * 会员购买日志列表
+	 * @return void
+	 */
+	public function vipLogList(){
+		$data = Input::getArray(array(
+            'timeFrom'  => array('default' => null),
+            'timeTo'    => array('default' => null),
+			'type'      => array('default' => ''),
+            'status'	=> array('default' => ''),
+		));
+        $res = Model('Vip')->orderlist($data);
+        if(empty($res)) show_json(array());
+        show_json($res['list'], true, $res['pageInfo']);
+	}
 }

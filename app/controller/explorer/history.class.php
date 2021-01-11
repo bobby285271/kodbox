@@ -71,13 +71,14 @@ class explorerHistory extends Controller{
 		show_json($msg,!!$res);
 	}
 	public function setDetail(){
+		$maxLength = $GLOBALS['config']['systemOption']['historyDescLengthMax'];
+		$msg  = LNG('common.lengthLimit').'('.LNG('explorer.noMoreThan').$maxLength.')';
+		$data = Input::getArray(array(
+			'detail'=> array('check'=>'length','param'=>array(0,$maxLength),'msg'=>$msg),
+		));
+		
 		$id  = $this->checkItem();
-		$maxLength = 500;
-		$detil  = $this->in['detail'];
-		if( strlen($detil) > $maxLength){
-			$detil = substr($detil,0,$maxLength);
-		}
-		$res = $this->model->setDetail($id,$detil);
+		$res = $this->model->setDetail($id,$data['detail']);
 		$msg = !!$res ? LNG('explorer.success') : LNG('explorer.error');
 		show_json($msg,!!$res);
 	}

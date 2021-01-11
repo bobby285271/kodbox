@@ -68,7 +68,6 @@ class userBind extends Controller {
 
 		// 解析data参数
 		$data = unserialize(base64_decode($input['data']));
-
 		// 服务端secret为空,直接返回
 		if (!$data && is_string($input['data'])) {
 			Model('SystemOption')->set('systemSecret', '');
@@ -227,11 +226,13 @@ class userBind extends Controller {
 			'weixin' => 'wx',
 			'github' => 'gh',
 		);
+		// 判断昵称是否重复
+		$data['nickName'] = $this->nickNameAuto($data['nickName']);
 		// 1.写入用户主信息
 		$param = array(
 			'name'		 => $typeList[$type] . substr(guid(), 0, 10),
 			'nickName'	 => $data['nickName'],
-			'password'	 => rand_string(6, 1)
+			'password'	 => 'K0d' . rand_string(5)
 		);
 		$res = Action("user.regist")->addUser($param);
 		if (!$res['code']) return $res;
@@ -250,6 +251,13 @@ class userBind extends Controller {
 		if (!$this->bindSave($data, $data['userID'])) return array('code' => false, 'data' => LNG('user.bindUpdateError'));
 		$this->addUser = true;
 		return array('code' => true, 'data' => $data['userID']);
+	}
+	// 获取昵称
+	private function nickNameAuto($nickName){
+		$where = array('nickName' => array('like', $nickName.'%'));
+		$cnt = Model('User')->where($where)->count();
+		if(!$cnt) return $nickName;
+		return $nickName . str_pad(($cnt + 1), 2, '0', STR_PAD_LEFT);
 	}
 
 	/**
@@ -310,7 +318,7 @@ class userBind extends Controller {
 			'type'		 => $type, // 绑定类型
 			'typeTit'	 => $this->typeList[$type], // 绑定类型名称
 			'success'	 => (int) $success, // 绑定结果
-			'bind'		 => $data['bind'], // 是否已绑定
+			'bind'		 => isset($data['bind']) ? $data['bind'] : false, // 是否已绑定
 			'client'	 => (int) $data['client'], // 前后端
 			'name'		 => isset($data['nickName']) ? $data['nickName'] : '',
 			'avatar'	 => isset($data['avatar']) ? $data['avatar'] : '', // 头像
@@ -590,8 +598,8 @@ class userBind extends Controller {
 		$data = Input::getArray(array(
 			'type'	 	=> array('check'   => 'require'),
 			'action' 	=> array('check'   => 'require'),
+			'state'		=> array('default' => 'open'),
 			'client' 	=> array('default' => 1),
-			'platform'	=> array('default' => 'open'),
 		));
 		if (!isset($this->typeList[$data['type']])) {
 			show_json(LNG('common.invalidParam'), false);
@@ -612,17 +620,18 @@ class userBind extends Controller {
 		$post['sign'] = $this->makeSign($post['kodid'], $post);
 
 		// 获取微信appid
-		$appId = '';
-		if($data['type'] == 'weixin'){
-			if(!$appId = $this->appid($data['platform'])) show_json(LNG('user.bindWxConfigError'), false);
-		}
+		$appId = ($data['type'] == 'weixin') ? $this->appid($data['state']) : '';
 		show_json(http_build_query($post), true, $appId);
 	}
 
 	// 获取应用appid
-	private function appid($platform){
-		$res = $this->apiRequest('appid', array('type' => 'weixin', 'platform' => $platform));
-		return $res['code'] ? $res['data'] : '';
+	private function appid($state){
+		$res = $this->apiRequest('appid', array('type' => 'weixin', 'state' => $state));
+		if(!$res['code']) {
+			$msg = LNG('user.bindWxConfigError') . '.' . $res['data'];
+			show_json($msg, false);
+		}
+		return $res['data'];
 	}
 
 	/**
@@ -637,14 +646,14 @@ class userBind extends Controller {
 		if($this->isEmptyPwd($info['userID'])) show_json(LNG('user.unbindWarning'), false);
 
 		Model('User')->startTrans();
-		$del = Model('User')->metaSet($info['userID'], $type . self::BIND_META_INFO);
-		$del = Model('User')->metaSet($info['userID'], $type . self::BIND_META_UNIONID);
+		$del = Model('User')->metaSet($info['userID'], $type . self::BIND_META_INFO, null);
+		$del = Model('User')->metaSet($info['userID'], $type . self::BIND_META_UNIONID, null);
 		Model('User')->commit();
 
 		if ($del === false) {
 			show_json(LNG('explorer.error'), false);
 		}
-		$this->updateInfo($info['userID']);
+		$this->updateUserInfo($info['userID']);
 		show_json(LNG('explorer.success'), true);
 	}
 
@@ -677,24 +686,23 @@ class userBind extends Controller {
 	 */
 	private function bindSave($data, $userID, $back=false) {
 		// 更新头像、meta信息
-		if(!$userID){
-			show_json('not login!',false);
+		if(!$userID) show_json('not login!',false);
+		if($back) {
+			Model("User")->userEdit($userID, array("avatar" => $data['avatar']));
 		}
-		if($back) Model("User")->userEdit($userID, array("avatar" => $data['avatar']));
-
 		$metadata = array(
 			$data['type'] . self::BIND_META_UNIONID	 => $data['unionid'],
 			$data['type'] . self::BIND_META_INFO	 => json_encode($data)
 		);
 		$ret = Model('User')->metaSet($userID, $metadata);
 		if ($ret && !$data['client']) {
-			$this->updateInfo($userID);	// 后端绑定，更新用户信息
+			$this->updateUserInfo($userID);	// 后端绑定，更新用户信息
 		}
 		return $ret;
 	}
 
 	// 更新userInfo缓存
-	private function updateInfo($id) {
+	private function updateUserInfo($id) {
 		Model('User')->cacheFunctionClear('getInfo',$id);
 		Session::set('kodUser', Model('User')->getInfo($id));
 	}

@@ -18,6 +18,7 @@
 		<script type="text/javascript">
 			var fileName 	= "<?php echo $fileName;?>";
 			var pdfOptions 	= {
+				canDownload:"<?php echo intval($canDownload);?>",
 				defaultUrl:"<?php echo $fileUrl;?>",
 				workerSrc:'<?php $this->url('static/pdfjs/build/pdf.worker.js');?>',
 				imageResourcesPath : '<?php echo $this->pluginHost;?>static/pdfjs/web/images/',

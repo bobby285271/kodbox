@@ -24,9 +24,11 @@ class userAuthPlugin extends Controller{
 	public function autoCheck(){
 		$theMod = strtolower(MOD);
 		if ($theMod != 'plugin') return;
-		if (!$this->checkAuth(ST)) {
-			show_json(LNG('explorer.noPermissionAction'), false, 2001);
+		if ($this->checkAuth(ST)) return;
+		if($_SERVER['REQUEST_METHOD'] == 'GET'){ // 插件处理;
+			show_tips(LNG('explorer.noPermissionAction').'; '.ST);
 		}
+		show_json(LNG('explorer.noPermissionAction'), false, 2001);
 	}
 
 	/**
@@ -43,7 +45,8 @@ class userAuthPlugin extends Controller{
 		$config = $plugin['config'];
 		if (isset($config['pluginAuthOpen']) && $config['pluginAuthOpen']) return true;
 		if (Action("user.authRole")->isRoot())   return true; //系统管理员
-		return $this->checkAuthValue($config['pluginAuth']);
+		$auth = isset($config['pluginAuth']) ? $config['pluginAuth'] : null;
+		return $this->checkAuthValue($auth);
 	}
 
 	/**
@@ -51,13 +54,15 @@ class userAuthPlugin extends Controller{
 	 * @param  [type] $info 组合数据  "{"all":"0","user":"2,4","group":"10,15","role":"4,3"}"
 	 * @return [type]       [description]
 	 */
-	public function checkAuthValue($auth){
+	public function checkAuthValue($auth,$user=false){
 		if( is_string($auth) ){
 			$auth = @json_decode($auth, true);
 		}
 		// pr($auth,Session::get('kodUser'));
-		if ($auth['all'] == '1') return true; // 全部则无需登录也可以访问;
-		$user = Session::get('kodUser');
+		if (isset($auth['all']) && $auth['all'] == '1') return true; // 全部则无需登录也可以访问;
+		if(!$user){
+			$user = Session::get('kodUser');
+		}
 		if (!$auth || !$user || !is_array($auth)) return false;
 		
 		$groups  = array_to_keyvalue($user['groupInfo'],'','groupID');

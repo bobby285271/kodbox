@@ -19,15 +19,21 @@
 				</div>
 				<div class="body">
 					<div class="content-main">
-						<?php $hide = $fastInstall ? 'hidden' : '';?>
-						<div class="fast-install hidden"><?php echo $fastInstall; ?></div>
+						<?php 
+							$hide = $installFast ? 'hidden' : '';
+							$hide2 = $installFast == 2 ? 'hidden' : '';
+						?>
+						<div class="install-fast hidden"><?php echo $installFast; ?></div>
 						<div class="check-result">
 							<div class="title-box"><?php echo LNG('admin.install.install'); ?></div>
 							<div class="progress-box">
 								<!-- <div class="active"><span>使用协议</span><span class="btm-line"></span></div> -->
 								<div class="active <?php echo $hide;?>"><span><?php echo LNG('common.env.check');?></span><span class="btm-line"></span></div>
 								<div class="<?php echo $hide;?>"><span><?php echo LNG('admin.install.databaseSet'); ?></span><span class="btm-line"></span></div>
-								<div class="<?php echo $fastInstall ? 'active' : '';?>"><span><?php echo LNG('admin.setting.account'); ?></span><span class="btm-line"></span></div>
+								<div class="<?php echo $installFast ? 'active' : '';?>">
+									<span class="<?php $hide2;?>"><?php echo LNG('admin.setting.account'); ?></span>
+									<span class="btm-line"></span>
+								</div>
 							</div>
 							<!-- <div class="step-box agreement">
 								<div class="message-content">
@@ -54,9 +60,13 @@
 									<div class="db-table"></div>
 								</div>
 							</div>
-							<div class="step-box user <?php echo $fastInstall ? '' : 'hidden';?>" style="height:274px">
+							<div class="step-box user <?php echo $installFast ? '' : 'hidden';?>" style="height:274px">
 								<div class="message-content">
-									<div class="user-table"></div>
+									<div class="user-table <?php echo $hide2;?>"></div>
+									<div class="dialog-form target-form <?php echo $installFast == 2 ? '' : 'hidden'; ?>">
+								    	<img src="<?php echo $installPath;?>static/static/loading.gif" style="border-radius:50%;height: 120px;"><br>正在安装
+								    	<input name="auto-install" type="hidden" value="<?php echo $installAuto; ?>" />
+								    </div>
 								</div>
 							</div>
 							<div class="step-box msg hidden">
@@ -84,7 +94,7 @@
 	<script src="<?php echo STATIC_PATH;?>app/vender/es3-profill.js"></script>
 	<script src="<?php echo STATIC_PATH;?>app/dist/vendor.js"></script>
 	<script src="<?php echo STATIC_PATH;?>app/dist/api.js"></script>
-	<script>requireAsync("<?php echo $installPath;?>static/index.js");</script>
+	<script src="<?php echo $installPath;?>static/index.js"></script>
 	<?php Hook::trigger('templateCommonFooter');?>
 </body>
 </html>

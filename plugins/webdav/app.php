@@ -6,7 +6,7 @@
  */
 class webdavPlugin extends PluginBase{
 	function __construct(){
-		$this->echoLog = 0;//开启关闭日志;
+		// $this->echoLog = 1;//开启关闭日志;
 		parent::__construct();
 	}
 	public function regist(){
@@ -41,6 +41,7 @@ class webdavPlugin extends PluginBase{
 	public function run(){
 		if(!$this->isOpen()) return show_json("not open webdav",false);
 		require($this->pluginPath.'php/kodWebDav.class.php');
+		register_shutdown_function(array(&$this, 'endLog'));
 		$dav = new kodWebDav('/index.php/plugin/webdav/'.$this->webdavName().'/'); // 适配window多一层;
 		$this->debug($dav);
 		$dav->run();
@@ -97,7 +98,6 @@ class webdavPlugin extends PluginBase{
 	private function debug($dav){
 		$path = $dav->pathGet().';'.$dav->pathGet(true).';'.$dav->path;
 		$this->log(' start;'.$path);
-		register_shutdown_function(array(&$this, 'endLog')); 
 		if(strstr($_SERVER['HTTP_USER_AGENT'],'Chrome')){
 			//PROPFIND;GET;MOVE;COPY,HEAD,PUT
 			$_SERVER['REQUEST_METHOD'] = 'PROPFIND';
@@ -108,12 +108,11 @@ class webdavPlugin extends PluginBase{
 	}
 	public function log($data){
 		if(!$this->echoLog) return;
-		// if($_SERVER['REQUEST_METHOD'] == 'PROPFIND' && !strstr($_SERVER['REQUEST_METHOD'],'aaa')) return;
-		if($_SERVER['REQUEST_METHOD'] == 'PROPFIND' ) return;
+		// if($_SERVER['REQUEST_METHOD'] == 'PROPFIND' ) return;
 		if(is_array($data)){$data = json_encode_force($data);}
 		
 		$data = $_SERVER['REQUEST_METHOD'].' '.$data;
-		// $data = array($data,$_SERVER);
+		// $data = array($data,$GLOBALS['__SERVER']);
 		write_log($data,'webdav');
 	}
 }

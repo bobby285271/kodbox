@@ -16,7 +16,7 @@ class S3 {
 	const AMZ_LENGTH = 'length';
 	const MAX_PART_NUM = 1000;
 	const MIN_PART_SIZE = 10485760; // 最小分片10M
-	const MAX_PART_SIZE = 5368709120;
+	const MAX_PART_SIZE = 5368709120; // 最大分片5G
 	const UPLOAD_RETRY = 3; // 分片、整合失败,重试3次
 
 	private static $__accessKey = null;
@@ -37,6 +37,7 @@ class S3 {
 	private static $__signingKeyResource = false;
 	public static $progressFunction = null;
 	public static $signVer = 'v4';
+	public static $chunkSize = 10485760; // 分片大小，默认10Mb
 
 	/**
 	 * Constructor - if you're not using the class statically.
@@ -88,6 +89,14 @@ class S3 {
 		}
 
 		return empty($region) ? 'us-east-1' : $region;
+	}
+
+	/**
+	 * set multiUpload/Copy chunk size
+	 * @return void
+	 */
+	public function setChunkSize($chunkSize){
+		self::$chunkSize = !$chunkSize ? self::MIN_PART_SIZE : $chunkSize;
 	}
 
 	/**
@@ -676,7 +685,7 @@ class S3 {
 		$fileSize = $info['size'];
 
 		$uploadPosition = 0;
-		$pieces = self::__generateParts($fileSize, self::MIN_PART_SIZE);
+		$pieces = self::__generateParts($fileSize, self::$chunkSize);
 		$partList = array();
 		foreach ($pieces as $i => $piece) {
 			$fromPos = $uploadPosition + (int) $piece[self::AMZ_SEEK_TO];
@@ -719,7 +728,7 @@ class S3 {
 		if (!$uploadId) return false;
 		$fileSize = filesize($file);
 
-		$pieces = self::__generateParts($fileSize, self::MIN_PART_SIZE);
+		$pieces = self::__generateParts($fileSize, self::$chunkSize);
 
 		$partList = array();
 		foreach ($pieces as $i => $piece) {
@@ -1111,18 +1120,17 @@ class S3 {
 	 * @param string $bucket     Bucket name
 	 * @param string $uri        Object URI
 	 * @param int    $lifetime   Lifetime in seconds
-	 * @param bool   $hostBucket Use the bucket name as the hostname
 	 *
 	 * @return string
 	 */
-	public function getAuthenticatedURL($bucket, $uri, $lifetime, $hostBucket = false, $subResource = array()){
+	public function getAuthenticatedURL($bucket, $uri, $lifetime, $subResource = array()){
 		// $expires = self::__getTime() + $lifetime;
 		$expires = strtotime(date('Ymd 23:59:59')); // kodbox：签名链接有效期，改为当天有效
 		$uri = str_replace(array('%2F', '%2B'), array('/', '+'), rawurlencode($uri));
 		$ext = http_build_query($subResource);
 		$url = sprintf(
 			'%s/%sAWSAccessKeyId=%s&Expires=%u&Signature=%s', 
-			$hostBucket ? $bucket : self::$endpoint . '/' . $bucket, 
+			self::$endpoint, 
 			$uri . '?' . $ext . ($ext ? '&' : ''),
 			self::$__accessKey, 
 			$expires, 
@@ -1189,7 +1197,6 @@ class S3 {
 		$signing_key = hash_hmac('sha256', 'aws4_request', hash_hmac('sha256', 's3', hash_hmac('sha256', $region, hash_hmac('sha256', $date_text, 'AWS4' . $secret_key, true), true), true), true);
 		$signature = hash_hmac('sha256', $string_to_sign, $signing_key);
 
-		// $host = self::$endpoint . '/' . $bucket;
 		$host = self::$endpoint;
 		$url = $host . $encoded_uri . '?' . $query_string . '&X-Amz-Signature=' . $signature;
 
@@ -1608,13 +1615,11 @@ final class S3Request {
 		$this->bucket = $bucket;
 		$this->uri = $uri !== '' ? '/' . str_replace('%2F', '/', rawurlencode($uri)) : '/';
 
-		$hosts = explode("://", $endpoint);	// ['http://', 's3.amazonaws.com']
+		$this->headers['Host'] = get_url_domain($endpoint);
 		if ($this->bucket !== '') {
 			if ($this->__dnsBucketName($this->bucket)) {
-				$this->headers['Host'] = $hosts[1];
 				$this->resource = '/' . $this->bucket . $this->uri;
 			} else {
-				$this->headers['Host'] = $hosts[1];
 				$this->uri = $this->uri;
 				if ($this->bucket !== '') {
 					$this->uri = '/' . $this->bucket . $this->uri;
@@ -1623,7 +1628,6 @@ final class S3Request {
 				$this->resource = $this->uri;
 			}
 		} else {
-			$this->headers['Host'] = $hosts[1];
 			$this->resource = $this->uri;
 		}
 
@@ -1705,9 +1709,7 @@ final class S3Request {
 				$this->resource .= $query;
 			}
 		}
-		// $host = $this->headers['Host'] !== '' ? $this->headers['Host'] : $this->endpoint;
-		$url = strpos($this->endpoint, $this->bucket) === false ? $this->endpoint . '/' . $this->bucket : $this->endpoint;
-		$url .= $this->uri;
+		$url = $this->endpoint . $this->uri;
 
 		// Basic setup
 		$curl = curl_init();

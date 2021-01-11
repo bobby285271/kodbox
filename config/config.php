@@ -21,13 +21,12 @@ if(GLOBAL_DEBUG){
 	@ini_set("display_errors","on");
 	@error_reporting(E_ALL^E_NOTICE^E_DEPRECATED);
 	define("STATIC_DEV",0);
-	//$f="/Library/WebServer/Documents/localhost/kod/doc/tools/xhprof/load.php";if(file_exists($f)){include($f);}
+	// $f="/Library/WebServer/Documents/localhost/kod/doc/tools/xhprof/load.php";if(file_exists($f)){include($f);}
 }else{
 	@ini_set("display_errors","on");//on off;
 	@error_reporting(E_ALL^E_NOTICE^E_WARNING^E_DEPRECATED);//0
 	define("STATIC_DEV",0);
 }
-
 
 //header('HTTP/1.1 200 Ok');//兼容部分lightHttp服务器环境; php5.1以下会输出异常；暂屏蔽
 header("Content-type: text/html; charset=utf-8");
@@ -46,6 +45,7 @@ define('MEMORY_LIMIT_ON', function_exists('memory_get_usage'));
 define("TIME",time());
 define("TIME_FLOAT",microtime(true));
 include('const.php');
+$__SERVER = $_SERVER;
 
 if(file_exists(BASIC_PATH.'config/define.php')){
 	include(BASIC_PATH.'config/define.php');

@@ -305,7 +305,7 @@ function check_enviroment(){
 function check_version_cache(){
 	//检查是否更新失效
 	$content = file_get_contents(BASIC_PATH.'config/version.php');
-	$result  = match($content,"'KOD_VERSION','(.*)'");
+	$result  = match_text($content,"'KOD_VERSION','(.*)'");
 	if($result != KOD_VERSION){
 		$ver = KOD_VERSION.'==>'.$result;
 		show_tips(LNG('common.env.phpCacheOpenTips')."<br/>".$ver);
@@ -319,16 +319,43 @@ function checkPhp(){
 	}
 }
 
+function init_cli(){
+	if(!stristr(php_sapi_name(),'cli')) return;
+	$params = $GLOBALS['argv'][1];
+	$paramArr = explode('&',$params);
+	foreach ($paramArr as $item) {
+		$item = trim($item);
+		if(!$item) continue;
+		$arr = explode('=',$item);
+		$_GET[$arr[0]] = $arr[1] ? rawurldecode($arr[1]):'';
+		$_REQUEST[$arr[0]] = $_GET[$arr[0]];
+	}
+}
+// 不允许双引号
+function escapeShell($param){
+	return escapeshellarg($param);
+	//$param = escapeshellarg($param);
+	$os = strtoupper(substr(PHP_OS, 0,3));
+	if ( $os != 'WIN' && $os != 'DAR') {//linux
+		$param = str_replace('!','\!',$param);
+	}
+	$param = rtrim($param,"\\");
+	return '"'.str_replace(array('"',"\0",'`'),'_',$param).'"';
+}
+
+
 function init_common(){
+	init_cli();
 	$GLOBALS['in'] = parse_incoming();
-	$file = LIB_DIR.'update.php';
-	if(!file_exists($file)) return;
-	
+}
+function init_check_update(){
+	$updateFile = LIB_DIR.'update.php';
+	if(!file_exists($updateFile)) return;	
 	//覆盖安装文件删除不了重定向问题优化
 	$errorTips = LNG('common.env.pathPermissionError') .BASIC_PATH.'</pre>';
-	if(!is_writable($file) ) show_tips($errorTips,false);
-	include($file);
-	del_file($file);
+	if(!is_writable($updateFile) ) show_tips($errorTips,false);
+	include($updateFile);
+	del_file($updateFile);
 }
 
 //登录是否需要验证码
@@ -372,6 +399,41 @@ function hash_path($path,$addExt=false){
 	}
 	if($addExt){
 		$result = $result.'.'.get_path_ext($path);
+	}
+	return $result;
+}
+
+// 解析config; 获取数据库类型; mssql,mysql,sqlite;
+function getDatabaseType(){
+	$database = $GLOBALS['config']['database'];
+	$dbType   = strtolower($database['DB_TYPE']);
+	if($dbType == 'pdo'){
+		$dsnParse = explode(':',$database['DB_DSN']);
+		$dbType   = $dsnParse[0];
+	}
+	$dbType = $dbType == 'mysqli'?  'mysql':$dbType;
+	$dbType = $dbType == 'sqlite3'? 'sqlite':$dbType;
+	return $dbType;
+}
+
+// 拆分sql语句
+function sqlSplit($sql){
+	$num = 0;
+	$result = array();
+	$sql = str_replace("\r", "\n", $sql);
+	$splitArray = explode(";\n", trim($sql."\n"));
+	unset($sql);
+	foreach($splitArray as $query){
+		$result[$num] = '';
+		$queryArr = explode("\n", trim($query));
+		$queryArr = array_filter($queryArr);
+		foreach($queryArr as $query){
+			$firstChar = substr($query, 0, 1);
+			if($firstChar != '#' && $firstChar != '-'){
+				$result[$num] .= $query;
+			}
+		}
+		$num++;
 	}
 	return $result;
 }

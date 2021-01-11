@@ -11,7 +11,11 @@
 			if($(".nav-collapse").length == 1){
 				$('body').addClass("body-excle");
 			}
-		})
+			var title = "<?php echo rawurlencode($_GET['name']);?>";
+			if(title){
+				$('.lnk-file-title').html(title).attr('title',title);
+			}
+		});
 	</script>
 	<div class='powerby'>yozo DCS</div>
 </html>

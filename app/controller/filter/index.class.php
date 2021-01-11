@@ -17,6 +17,7 @@ class filterIndex extends Controller{
 		Action("filter.attachment")->bind();
 		Action("filter.html")->bind();
 		Action("filter.post")->check();
+		Action("filter.userGroup")->check();
 		Hook::trigger(strtolower(ACTION).'.before',array());
 		Hook::bind('show_json',array($this,'eventAfter'));
 	}

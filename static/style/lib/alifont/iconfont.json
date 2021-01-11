@@ -6,6 +6,55 @@
   "description": "多彩图片icon",
   "glyphs": [
     {
+      "icon_id": "2039579",
+      "name": "部门",
+      "font_class": "group-root",
+      "unicode": "e687",
+      "unicode_decimal": 59015
+    },
+    {
+      "icon_id": "2295987",
+      "name": "folder-share",
+      "font_class": "folder-share",
+      "unicode": "e63a",
+      "unicode_decimal": 58938
+    },
+    {
+      "icon_id": "3816385",
+      "name": "分享",
+      "font_class": "tubiaozhizuomoban-",
+      "unicode": "e63b",
+      "unicode_decimal": 58939
+    },
+    {
+      "icon_id": "5954469",
+      "name": "FTP",
+      "font_class": "FTP",
+      "unicode": "e63c",
+      "unicode_decimal": 58940
+    },
+    {
+      "icon_id": "7587719",
+      "name": "分享",
+      "font_class": "share-link-self",
+      "unicode": "e63d",
+      "unicode_decimal": 58941
+    },
+    {
+      "icon_id": "13137380",
+      "name": "empty_add",
+      "font_class": "empty_add",
+      "unicode": "e65a",
+      "unicode_decimal": 58970
+    },
+    {
+      "icon_id": "19028664",
+      "name": "分享",
+      "font_class": "share-link-self-blue",
+      "unicode": "eb16",
+      "unicode_decimal": 60182
+    },
+    {
       "icon_id": "1445325",
       "name": "sort",
       "font_class": "sort",
@@ -20,9 +69,16 @@
       "unicode_decimal": 58936
     },
     {
+      "icon_id": "19039725",
+      "name": "share-square",
+      "font_class": "share-square-blue",
+      "unicode": "eb17",
+      "unicode_decimal": 60183
+    },
+    {
       "icon_id": "1262114",
       "name": "share-square",
-      "font_class": "share-square",
+      "font_class": "share-square-green",
       "unicode": "e6f7",
       "unicode_decimal": 59127
     },

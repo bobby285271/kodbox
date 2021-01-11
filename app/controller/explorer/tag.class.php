@@ -75,6 +75,10 @@ class explorerTag extends Controller{
 			"name"		=> array("check"=>"require"),
 			"style"		=> array('check'=>"require"),
 		));
+		if(count($this->data()) > $GLOBALS['config']['systemOption']['tagNumberMax']){
+			show_json(LNG("common.numberLimit"),false);
+		}
+		
 		$res = $this->model->add($data['name'],$data['style']);
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.repeatError');
 		show_json($msg,!!$res,$this->data());
@@ -125,15 +129,15 @@ class explorerTag extends Controller{
 		show_json($msg,!!$res,$this->data());
 	}
 	/**
-	 * 重置排序，更具id的顺序重排;
+	 * 重置排序，根据id的顺序重排;
 	 */
-	public function resetSort() {
-		$tagID = Input::get('tagList',"require");
-		$tagArray = explode(',',$tagID);
-		if(!$tagArray) {
+	public function resetSort() {	
+		$idList = Input::get('tagList',"require");
+		$idArray = explode(',',$idList);
+		if(!$idArray) {
 			show_json(LNG('explorer.error'),false);
 		}
-		$res = $this->model->resetSort($tagArray);
+		$res = $this->model->resetSort($idArray);
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.error');
 		show_json($msg,!!$res,$this->data());
 	}
@@ -153,9 +157,9 @@ class explorerTag extends Controller{
 			show_json(LNG('explorer.error'),false);
 		}
 		foreach ($files as $file) {
-			$res = $this->modelSource->removeBySource($file);
+			$this->modelSource->removeBySource($file);
 			foreach($tags as $tag) {
-				$this->modelSource->addToTag($file,$tag);
+				$this->fileAddTag($file,$tag);
 			}
 		}
 		show_json(LNG('explorer.success'));
@@ -189,9 +193,20 @@ class explorerTag extends Controller{
 			show_json(LNG('explorer.error'),false);
 		}
 		foreach ($files as $file) {
-			$res = $this->modelSource->addToTag($file,$data['tagID']);
+			$res = $this->fileAddTag($file,$data['tagID']);
 		}
-		$msg = $res ? LNG('explorer.success') : LNG('explorer.repeatError');
-		show_json($msg,!!$res);
-	}	
+		show_json(LNG('explorer.success'),true);
+		// $msg = $res ? LNG('explorer.success') : LNG('explorer.repeatError');
+		// show_json($msg,!!$res);
+	}
+	
+	// 标签包含内容数量上限控制;
+	private function fileAddTag($file,$tagID){
+		$count = $this->modelSource->where(array('tagID'=>$tagID))->count();
+		if( $count > $GLOBALS['config']['systemOption']['tagContainMax'] ){
+			show_json(LNG("common.numberLimit"),false);
+		}
+		return $this->modelSource->addToTag($file,$tagID);
+	}
+	
 }

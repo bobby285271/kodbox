@@ -5,7 +5,7 @@
  * 数据更新:https://gitee.com/lionsoul/ip2region
  */
 class IpLocation {
-	public function get($ip){
+	public static function get($ip){
 		static $obj;
 		if(!$obj){
 			$path = dirname(__FILE__).'/Ip2Region/';

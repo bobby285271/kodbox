@@ -10,7 +10,7 @@ https://raw.github.com/vrana/adminer/master/designs/ng9/adminer.css
  * 
  * adminer.php :allow in iframe(  if($b->headers()){header("X-Frame-Options: deny");header("X-XSS-Protection: 0");} )
  */
-::-webkit-scrollbar-track-piece{
+ ::-webkit-scrollbar-track-piece{
     background-color: rgba(180,180,180,0.06);
     border-radius:3px;
 }
@@ -794,6 +794,41 @@ form pre:focus
     border:1px solid #1890ff  !important;
     box-shadow: 0 0 0 3px #1890ff3d;
 }
+textarea{padding:5px;}
+
+
+
+
+.toggle-menu{
+	position: fixed;
+    left: 260px;top:52px;
+    cursor: pointer;
+    z-index: 10;
+}
+.toggle-menu:after{
+	content:'↔';
+	width: 24px;height: 24px; line-height: 22px;
+    border-radius: 15px;
+    background: #1890ff;color: #fff;
+	font-size: 16px;font-weight: 800;
+	text-align: center;
+	display: block;
+    opacity: 0.8;
+}
+pre, textarea{display: inline-block;}
+
+/*#menu{transition: all 0.2s;left:0;}*/
+/*#content{transition: all 0.2s;}*/
+/*#breadcrumb{transition: all 0.2s;}*/
+
+.menu-hide .toggle-menu{left:0;}
+.menu-hide .toggle-menu:after{border-radius:0 5px 5px 0;}
+
+.menu-hide #menu{left: -272px;}
+.menu-hide #content{margin-left:10px;}
+.menu-hide #breadcrumb{left: 0;}
+.menu-hide #lang{display:none;}
+.menu-hide .jush{width: 90% !important;}
 
 input[type=submit]{color:#fff;background-color: #1890ff;}
 input[type=submit]:hover{color:#fff;background-color: #2070e5;}

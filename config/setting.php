@@ -26,15 +26,27 @@ $config['settings'] = array(
 		'ignoreName'		=> '',			// 忽略的文件名,不区分大小写; 逗号隔开,例如: .DS_Store,Thumb.db
 		'chunkRetry'		=> 2,			// 分片上传失败,重传次数;针对每个分片;
 		'sendAsBinary'		=> 0,			// 以二进制方式上传;后端服务器以php://input接收;0则为传统方式上传 $_FILE;
-		'httpSendFile'		=> false,		//调用webserver下载 http://www.laruence.com/2012/05/02/2613.html; 
-											//https://www.lovelucy.info/x-sendfile-in-nginx.html	
-		'downloadSpeed'		=> 0,			// 下载限速;MB/s*1024*1024; 0代表不限制
+		'httpSendFile'		=> false,		// 调用webserver下载 /https://www.lovelucy.info/x-sendfile-in-nginx.html
+		
 		'ignoreExt'			=> '',          // 限制的扩展名; 扩展名在该说明中则自动不上传;
-		'ignoreFileSize'	=> 0			// 允许单个文件上传最大值,0则不限制; 单位GB;
+		'downloadSpeed'		=> 0,			// 下载限速;MB/s*1024*1024; 0代表不限制		
+		'ignoreFileSize'	=> 0,			// 许单个文件上传最大值,0则不限制; 单位GB(float)
+		'osChunkSize'		=> 10,			// 对象存储分片大小(七牛固定为4Mb)
 	),
+	'fileEditLockTimeout' 	=> 1200,		// 文件编辑锁默认锁定最长时间;默认20分钟;超过了则自动解锁;
+	'fileHistoryMax'		=> 500,			// 文件历史版本默认个数,免费版3个; 大于500则认为不限制
+	'uploadFileNumberMax'	=> 0,			// 单次批量上传文件个数上限, 0不限制
+	'storeFileNumberMax'	=> 0,			// 外链分享转存文件个数上限, 0不限制
+	'shareLinkSizeMax'		=> 0,			// 分享文件/文件夹最大大小限制; 0不限制; 单位GB(float)
+	'unzipFileSizeMax'  	=> 0,			// 文件解压压缩包大小限制; 0-不限制; 单位GB(float)
+	'zipFileSizeMax'  		=> 0,			// 文件(夹)压缩大小限制;   0-不限制; 单位GB(float)
+	
 	'staticPath'		=> APP_HOST."static/",	//静态文件目录,可以配置到cdn;
 	'kodApiServer'		=> "https://api.kodcloud.com/?", //QQ微信登陆/邮件发送/插件-列表等 
 );
+$config['settings']['searchContent'] = 1;
+$config['settings']['searchMutil'] = 1;
+
 
 $config["ADMIN_ALLOW_IO"] = 1;		//其他部门or用户目录操作开关，仅限管理员
 $config["ADMIN_ALLOW_SOURCE"] = 1;	//物理路径操作开关，仅限管理员
@@ -74,8 +86,8 @@ $config['cache'] = array(
 );
 $config['databaseDefault'] = array(
 	/* 数据库设置 */
-	'DB_TYPE'               => 'mysql',     // 数据库类型
-	'DB_HOST'               => 'localhost', // 服务器地址
+	'DB_TYPE'               => 'mysql',     // 数据库类型 mysql,mysqli,sqlite,pdo(mysql/sqlite); //pgsql,mssql
+	'DB_HOST'               => '127.0.0.1', // 服务器地址
 	'DB_NAME'               => '',          // 数据库名
 	'DB_USER'               => '',      	// 用户名
 	'DB_PWD'                => '',          // 密码
@@ -117,10 +129,20 @@ $config['settings']['appType'] = array(
 	array('type' => 'life','name' => 'explorer.app.groupLife','class' => 'ri-map-pin-fill-2'),
 	array('type' => 'others','name' => 'common.others','class' => 'ri-more-fill'),
 );
-$config['fileEditLockTimeout'] = 1200; //默认20分钟; 文件编辑锁默认锁定最长时间; 超过了则自动解锁;
 $config['defaultPlugins'] = array(
 	'adminer','DPlayer','imageExif','jPlayer','officeLive','photoSwipe','picasa','pdfjs',
 	'simpleClock','toolsCommon','VLCPlayer','webodf','yzOffice','webdav',
+);
+
+// 系统使用配置;
+$config['systemOption'] = array(
+	'favNumberMax'			=> 1000, 			// 收藏夹添加数量上限
+	'tagNumberMax'			=> 1000, 			// 标签创建数量上限
+	'tagContainMax'			=> 1000, 			// 标签中内容最大数
+	
+	'fileNameLengthMax'		=> 2000, 			// 文件名最大长度
+	'fileDescLengthMax'		=> 1000, 			// 文件描述最大长度
+	'historyDescLengthMax'	=> 500, 			// 文件版本说明最大长度
 );
 
 //初始化系统配置
@@ -142,7 +164,7 @@ $config['settingSystemDefault'] = array(
 	'globalCss'			=> "",
 	'globalHtml'		=> "",
 
-	'newUserApp'		=> "trello,一起写office,微信,石墨文档,ProcessOn,计算器,高德地图,icloud,OfficeConverter",
+	'newUserApp'		=> "trello,一起写office,石墨文档,ProcessOn,计算器,高德地图,icloud,OfficeConverter",
 	'newUserFolder'		=> "我的文档,我的图片,我的音乐",
 	'newGroupFolder'	=> "共享资源,文档,其他",	// 新建分组默认建立文件夹
 	'groupRootName'		=> '企业网盘',				// 企业组织架构根节点
@@ -157,8 +179,7 @@ $config['settingSystemDefault'] = array(
 	'fileEncryption'	=> 'keepName',	// all-全加密;keepExt-加密文件名保留扩展名;keepName-不加密;
 	'passwordErrorLock'	=> '1',			// 密码连续错误锁定账号; 某账号连续输入5次后锁定30s后才能登陆;
 	'passwordRule'		=> 'none',		// 限制密码强度;none-不限制;strong-中等强度;strongMore-高强度
-	'loginIpCheck'		=> '0',			// 登陆ip限制开关;
-	'loginIpAllow'		=> '',			// 登陆允许的ip来源; ip白名单;
+	'loginCheckAllow'	=> '',			// 登陆限制
 	'csrfProtect'		=> '1',		 	// 开启csrf保护	
 	
 	'treeOpen'			=> 'my,myFav,myGroup,rootGroup,recentDoc,fileType,fileTag,driver',//树目录开启功能;
@@ -176,11 +197,11 @@ $config['settingSystemDefault'] = array(
 		"allowPhone"		=> "1",			// 允许手机号绑定,找回密码;
 		"loginWith"			=> array('qq', 'weixin'),
 	),
-
+	'allowNickNameRpt'	=> false,			// 允许用户昵称重复
 	'menu'	=> array(		//初始化默认菜单配置
 		array('name'=>'desktop','type'=>'system','url'=>'desktop','target'=>'_self','use'=>'1'),
 		array('name'=>'explorer','type'=>'system','url'=>'explorer','target'=>'_self','use'=>'1'),
-		array('name'=>'editor','type'=>'system','url'=>'editor','target'=>'_self','use'=>'0'),
+		array('name'=>'editor','type'=>'','url'=>'editor','target'=>'_self','use'=>'0'),
 		array('name'=>'官网','url'=>'https://kodcloud.com',"icon"=>"ri-home-line-3",'target'=>'inline','use'=>'1')
 	),
 );
@@ -207,6 +228,7 @@ $config['settingDefault'] = array(
 	'displayHideFile'	=> '0',
 	'filePanel'			=> '1',
 	'messageSendType'	=> 'enter', //enter,ctrlEnter
+	'loginDevice'		=> '',
 );
 $config['editorDefault'] = array(
 	'fontSize'		=> '14px',
@@ -303,7 +325,6 @@ $config['documentType'] = array(
 		"name"		=> '压缩包',
 		"ext"		=> "zip,gz,rar,iso,tar",
 	),
-	
 	"others" => array(
 		"name"		=> '其他',
 		"ext"		=> "",
@@ -416,7 +437,7 @@ $config['authRoleAction']= array(
 	'explorer.zip'			=> array('explorer.index'=>'zip,zipDownload'),
 
 	'user.edit'				=> array(
-		'user.setting'	=> 'setConfig,setUserInfo,setHeadImage,uploadHeadImage,userChart,userLog',
+		'user.setting'	=> 'setConfig,setUserInfo,setHeadImage,uploadHeadImage,userChart,userLog,userLogLogin,userDevice',
 		// 'user.bind'		=> 'bindApi,bindMetaInfo,oauth,bindWithApp', //被全开放了, 构造函数中自行权限检测;
 	),
 	'user.fav' => array(
@@ -429,6 +450,7 @@ $config['authRoleAction']= array(
 	'admin.index.loginLog'	=> array('admin.log'=>'loginLogList'),
 	'admin.index.log'		=> array('admin.log'=>'get,typelist'),
 	'admin.index.server'	=> array('admin.setting'=>'cacheGet,cacheCheck,cacheSave'),
+	// 'admin.index.server'	=> array('admin.setting'=>'server'),
 	
 	'admin.role.list'		=> array('admin.role'=>'get'),
 	'admin.role.edit'		=> array('admin.role'=>'add,edit,remove,sort'),

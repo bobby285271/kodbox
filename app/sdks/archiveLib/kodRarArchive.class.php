@@ -18,6 +18,8 @@
  * 7zip命令行:http://blog.csdn.net/earbao/article/details/51382534
  * rar命令行 :http://www.cnblogs.com/fetty/p/4769279.html
  * 7za命令行 :https://www.mankier.com/1/7za //当rar解压失败时尝试调用系统内置7za解压; 支持大于60G文件
+ * 
+ * mac 可执行文件下载:https://github.com/aonez/Keka/releases
  */
 
 
@@ -25,7 +27,21 @@ class kodRarArchive {
 	static function bin($type){
 		$file = dirname(__FILE__).'/bin/'.$type;
 		$file = str_replace('\\','/',$file);
-		if(PHP_OS == "Darwin") $file .= '_mac';	// mac
+		
+		// 兼容不同系统;
+		$os = strtolower(@php_uname());
+		if(strstr($os,'darwin')){
+			$file .= '_mac';	// mac
+		}else if(strstr($os,'win') ){
+			$file .= '.exe';	// win
+		}else if(strstr($os,'linux') ){
+			$result = shell_exec('apk --version');
+			if(strstr($result,'apk')){ // apilin 
+				$file .= '_linux';	// win
+			}
+		}
+		
+		
 		if(!file_exists($file)){
 			show_json('bin file not exists!',false);
 		}
@@ -238,16 +254,4 @@ class kodRarArchive {
 	// 	$command = $command.self::bin().' a -r -y -t'.$ext.' '.$passwd.' "'.$file.'" *';
 	// 	return self::run($command);
 	// }
-}
-
-// 不允许双引号
-function escapeShell($param){
-	return escapeshellarg($param);
-	//$param = escapeshellarg($param);
-	$os = strtoupper(substr(PHP_OS, 0,3));
-	if ( $os != 'WIN' && $os != 'DAR') {//linux
-		$param = str_replace('!','\!',$param);
-	}
-	$param = rtrim($param,"\\");
-	return '"'.str_replace(array('"',"\0",'`'),'_',$param).'"';
 }
