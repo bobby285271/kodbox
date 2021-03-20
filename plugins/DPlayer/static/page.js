@@ -36,6 +36,8 @@ define(function(require, exports) {
 		player.play();
 		$target.find('video').attr('autoplay','autoplay').removeAttr('muted');
 		resetSize(player,$target);
+		$(player.container).trigger('click');// 自动焦点; 视频操作快捷键响应;
+		
 		//移动端;微信,safari等屏蔽了自动播放;首次点击页面触发播放;
 		// $target.find('.dplayer-video-wrap').one("touchstart mousedown",play);
 	}

@@ -50,18 +50,29 @@ class adminSetting extends Controller {
 	 * 发送邮件测试-用户注册功能设置
 	 */
 	public function mailTest() {
-		$data = Input::getArray(array(
-			'host'		 => array('check' => 'require'),
-			'email'		 => array('check' => 'require'),
-			'password'	 => array('check' => 'require'),
-			'address'	 => array('check' => 'require')
-		));
-		$data['test'] = 1;
-		$data['emailType'] = 1;
-		$data['subject'] = LNG('user.emailVerify') . '-' . LNG('common.test');
-		$data['content'] = array('type' => 'code', 'data' => array());
-
-		$res = Action('user.bind')->sendEmail('email_test', $data);
+		$input = Input::get('address', 'require');
+		$systemName = Model('SystemOption')->get('systemName');
+		$data = array(
+			'type'			=> 'email',
+			'input'			=> $input,
+			'emailType' 	=> 1,
+			'action'		=> 'email_test',
+			'config'		=> array(
+				'address'	=> $input,
+				'subject'	=> "[{$systemName}]" . LNG('user.emailVerify') . '-' . LNG('common.test'),
+				'content'	=> array(
+					'type'	=> 'code', 
+					'data'	=> array('code' => rand_string(6))
+				),
+				'signature'	=> $systemName,
+				'server'		=> Input::getArray(array(
+					'host'		=> array('check' => 'require'),
+					'email'		=> array('check' => 'require'),
+					'password'	=> array('check' => 'require'),
+				))
+			)
+		);
+		$res = Action('user.msg')->send($data);
 		if (!$res['code']) {
 			show_json(LNG('user.sendFail') . ': ' . $res['data'], false);
 		}
@@ -96,123 +107,16 @@ class adminSetting extends Controller {
 	}
 
 	/**
-	 * 缓存配置检测
+	 * 服务器管理：基础信息、缓存、db
+	 * @return void
 	 */
-	public function cacheCheck(){
-		$type = Input::get('type','in',null,array('redis','memcached'));
-		$config = Input::getArray(array(
-			"{$type}Host" => array('check'=>'require', 'aliasKey'=>'host'),
-			"{$type}Port" => array('check'=>'require', 'aliasKey'=>'port')
+	public function server(){
+		$data = Input::getArray(array(
+			'tab'	 => array('default'=>'', 'aliasKey'=>'type'),
+			'action' => array('check'=>'in', 'param'=>array('get', 'phpinfo', 'save', 'task', 'clear'))
 		));
-		
-		$className = "Cache".ucfirst($type);
-		$cache = new $className($config,3);
-		$cache->set('cacheCheck','ok');
-		if($cache->get('cacheCheck') != 'ok') {
-			show_json(sprintf(LNG('admin.install.cacheError'),"{$type}"), false);
-		}
-		show_json(LNG('explorer.success'));
-	}
-	public function cacheGet(){
-		$cache = Model('SystemOption')->get('systemCache');
-		$cache = json_decode($cache, true);
-		if(!$cache) {
-			$cache = $GLOBALS['config']['cache'];
-		}
-		show_json($cache);
-	}
-	/**
-	 * 缓存配置切换保存
-	 */
-	public function cacheSave(){
-		$type = Input::get('cacheType','in',null,array('file','redis','memcached'));
-		if(in_array($type, array('redis','memcached'))) {
-			$config = Input::getArray(array(
-				"{$type}Host" => array('check'=>'require', 'aliasKey'=>'host'),
-				"{$type}Port" => array('check'=>'require', 'aliasKey'=>'port')
-			));
-			$className = "Cache".ucfirst($type);
-			$cache = new $className($config,3);
-			$cache->set('cacheCheck','ok');
-			if($cache->get('cacheCheck') != 'ok') {
-				show_json(sprintf(LNG('admin.install.cacheError'),"{$type}"), false);
-			}
-		}
-		// 1.存入数据库
-		$cache = $GLOBALS['config']['cache'];
-		$cache['sessionType'] = $cache['cacheType'] = $type;
-		if($type != 'file') {
-			$config = Input::getArray(array(
-				"{$type}Host" => array('check'=>'require', 'aliasKey'=>'host'),
-				"{$type}Port" => array('check'=>'require', 'aliasKey'=>'port')
-			));
-			$cache[$type] = $config;
-		}
-		Model('SystemOption')->set('systemCache', $cache);
-
-		// 2.更新setting_user.php
-		$file = BASIC_PATH . 'config/setting_user.php';
-		$text = array(
-			PHP_EOL . PHP_EOL,
-            "\$config['cache']['sessionType'] = '{$type}';",
-            "\$config['cache']['cacheType'] = '{$type}';"
-		);
-		if($type != 'file'){
-			$text[] = "\$config['cache']['{$type}']['host'] = '".$config['host']."';";
-			$text[] = "\$config['cache']['{$type}']['port'] = '".$config['port']."';";
-		}
-		$content = implode(PHP_EOL, $text);
-		if(!file_put_contents($file, $content, FILE_APPEND)) {
-            show_json(LNG('explorer.error'), false);
-		}
-		Cache::deleteAll();
-		show_json(LNG('explorer.success'));
+		$function = ($data['type'] ? $data['type'] : 'srv') . ucfirst($data['action']);
+		Action('admin.server')->$function();
 	}
 
-	/**
-	 * 新增、编辑会员
-	 * @return void
-	 */
-	public function vipEdit() {
-		$data = Input::getArray(array(
-            'userID'	=> array('check' => 'require'),
-			'vip'		=> array('check' => 'in', 'param' => array('vip1', 'vip2')),
-			'type'		=> array('check' => 'in', 'param' => array(1,3,12)),
-			'time'		=> array('check' => 'json')
-		));
-		$userID = $data['userID'];
-		unset($data['userID']);
-		$result = Model('Vip')->edit($userID, $data);
-		$msg = !!$result ? LNG('explorer.success') : LNG('explorer.error');
-		show_json($msg,!!$result);
-	}
-	/**
-	 * 会员列表
-	 * @return void
-	 */
-	public function vipList(){
-		$data = Input::getArray(array(
-            'timeFrom'	=> array('default' => null),
-            'timeTo'    => array('default' => null),
-            'type'      => array('default' => ''),
-		));
-        $res = Model('Vip')->vipList($data);
-        if(empty($res)) show_json(array());
-        show_json($res['list'], true, $res['pageInfo']);
-	}
-	/**
-	 * 会员购买日志列表
-	 * @return void
-	 */
-	public function vipLogList(){
-		$data = Input::getArray(array(
-            'timeFrom'  => array('default' => null),
-            'timeTo'    => array('default' => null),
-			'type'      => array('default' => ''),
-            'status'	=> array('default' => ''),
-		));
-        $res = Model('Vip')->orderlist($data);
-        if(empty($res)) show_json(array());
-        show_json($res['list'], true, $res['pageInfo']);
-	}
 }

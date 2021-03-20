@@ -1815,17 +1815,22 @@ final class S3Request {
 				break;
 			default: break;
 		}
-		curl_setopt($curl, CURLOPT_NOPROGRESS, false);//add by warlee;
-		curl_setopt($curl, CURLOPT_PROGRESSFUNCTION,'curl_progress');curl_progress_start($curl);
-		
 		// set curl progress function callback
 		if (S3::$progressFunction) {
 			curl_setopt($curl, CURLOPT_NOPROGRESS, false);
 			curl_setopt($curl, CURLOPT_PROGRESSFUNCTION, S3::$progressFunction);
 		}
-
+		
+		//add by warlee;
+		$theCurl = $curl;
+		curl_setopt($theCurl, CURLOPT_NOPROGRESS, false);
+		curl_setopt($theCurl, CURLOPT_PROGRESSFUNCTION,'curl_progress');
+		$theResult = curl_progress_start($theCurl);
+		if(!$theResult){$theResult = curl_exec($theCurl);curl_progress_end($theCurl,$theResult);}
+		$curl = $theCurl;$result = $theResult;
+		
 		// Execute, grab errors
-		if ($ret = curl_exec($curl)) {
+		if ($result) {
 			$this->response->code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 		} else {
 			$this->response->error = array(
@@ -1834,7 +1839,6 @@ final class S3Request {
 				'resource'	 => $this->resource,
 			);
 		}
-		curl_progress_end($curl);
 		@curl_close($curl);
 
 		// Parse body into XML

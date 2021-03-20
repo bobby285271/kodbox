@@ -64,8 +64,9 @@
 	</div>
 
 	<script type="text/javascript"> 
-		window.API_HOST = "<?php echo rtrim(APP_HOST,'/').'/index.php?';?>";
+		window.API_HOST = "<?php echo app_host_get();?>";
 		window.STATIC_PATH = "<?php echo STATIC_PATH;?>";
+        if(navigator.serviceWorker){navigator.serviceWorker.register('./?user/view/manifestJS');}
 	</script>
 	<script src="<?php linkHref('app/vender/es3-profill.js');?>"></script>
 	<script src="<?php linkHref('app/dist/vendor.js');?>"></script>

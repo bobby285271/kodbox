@@ -31,6 +31,33 @@ function checkExt($file){
 	return 1;
 }
 
+function app_host_get(){
+	// return rtrim(APP_HOST,'/').'/?';
+	static $_APP_HOST = false;
+	if($_APP_HOST) return $_APP_HOST;
+
+	$map = array(
+		'full'		=> rtrim(APP_HOST,'/').'/index.php?',
+		'simple'	=> rtrim(APP_HOST,'/').'/?',
+		'rewrite'	=> rtrim(APP_HOST,'/').'/',
+	);
+	$resultFile  = DATA_PATH .'system/url_type.lock';
+	if(file_exists($resultFile)){
+		$urlType = @file_get_contents($resultFile);
+		$_APP_HOST = isset($map[$urlType]) ? $map[$urlType] : $map['full'];
+	}else{
+		$urlType = 'full';
+		$checkUrl = $map['simple'].'check_app_host_get=1';
+		$data = url_request($checkUrl,0,0,0,0,0,0.5);
+		if($data['data'] && trim($data['data']) == '[ok]'){
+			$urlType = 'simple';
+		}
+		@file_put_contents($resultFile,$urlType);
+		$_APP_HOST = $map[$urlType];
+	}
+	return $_APP_HOST;
+}
+
 //-----解压缩跨平台编码转换；自动识别编码-----
 //压缩前，文件名处理；
 //ACT=zip——压缩到当前
@@ -347,6 +374,8 @@ function escapeShell($param){
 function init_common(){
 	init_cli();
 	$GLOBALS['in'] = parse_incoming();
+	$_SERVER['KOD_VERSION'] 	= KOD_VERSION;
+	$_SERVER['INSTALL_CHANNEL'] = INSTALL_CHANNEL;
 }
 function init_check_update(){
 	$updateFile = LIB_DIR.'update.php';
@@ -356,6 +385,24 @@ function init_check_update(){
 	if(!is_writable($updateFile) ) show_tips($errorTips,false);
 	include($updateFile);
 	del_file($updateFile);
+}
+
+// 获取当前php执行目录; 
+function phpBinCommand(){
+	if(!defined('PHP_BINDIR')) return false; // PHP_BINDIR,PHP_BINARY
+	$includePath = get_include_path();// php_ini_loaded_file();//php.ini path;
+	$includePath = substr($includePath,strpos($includePath,'/'));
+	$isWindow 	= strtoupper(substr(PHP_OS, 0,3)) === 'WIN';
+	$binFile	= $isWindow ? 'php.exe':'php';
+	$checkPath 	= array(
+		PHP_BINDIR.'/',
+		dirname(dirname($includePath)).'/bin/',
+		dirname(dirname(dirname($includePath))).'/bin/',
+	);
+	foreach ($checkPath as $path) {
+		if(file_exists($path.$binFile)) return $path.$binFile;
+	}
+	return 'php';
 }
 
 //登录是否需要验证码

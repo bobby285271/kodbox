@@ -28,7 +28,7 @@ class Pinyin {
                 return $result[0];
             }
         }
-        return $result;
+        return $result ? $result:'';
     }
 
     public static function map(){

@@ -149,7 +149,6 @@
         formMaker.renderTarget($(".step-box.db .db-table"));
         if(update) {
             $(".step-box.db .db-table").find('button,input').prop('disabled', true);
-            $(".step-box.db .form-save-button").prop('disabled', false);
             $(".step-box.db .info-alert").removeClass('hidden');
         }
         $(".step-box.db .form-save-button").text(lng.text_ok);
@@ -158,10 +157,9 @@
             if(!data) return false;
             var _this = this;
             data = $.extend({}, {action: 'db'}, data);
-            Tips.loading(LNG['explorer.loading']);
-            $(".step-box.db .form-save-button").prop('disabled', true);
+            var tips = Tips.loadingMask($('.content-main'),false,0.2);
             request('install/index/save', data, function(result){
-                $(".step-box.db .form-save-button").prop('disabled', false);
+                tips.close();
                 // 是否删除已存在数据库
                 if(result.info && result.info == '10001'){
                     $.dialog.confirm(result.data,function(){
@@ -174,9 +172,12 @@
                 }
                 var delay = null;
                 if(!result.code || (result.info && result.info == '10000')) delay = 5000;
-                Tips.close(result.data, result.code, delay);
+                var msg = result.data || (LNG['explorer.error']+'!<br>'+lng.path_write);
+                Tips.close(msg, result.code, delay);
                 if(!result.code) return;
                 stepNext(_this, 2);
+            }, function(){
+                tips.close();
             });
         });
     }
@@ -205,12 +206,16 @@
      * @param {*} data 
      */
     var dbSetSave = function(_this, data){
-        Tips.loading(LNG['explorer.loading']);
+        var tips = Tips.loadingMask($('.content-main'),false,0.2);
         request('install/index/save', data, function(result){
+            tips.close();
             var delay = !result.code ? 5000 : null;
-            Tips.close(result.data, result.code, delay);
+            var msg = result.data || (LNG['explorer.error']+'!<br>'+lng.path_write);
+            Tips.close(msg, result.code, delay);
             if(!result.code) return;
             stepNext(_this, 2);
+        }, function(){
+            tips.close();
         });
     }
 
@@ -245,12 +250,12 @@
             if(!data) return false;
             var _this = this;
             data = $.extend({}, {action: 'user'}, data);
-            Tips.loading(LNG['explorer.loading']);
-            $(".step-box.user .form-save-button").prop('disabled', true);
+            var tips = Tips.loadingMask($('.content-main'),false,0.2);
             request('install/index/save', data, function(result){
-                $(".step-box.user .form-save-button").prop('disabled', false);
+                tips.close();
                 var delay = !result.code ? 5000 : null;
-                Tips.close(result.data, result.code, delay);
+                var msg = result.data || (LNG['explorer.error']+'!<br>'+lng.path_write);
+                Tips.close(msg, result.code, delay);
                 if(!result.code) return;
                 // 显示admin账号密码
                 name = data.name;
@@ -258,6 +263,8 @@
                 LocalData.del('fileHistoryLastPath-1');
                 var update = result.info || 0;
                 stepLast(_this, update); // 安装成功，提示登录
+            }, function(){
+                tips.close();
             });
         });
         if(fast == 2) $(".step-box.user .form-save-button").click();
@@ -292,16 +299,17 @@
         }, 1000);
     }
 
-    var request = function(url, data, callback, start){
+    var request = function(url, data, callback, callbackError){
+		// 兼容处理: https://qastack.cn/programming/26261001/warning-about-http-raw-post-data-being-deprecated 
+		data = data || {};
+		data._installTime = time();
         $.ajax({
             url:API_HOST + url,
             data:data,
             type: 'POST',
             dataType:'json',
-            beforeSend: function(){
-                if(typeof start != 'undefined') start();
-            },
             error: function (xhr, textStatus, errorThrown) {
+                if(callbackError) callbackError();
                 var error = xhr.responseText;
                 var dialog = $.dialog.list['ajaxErrorDialog'];
                 if(error && !_.trim(error)) return;// 有内容,但内容为空白则不处理;

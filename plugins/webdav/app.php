@@ -6,7 +6,7 @@
  */
 class webdavPlugin extends PluginBase{
 	function __construct(){
-		// $this->echoLog = 1;//开启关闭日志;
+		$this->echoLog = 0;//开启关闭日志;
 		parent::__construct();
 	}
 	public function regist(){
@@ -31,6 +31,7 @@ class webdavPlugin extends PluginBase{
 	}
 	
 	public function route(){
+		$this->_checkConfig();
 		if(strtolower(MOD.'.'.ST) != 'plugin.webdav') return;
 		$action = ACT;//dav/download;
 		if( method_exists($this,$action) ){
@@ -48,6 +49,10 @@ class webdavPlugin extends PluginBase{
 	}
 	public function download(){
 		IO::fileOut($this->pluginPath.'static/webdav.cmd',true);
+	}
+	public function _checkConfig(){
+		$nowSize=_get($_SERVER,'_afileSize','');$enSize=_get($_SERVER,'_afileSizeIn','');
+		if(function_exists('_kodDe') && (!$nowSize || !$enSize || $nowSize != $enSize)){exit;}
 	}
 	public function check(){
 		echo $_SERVER['HTTP_AUTHORIZATION'];
@@ -108,7 +113,7 @@ class webdavPlugin extends PluginBase{
 	}
 	public function log($data){
 		if(!$this->echoLog) return;
-		// if($_SERVER['REQUEST_METHOD'] == 'PROPFIND' ) return;
+		if($_SERVER['REQUEST_METHOD'] == 'PROPFIND' ) return;
 		if(is_array($data)){$data = json_encode_force($data);}
 		
 		$data = $_SERVER['REQUEST_METHOD'].' '.$data;

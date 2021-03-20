@@ -29,8 +29,8 @@ class kodWebDav extends HttpDavServer {
 		$userInfo = Session::get("kodUser");
 	    if(!$userInfo || !is_array($userInfo)){
     	    $user = HttpAuth::get();
-    	    $this->plugin->log($user);
     		$find = ActionCall('user.index.userInfo', $user['user'],$user['pass']);
+			$this->plugin->log(array($user,$find));
     		if ( !is_array($find) || !isset($find['userID']) ){
     			return HttpAuth::error();
     		}
@@ -65,6 +65,7 @@ class kodWebDav extends HttpDavServer {
 		$pathAppend = implode('/',array_slice($pathArr,1));
 		$newPath = KodIO::clear($item['path'].'/'.$pathAppend);
 		$info = IO::infoFull($newPath);
+		// pr($newPath,$item,$pathArr,$info,count($parent['folderList']));
 		if($info) return $info['path'];
 
 		$parent = Action('explorer.list')->path($item['path']);
@@ -116,12 +117,15 @@ class kodWebDav extends HttpDavServer {
 		if($pathParse['type'] != KodIO::KOD_SEARCH){
 			$GLOBALS['in']['pageNum'] = -1;
 		}
-		// write_log([$path,$pathParse,$GLOBALS['in']],'test');
-		
+		// write_log([$path,$pathParse,$GLOBALS['in']],'test');		
 		return Action('explorer.list')->path($path);
 	}
 	
 	public function pathMkdir($path){
+		if(!$path){ //收藏夹下的文件夹;
+			$inPath  = $this->pathGet();
+			$path = $this->parsePath(IO::pathFather($inPath)).'/'.IO::pathThis($inPath);
+		}
 		if(!$this->can($path,'edit')) return false;
 		return IO::mkdir($path);
 	}
@@ -150,6 +154,10 @@ class kodWebDav extends HttpDavServer {
 	}	
 	
 	public function pathPut($path,$localFile=''){
+		if(!$path){ //收藏夹下的文件夹;
+			$inPath  = $this->pathGet();
+			$path = $this->parsePath(IO::pathFather($inPath)).'/'.IO::pathThis($inPath);
+		}
 		$info = IO::infoFull($path);
 		if($info){	// 文件已存在; 则使用文件父目录追加文件名;
 			$name 		= IO::pathThis($this->pathGet());

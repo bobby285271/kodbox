@@ -663,8 +663,8 @@ class RequestCore
         // } else {
         //     curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, false);
         //     curl_setopt($curl_handle, CURLOPT_SSL_VERIFYHOST, false);
-		// }
-		// 默认不验证https证书;
+        // }
+        // 默认不验证https证书;
 		curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, false);
 		curl_setopt($curl_handle, CURLOPT_SSL_VERIFYHOST, false);
 
@@ -715,6 +715,8 @@ class RequestCore
                 $temp_headers[] = $k . ': ' . $v;
             }
 
+            // fix "Expect: 100-continue"
+            $temp_headers[] = 'Expect:';
             curl_setopt($curl_handle, CURLOPT_HTTPHEADER, $temp_headers);
         }
 
@@ -840,11 +842,16 @@ class RequestCore
     {
         set_time_limit(0);
 
-		$curl_handle = $this->prep_request();
-		curl_setopt($curl_handle, CURLOPT_NOPROGRESS, false);//add by warlee;
-		curl_setopt($curl_handle, CURLOPT_PROGRESSFUNCTION,'curl_progress');curl_progress_start($curl_handle);
-		$this->response = curl_exec($curl_handle);curl_progress_end($curl_handle);
-				
+        $curl_handle = $this->prep_request();
+
+		//add by warlee;
+		$theCurl = $curl_handle;
+		curl_setopt($theCurl, CURLOPT_NOPROGRESS, false);
+		curl_setopt($theCurl, CURLOPT_PROGRESSFUNCTION,'curl_progress');
+		$theResult = curl_progress_start($theCurl);
+		if(!$theResult){$theResult = curl_exec($theCurl);curl_progress_end($theCurl,$theResult);}
+		$curl_handle = $theCurl;$this->response = $theResult;
+
         if ($this->response === false) {
             throw new RequestCore_Exception('cURL resource: ' . (string)$curl_handle . '; cURL error: ' . curl_error($curl_handle) . ' (' . curl_errno($curl_handle) . ')');
         }

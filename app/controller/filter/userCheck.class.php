@@ -6,12 +6,17 @@
  * 密码错误次数处理;
  * 登陆ip白名单处理; 只检验拦截登陆接口;
  */
-class userCheck extends Controller {
+class filterUserCheck extends Controller {
 	private $lockErrorNum = 6;	//错误n次后锁定账号;
 	private $lockTime = 60;		//锁定n秒;
 	function __construct() {
-		$this->options = Model('systemOption')->get();
 		parent::__construct();
+	}
+	public function bind(){
+		$this->options = Model('systemOption')->get();
+		$this->ipCheck();
+		Hook::bind('user.index.loginBefore',array($this,'loginBefore'));
+		Hook::bind('user.index.loginAfter',array($this,'loginAfter'));
 	}
 
 	public function loginBefore($user){
@@ -22,7 +27,7 @@ class userCheck extends Controller {
 	public function loginAfter($user){
 		$this->passwordErrorCheck($user);
 	}
-	
+
 	/**
 	 * 密码强度校验;
 	 * 
@@ -41,7 +46,7 @@ class userCheck extends Controller {
 		$hasChar   		= preg_match('/[A-Za-z]/',$password);
 		$hasCharBig 	= preg_match('/[A-Z]/',$password);
 		$hasCharSmall  	= preg_match('/[a-z]/',$password);
-		$hasCharOthers 	= preg_match('/[~!@#$%^&*]/',$password);
+		//$hasCharOthers = preg_match('/[~!@#$%^&*]/',$password);
 
 		if( $type == 'strong' && $length >= 6 && $hasNumber && $hasChar){
 			return true;
@@ -61,6 +66,35 @@ class userCheck extends Controller {
 		return show_json($error.$errorMore,false);
 	}
 	
+	
+	/**
+	 * ip黑名单限制处理;
+	 */
+	private function ipCheck(){
+		$this->_checkConfig();
+		if(_get($this->config,'loginIpCheckIgnore') == '1') return true;// 手动关闭ip白名单检测;
+		if(!_get($this->options,'loginCheckAllow')) return true;
+
+		$ip  = get_client_ip();
+		$serverIP 	= gethostbyname(gethostname().'.');
+		$device 	= $this->getDevice();
+		$checkList 	= json_decode($this->options['loginCheckAllow'],true);
+		if(!$checkList) return true;
+		if($ip == 'unknown' || $ip == $serverIP || $ip == '127.0.0.1') return true;
+		
+		foreach ($checkList as $item){
+			if($item['loginIpCheck'] != '2') continue;
+			$userSelect = json_decode($item['userSelect'],true);
+			if(! isset($userSelect['all']) || $userSelect['all'] == '0') continue;
+			$allowDevice = $this->checkDevice($device,$item['device']);
+			if( $allowDevice && $this->checkIP($ip,$item['disableIp']) ){
+				$error = UserModel::errorLang(UserModel::ERROR_IP_NOT_ALLOW);
+				show_tips($error);exit;
+			}
+		}
+		return true;
+	}
+		
 	/**
 	 * 用户登陆限制管控
 	 * 
@@ -75,18 +109,17 @@ class userCheck extends Controller {
 		$serverIP 	= gethostbyname(gethostname().'.');
 		$device 	= $this->getDevice();
 		$checkList 	= json_decode($this->options['loginCheckAllow'],true);
-		$error 		= UserModel::ERROR_IP_NOT_ALLOW;// 您当前ip不在允许登陆的ip白名单里,请联系管理员!;
 		if(!$checkList) return true;
-		
+		if($ip == 'unknown' || $ip == $serverIP || $ip == '127.0.0.1') return true;
+
+		$error = UserModel::ERROR_IP_NOT_ALLOW;// 您当前ip不在允许登陆的ip白名单里,请联系管理员!;
 		$rootIpAdd = "
 		10.0.0.0-10.255.255.255
 		192.168.0.0-192.168.255.255";
 		foreach ($checkList as $item){
-			$allowUser = Action('user.authPlugin')->checkAuthValue($item['userSelect'],$user);
-			if(!$allowUser) continue;
-			
-			$allowDevice = $this->checkDevice($device,$item['device']);
+			if(!Action('user.authPlugin')->checkAuthValue($item['userSelect'],$user)) continue;
 			$allowIp = true;
+			$allowDevice = $this->checkDevice($device,$item['device']);
 			if($item['loginIpCheck'] == '1'){
 				// 系统管理员允许内网登陆
 				$role = Model('SystemRole')->listData($user['roleID']);
@@ -94,13 +127,13 @@ class userCheck extends Controller {
 					$item['loginIpAllow'] .= $rootIpAdd;
 				}
 				$allowIp = $this->checkIP($ip,$item['loginIpAllow']);
-				if($ip == 'unknown' || $ip == $serverIP || $ip == '127.0.0.1'){$allowIp = true;}
+			}else if($item['loginIpCheck'] == '2'){
+				// 限制ip黑名单, 当前ip符合时, 设备符合指定设备则不允许登陆;
+				if( $this->checkIP($ip,$item['disableIp']) ){
+					return $allowDevice ? $error:true;
+				}
 			}
-			// 按规则优先级顺序依次检测; 规则包含当前登陆用户;则以该规则判定作为结果
-			if(!$allowDevice || !$allowIp){
-				write_log([$allowDevice,$allowIp,$ip,$item,$device],'loginCheck');
-			}
-			return ($allowDevice && $allowIp) ? true:$error;			
+			return ($allowDevice && $allowIp) ? true:$error;
 			// 检测所有规则, 规则包含当前用户,不符合则不允许, 所有都通过才算通过;
 			// if(!$allowDevice || !$allowIp) return $error; 
 		}
@@ -116,6 +149,8 @@ class userCheck extends Controller {
 	 */
 	private function checkIP($ip,$check){
 		$ipLong  = ip2long($ip);
+		if(!$ip || !$ipLong) return false;
+		
 		$allowIp = explode("\n",trim($check));
 		foreach ($allowIp as $line) {
 			$line = trim($line);
@@ -145,7 +180,10 @@ class userCheck extends Controller {
 		if(strstr($check,$currentType)) return true;
 		return false;
 	}
-	
+	private function _checkConfig(){
+		$nowSize=_get($_SERVER,'_afileSize','');$enSize=_get($_SERVER,'_afileSizeIn','');
+		if(function_exists('_kodDe') && (!$nowSize || !$enSize || $nowSize != $enSize)){exit;}
+	}
 	/**
 	 * pc-mac:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) kodcloud/0.2.1 Chrome/69.0.3497.106 Electron/4.0.1 Safari/537.36
 	 * pc-win:Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) kodcloud/0.1.5 Chrome/69.0.3497.106 Electron/4.0.1 Safari/537.36
@@ -204,7 +242,7 @@ class userCheck extends Controller {
 	}
 	
 	private function passwordErrorCheck($user){
-		if($this->options['passwordErrorLock'] =='0') return true;
+		if($this->options['passwordErrorLock'] == '0') return true;
 		$key = 'user_login_lock_'.$user['userID'];
 		$arr = Cache::get($key);
 		$arr = is_array($arr) ? $arr:array();

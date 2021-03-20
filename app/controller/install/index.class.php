@@ -3,7 +3,6 @@
 /**
  * 初始化项目基础数据
  * 需先创建数据库，建表，并配置好config/setting_user.php
- * server/index.php?install/index/index
  */
 class installIndex extends Controller {
     public $roleID;
@@ -45,7 +44,7 @@ class installIndex extends Controller {
                 "kod"	=> array(
                     'systemOS'		=> $this->config['systemOS'],
                     'phpVersion'	=> PHP_VERSION,
-                    'appApi'		=> rtrim(APP_HOST,'/').'/index.php?',
+                    'appApi'		=> APP_HOST.'/index.php?',
                     'APP_HOST'		=> APP_HOST,
                     'ENV_DEV'		=> !!STATIC_DEV,
                     'staticPath'	=> STATIC_PATH,
@@ -201,7 +200,7 @@ class installIndex extends Controller {
             if(!path_writeable($value)) $pathWrt = false;
             break;
         }
-        $env['path_writable'] = $pathWrt || rtrim(BASIC_PATH, '/');
+        $env['path_writable'] = $pathWrt ? $pathWrt : rtrim(BASIC_PATH, '/');
         show_json($env);
     }
 
@@ -232,6 +231,7 @@ class installIndex extends Controller {
         // 1.2 连接数据库
         // 如果用include引入配置文件，$config的值会是上次请求的（？），所以直接用$data赋值
         $GLOBALS['config']['database'] = $data;
+        
         // $GLOBALS['config']['cache']['sessionType'] = $cacheType;
         // $GLOBALS['config']['cache']['cacheType'] = $cacheType;
         think_config($GLOBALS['config']['databaseDefault']);
@@ -240,8 +240,9 @@ class installIndex extends Controller {
         Cache::initReset();
         Cache::remove($this->dbWasSet);
         if($this->dbType == 'mysql'){
-            $data['DB_NAME'] = '';  // mysql连接，先不指定数据库，配置错误时会报错
-            think_config($data);
+            // mysql连接，先不指定数据库，配置错误时会报错
+            $GLOBALS['config']['database']['DB_NAME'] = '';
+            think_config($GLOBALS['config']['database']);
             $db = Model()->db();
             $dbexist = $db->execute("show databases like '{$dbName}'");
         }
@@ -250,7 +251,7 @@ class installIndex extends Controller {
         // 判断所需缓存配置是否有效——redis、memcached
         if(in_array($cacheType, array('redis', 'memcached'))){
             if(!extension_loaded($cacheType)){
-                show_json(sprintf(LNG('common.env.invalidExt'), "php-[{$cacheType}]"), false);
+                show_json(sprintf(LNG('common.env.invalidExt'), "[php-{$cacheType}]"), false);
             }
             $type = ucfirst($cacheType);
             $handle = new $type();
@@ -314,7 +315,7 @@ class installIndex extends Controller {
         if(!@file_exists($file)) @touch($file);
         $content = file_get_contents($file);
 		$pre = '';
-		if(stripos(trim($content),"<?php") > -1) {
+		if(stripos(trim($content),"<?php") !== false) {
             $pre = PHP_EOL;
             unset($text[0]);
         }

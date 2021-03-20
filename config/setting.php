@@ -46,8 +46,6 @@ $config['settings'] = array(
 );
 $config['settings']['searchContent'] = 1;
 $config['settings']['searchMutil'] = 1;
-
-
 $config["ADMIN_ALLOW_IO"] = 1;		//其他部门or用户目录操作开关，仅限管理员
 $config["ADMIN_ALLOW_SOURCE"] = 1;	//物理路径操作开关，仅限管理员
 
@@ -59,6 +57,23 @@ if($config['systemOS'] == 'windows'){
 if(strstr($_SERVER['SERVER_SOFTWARE'],'-IIS')){
 	$config['settings']['upload']['sendAsBinary'] = 0;
 }
+
+// 系统使用配置;
+$config['systemOption'] = array(
+	'favNumberMax'				=> 1000, 		// 收藏夹添加数量上限
+	'tagNumberMax'				=> 1000, 		// 标签创建数量上限
+	'tagContainMax'				=> 1000, 		// 标签中内容最大数
+
+	'fileNameLengthMax'			=> 256, 		// 文件名最大长度
+	'fileDescLengthMax'			=> 1000, 		// 文件描述最大长度
+	'historyDescLengthMax'		=> 500, 		// 文件版本说明最大长度
+	
+	// 请求限制;
+	'requestPerMinuteMax'  		=> 0,			// 每分钟最大请求数;0不限制; 推荐:600,300个则每秒5个,每5秒25个, 25个内小于5s
+	'requestAllowPerMinuteMax' 	=> 0,			// 允许的接口每分钟最大请求数;0不限制;推荐:3000, 高频次接口(upload/mkdir/list)
+	'userTaskAllowMax'			=> 0, 			// 每个用户允许的长任务个数;0不限制, 推荐50, 管理员不受限制; 占用独立进程;
+);
+
 
 // database/file/redis/memcached
 $config['cache'] = array(
@@ -132,17 +147,6 @@ $config['settings']['appType'] = array(
 $config['defaultPlugins'] = array(
 	'adminer','DPlayer','imageExif','jPlayer','officeLive','photoSwipe','picasa','pdfjs',
 	'simpleClock','toolsCommon','VLCPlayer','webodf','yzOffice','webdav',
-);
-
-// 系统使用配置;
-$config['systemOption'] = array(
-	'favNumberMax'			=> 1000, 			// 收藏夹添加数量上限
-	'tagNumberMax'			=> 1000, 			// 标签创建数量上限
-	'tagContainMax'			=> 1000, 			// 标签中内容最大数
-	
-	'fileNameLengthMax'		=> 2000, 			// 文件名最大长度
-	'fileDescLengthMax'		=> 1000, 			// 文件描述最大长度
-	'historyDescLengthMax'	=> 500, 			// 文件版本说明最大长度
 );
 
 //初始化系统配置
@@ -397,11 +401,15 @@ $config['authAllowAction'] = array(
 	'explorer.fav.get',
 	'explorer.index.pathInfo',
 	'explorer.lightApp.get',
-	'explorer.list.path','explorer.index.desktopApp',
+	'explorer.list.path',
+	'explorer.index.desktopApp',
 	'explorer.userShare.get',
 	'explorer.userShare.myShare',
+	'explorer.userShare.shareDisplay',
+
 	'user.setting.notice',
-	'user.setting.taskList','user.setting.taskAction',
+	'user.setting.taskList','user.setting.taskKillAll','user.setting.taskAction',
+	'user.setting.userChart','user.setting.userLog','user.setting.userDevice',
 	
 	//临时，搜索分享中使用; 设置用户权限or设置用户部门；
 	'admin.role.get','admin.job.get','admin.auth.get',
@@ -437,7 +445,7 @@ $config['authRoleAction']= array(
 	'explorer.zip'			=> array('explorer.index'=>'zip,zipDownload'),
 
 	'user.edit'				=> array(
-		'user.setting'	=> 'setConfig,setUserInfo,setHeadImage,uploadHeadImage,userChart,userLog,userLogLogin,userDevice',
+		'user.setting'	=> 'setConfig,setUserInfo,setHeadImage,uploadHeadImage',
 		// 'user.bind'		=> 'bindApi,bindMetaInfo,oauth,bindWithApp', //被全开放了, 构造函数中自行权限检测;
 	),
 	'user.fav' => array(
@@ -449,9 +457,8 @@ $config['authRoleAction']= array(
 	'admin.index.setting'	=> array('admin.setting'=>'get,set,clearCache,phpInfo'),
 	'admin.index.loginLog'	=> array('admin.log'=>'loginLogList'),
 	'admin.index.log'		=> array('admin.log'=>'get,typelist'),
-	'admin.index.server'	=> array('admin.setting'=>'cacheGet,cacheCheck,cacheSave'),
-	// 'admin.index.server'	=> array('admin.setting'=>'server'),
-	
+	'admin.index.server'	=> array('admin.setting'=>'server'),
+
 	'admin.role.list'		=> array('admin.role'=>'get'),
 	'admin.role.edit'		=> array('admin.role'=>'add,edit,remove,sort'),
 	'admin.job.list'		=> array('admin.job'=>'get'),

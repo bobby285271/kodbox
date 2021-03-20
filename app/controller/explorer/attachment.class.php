@@ -62,8 +62,6 @@ class explorerAttachment extends Controller{
 		if(!in_array($ext,$this->imageExt)){
 			show_json("only support image",false);
 		}
-
-		$GLOBALS['UPLOAD_ATTACHMENT'] = 1; // 输出文档属性及外链;
 		$this->in['name'] = date("YmdHi").rand_string(6).'.'.$ext;
 		$this->in['path'] = KodIO::systemFolder('attachmentTemp/');
 		Action('explorer.upload')->fileUpload();
@@ -134,7 +132,6 @@ class explorerAttachment extends Controller{
 			//url解析替换;
 			if($imageParse['linkNew'] && $imageSrc != $imageParse['linkNew']){
 				$replace[$imageHtml] = str_replace($imageSrc,$imageParse['linkNew'],$imageHtml);
-				// var_dump([$replace,$imageHtml,$imageSrc,$imageParse]);
 			}
 		}
 		$sourceArr  = array_unique($sourceArr);

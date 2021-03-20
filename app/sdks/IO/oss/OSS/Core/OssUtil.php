@@ -145,7 +145,7 @@ class OssUtil
     public static function validateObject($object)
     {
         $pattern = '/^.{1,1023}$/';
-        if (empty($object) || !preg_match($pattern, $object) ||
+        if (!preg_match($pattern, $object) ||
             self::startsWith($object, '/') || self::startsWith($object, '\\')
         ) {
             return false;
@@ -223,6 +223,8 @@ class OssUtil
     public static function throwOssExceptionWithMessageIfEmpty($name, $errMsg)
     {
         if (empty($name)) {
+            if (is_string($name) && $name == '0')
+                return;
             throw new OssException($errMsg);
         }
     }
@@ -363,6 +365,47 @@ BBB;
     }
 
     /**
+     * Get the host:port from endpoint.
+     *
+     * @param string $endpoint the endpoint.
+     * @return boolean
+     */
+    public static function getHostPortFromEndpoint($endpoint)
+    {
+        $str = $endpoint;
+        $pos = strpos($str, "://");
+        if ($pos !== false) {
+            $str = substr($str, $pos+3);
+        }
+    
+        $pos = strpos($str, '#');
+        if ($pos !== false) {
+            $str = substr($str, 0, $pos);
+        }
+    
+        $pos = strpos($str, '?');
+        if ($pos !== false) {
+            $str = substr($str, 0, $pos);
+        }
+    
+        $pos = strpos($str, '/');
+        if ($pos !== false) {
+            $str = substr($str, 0, $pos);
+        }
+    
+        $pos = strpos($str, '@');
+        if ($pos !== false) {
+            $str = substr($str, $pos+1);
+        }
+       
+        if (!preg_match('/^[\w.-]+(:[0-9]+)?$/', $str)) {
+            throw new OssException("endpoint is invalid:" . $endpoint);
+        }
+
+        return $str;
+    }
+
+    /**
      * Generate the xml message of DeleteMultiObjects.
      *
      * @param string[] $objects
@@ -377,6 +420,28 @@ BBB;
             $sub_object = $xml->addChild('Object');
             $object = OssUtil::sReplace($object);
             $sub_object->addChild('Key', $object);
+        }
+        return $xml->asXML();
+    }
+
+    /**
+     * Generate the xml message of DeleteMultiObjects.
+     *
+     * @param DeleteObjectInfo[] $objects
+     * @param bool $quiet
+     * @return string
+     */
+    public static function createDeleteObjectVersionsXmlBody($objects, $quiet)
+    {
+        $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="utf-8"?><Delete></Delete>');
+        $xml->addChild('Quiet', $quiet);
+        foreach ($objects as $object) {
+            $sub_object = $xml->addChild('Object');
+            $key = OssUtil::sReplace($object->getKey());
+            $sub_object->addChild('Key', $key);
+            if (!empty($object->getVersionId())) {
+                $sub_object->addChild('VersionId', $object->getVersionId());
+            }
         }
         return $xml->asXML();
     }

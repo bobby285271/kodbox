@@ -362,14 +362,14 @@ class userBind extends Controller {
 
 		// 2.1 发送邮件
 		if ($type == 'email') {
-			$res = $this->sendEmail('email_bind', array('address' => $data['input']));
+			$res = $this->sendEmail($data['input'], 'email_bind');
 			if (!$res['code']) {
 				show_json(LNG('user.sendFail') . ': ' . $res['data'], false);
 			}
 		}
 		// 2.2 发送短信
 		if ($type == 'phone') {
-			$res = $this->sendSms('phone_bind', $data['input']);
+			$res = $this->sendSms($data['input'], 'phone_bind');
 			if (!$res['code']) {
 				show_json(LNG('user.sendFail') . ': ' . $res['data'], false);
 			}
@@ -385,146 +385,43 @@ class userBind extends Controller {
 	}
 
 	/**
-	 * 发送邮件
-	 * @param type $type
-	 * @param type $param
-	 * @return type
+	 * 发送(验证码)邮件
+	 * @param [type] $input
+	 * @param [type] $action
+	 * @return void
 	 */
-	public function sendEmail($type, $param) {
-		if (is_string($param)) {
-			$param = array('address' => $param);
-		}
-		if (!Input::check($param['address'], 'email')) {
-			return array('code' => false, 'data' => LNG('common.invalidFormat'));
-		}
-		// 邮件发送方式:0.系统默认;1.自定义
-		if (isset($param['emailType'])) {
-			$emailType = $param['emailType'];
-		} else {
-			$emailType = Model('SystemOption')->get('emailType');
-		}
-		// 自定义发送
-		if ((int) $emailType) {
-			return $this->sendEmailCustom($param);
-		}
-		// 系统默认发送
-		return $this->sendEmailSystem($type, $param);
+	public function sendEmail($input, $action) {
+		$systemName = Model('SystemOption')->get('systemName');
+		$data = array(
+			'type'		=> 'email',
+			'input'		=> $input,
+			'action'	=> $action,
+			'config'	=> array(
+				'address'	=> $input,
+				'subject'	=> "[{$systemName}]" . LNG('user.emailVerify'),
+				'content'	=> array(
+					'type' => 'code', 
+					'data' => array('code' => rand_string(6))
+				),
+				'signature'	=> $systemName,
+			)
+		);
+		return Action('user.msg')->send($data);
 	}
 
 	/**
-	 * 发送邮件-自定义(邮件服务器)
-	 * @param type $param
-	 * @return type
+	 * 发送(验证码)短信
+	 * @param [type] $input
+	 * @param [type] $action
+	 * @return void
 	 */
-	private function sendEmailCustom($param) {
-		// 内容为空,则默认为发送验证码
-		if (isset($param['content'])) {
-			$content = $param['content'];
-		} else {
-			$content = array(
-				'type'	 => 'code',
-				'data'	 => array()
-			);
-		}
-		// 如果是发送验证码,在这里生成,发送成功再返回code值
-		if ($content['type'] == 'code') {
-			$content['data']['code'] = rand_string(6);
-		}
-		// 发送测试——提供邮件服务器账号信息
-		$tmp = array();
-		if (isset($param['test'])) {
-			$tmp = array(
-				'host'		 => $param['host'],
-				'email'		 => $param['email'],
-				'password'	 => $param['password'],
-			);
-		}
-		// 参数拼接
-		$systemName = Model('SystemOption')->get('systemName'); // 签名-系统名称
-		$subject = isset($param['subject']) ? $param['subject'] : LNG('user.emailVerify'); // 主题
+	public function sendSms($input, $action) {
 		$data = array(
-			'address'	 => $param['address'], // 收件人
-			'subject'	 => "[{$systemName}]" . $subject, // 主题
-			'content'	 => $this->emailContent($content), // 内容
-			'signature'  => $systemName,
-			'html'		 => 1
+			'type'		=> 'sms',
+			'input'		=> $input,
+			'action'	=> $action
 		);
-		// 邮件发送
-		$mail = new Mailer();
-		$res = $mail->send(array_merge($tmp, $data));
-		if ($res['code']) $res['data'] = $content['data']['code'];
-		return $res;
-	}
-
-	/**
-	 * 发送邮件-系统默认(邮件服务器)
-	 * @param type $type
-	 * @param type $param
-	 * @return type
-	 */
-	private function sendEmailSystem($type, $param) {
-		$data = array(
-			'type'		 => $type,
-			'input'		 => $param['address'], // 邮箱or手机
-			'language'	 => i18n::getType(),
-			'signature'	 => Model('SystemOption')->get('systemName')
-		);
-		return $this->apiRequest('email', $data);
-	}
-
-	/**
-	 * 生成邮件内容 (html)
-	 * @param type $content
-	 * @return type
-	 */
-	public function emailContent($content) {
-		$tmp = array(
-			'code'		 => isset($content['data']['code']) ? $content['data']['code'] : '',
-			'url'		 => isset($content['data']['url']) ? $content['data']['url'] : '',
-			'systemName' => isset($content['data']['systemName']) ? $content['data']['systemName'] :Model('SystemOption')->get('systemName'),
-			'nickname'	 => isset($content['data']['nickname']) ? $content['data']['nickname'] : '',
-			'date'		 => date("Y-m-d"),
-		);
-		$type = $content['type'];
-
-		$data = array(
-			'type'		=> $type,
-			'dear'		=> LNG('admin.dearUser'),
-			'codeDesc'	=> sprintf(LNG('admin.emailThxUse'), $tmp['systemName']) . LNG('admin.emailVerifyCode'),
-			'code'		=> $tmp['code'],
-			'codeTips'	=> LNG('admin.emailVerifyInTime'),
-			'dearName'	=> LNG('admin.dear') . $tmp['nickname'],
-			'linkDesc'	=> sprintf(LNG('admin.emailResetLink'), $tmp['systemName']),
-			'link'		=> $tmp['url'],
-			'linkTips'	=> LNG('admin.emailExpireTime'),
-			'name'		=> $tmp['systemName'],
-			'date'		=> $tmp['date'],
-		);
-		ob_end_clean();
-		ob_start();
-		extract(array('data' => $data));
-		require(TEMPLATE . '/user/email.html');
-		$html = ob_get_contents();
-		ob_end_clean();
-		return $html;
-	}
-
-	/**
-	 * 通过kod api发送(验证码)短信
-	 * @param type $type
-	 * @param type $phone
-	 * @return type
-	 */
-	public function sendSms($type, $phone) {
-		if (!Input::check($phone, 'phone')) {
-			return array('code' => false, 'data' => LNG('common.invalidFormat'));
-		}
-		$data = array(
-			'type'		 => $type,
-			'input'		 => $phone, // 邮箱or手机
-			'language'	 => i18n::getType(),
-		);
-		return $this->apiRequest('sms', $data);
+		return Action('user.msg')->send($data);
 	}
 
 	/**
@@ -533,7 +430,7 @@ class userBind extends Controller {
 	 * @param type $data
 	 * @return type
 	 */
-	private function apiRequest($type, $data = array()) {
+	public function apiRequest($type, $data = array()) {
 		$kodid = md5(BASIC_PATH . Model('SystemOption')->get('systemPassword'));
 		$post = array(
 			'type'		 => $type,

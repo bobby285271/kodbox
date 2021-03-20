@@ -44,14 +44,20 @@ class explorerShare extends Controller{
 		if(!$path || !$info = IO::info($path)) return;
 		$pass = Model('SystemOption')->get('systemPassword');
 		$hash = Mcrypt::encode($info['path'],$pass);
-		return APP_HOST . "index.php?explorer/share/file&hash={$hash}&name=".rawurlencode($info['name']);
+		return app_host_get()."explorer/share/file&hash={$hash}&name=".rawurlencode($info['name']);
 	}
+	public function linkFile($file){
+		$pass = Model('SystemOption')->get('systemPassword');
+		$hash = Mcrypt::encode($file,$pass,false,'kodcloud');
+		return app_host_get()."explorer/share/file&hash={$hash}";
+	}
+	
 	public function linkOut($path,$token=false){
 		$parse  = KodIO::parse($path);
 		if($parse['type'] == KodIO::KOD_SHARE_LINK){
-			$url = APP_HOST . "index.php?explorer/share/fileOut&path=".rawurlencode($path);
+			$url = app_host_get() . "explorer/share/fileOut&path=".rawurlencode($path);
 		}else{
-			$url = APP_HOST . "index.php?explorer/index/fileOut&path=".rawurlencode($path);
+			$url = app_host_get() . "explorer/index/fileOut&path=".rawurlencode($path);
 		}
 		if($token) $url .= '&accessToken='.Action('user.index')->accessToken();
 		return $url;
@@ -252,7 +258,7 @@ class explorerShare extends Controller{
 
 	//输出文件
 	public function fileOut(){
-		$path = $this->in['path'];
+		$path = rawurldecode($this->in['path']);//允许中文空格等;
 		if(request_url_safe($path)) {
 			header('Location:' . $path);exit;
 		} 
@@ -271,6 +277,7 @@ class explorerShare extends Controller{
 	}
 	public function fileGet(){
 		$this->in['path'] = $this->parsePath($this->in['path']);
+		$this->in['pageNum'] = 1024 * 1024 * 10;
 		$result = ActionCallHook("explorer.editor.fileGet");
 		if($result['code']){
 			$result['data'] = $this->itemInfo($result['data']);
@@ -379,7 +386,7 @@ class explorerShare extends Controller{
 		$field = array(
 			'name','path','type','size','ext',
 			'createUser','modifyUser','createTime','modifyTime','sourceID',
-			'hasFolder','hasFile','children','targetType','targetID',			
+			'hasFolder','hasFile','children','targetType','targetID','pageInfo',
 			'base64','content','charset','oexeContent',
 		);
 		$theItem = array_field_key($item,$field);

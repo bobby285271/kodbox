@@ -56,25 +56,6 @@ class explorerFav extends Controller{
 		}
 		return $list;
 	}
-	
-	// 是否在收藏夹处理;
-	public function favAppend(&$data){
-		$favList = $this->model->listData();
-		if($favList[0] && !$favList[0]['id']){
-			$this->model->resetCache();
-			$favList = $this->model->listData();
-		}
-		
-		$favList = array_to_keyvalue($favList,'path');
-		foreach ($data as $type =>&$list) {
-			if(!in_array($type,array('fileList','folderList','groupList'))) continue;
-			foreach ($list as $key=>$item){
-				$list[$key] = $this->favAppendItem($item);
-			}
-		}
-		$data['current'] = $this->favAppendItem($data['current']);
-		// $data['favList'] = $favList;pr($data,$favList);exit;
-	}
 	public function favAppendItem($item){
 		static $favList = false;
 		if($favList === false){
@@ -102,14 +83,6 @@ class explorerFav extends Controller{
 		if($item['type'] == 'file'){
 			$item['ext'] = get_path_ext($item['name']);
 		}
-		
-		// 下载权限处理;
-		$item['canDownload'] = true;
-		if(isset($item['auth'])){
-			$authValue = $item['auth']['authValue'];
-			$item['canDownload'] = Model('Auth')->authCheckDownload($authValue);
-		}
-		$item = Hook::filter('explorer.list.itemParse',$item);
 		return $item;
 	}
 

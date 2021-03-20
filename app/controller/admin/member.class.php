@@ -85,13 +85,15 @@ class adminMember extends Controller{
 			"sex" 		=> array("check"=>"require","default"=>""),//0女1男
 			"status" 	=> array("default"=>1),
 		));
-		if( !ActionCall('user.check.password',$data['password']) ){
-			return ActionCall('user.check.passwordTips');
+		if( !ActionCall('filter.userCheck.password',$data['password']) ){
+			return ActionCall('filter.userCheck.passwordTips');
 		}
 		// 1.添加用户
 		$res = $userID = $this->model->userAdd($data);
 		if($res <= 0) return show_json($this->model->errorLang($res),false);
-
+		
+		// 初始化数据,不记录操作日志;
+		Model('SourceEvent')->recodeStop();
 		$groupInfo = json_decode($this->in['groupInfo'],true);
 		if(is_array($groupInfo)){
 			$this->model->userGroupSet($userID,$groupInfo,true);
@@ -108,6 +110,7 @@ class adminMember extends Controller{
 		// 4.添加用户默认轻应用
 		$desktopID = $userInfo['sourceInfo']['desktop'];
 		$this->lightAppDefault($desktopID);
+		Model('SourceEvent')->recodeStart();
 		return show_json(LNG('explorer.success'), true, $userID);
 	}
 
@@ -178,8 +181,8 @@ class adminMember extends Controller{
 			"status" 	=> array("check"=>"require","default"=>null),//0-未启用 1-启用
 		));
 		if( $data['password'] && 
-			!ActionCall('user.check.password',$data['password']) ){
-			return ActionCall('user.check.passwordTips');
+			!ActionCall('filter.userCheck.password',$data['password']) ){
+			return ActionCall('filter.userCheck.passwordTips');
 		}
 		
 		$res = $this->model->userEdit($data['userID'],$data);

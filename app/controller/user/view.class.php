@@ -14,7 +14,7 @@ class userView extends Controller{
 			"kod"	=> array(
 				'systemOS'		=> $this->config['systemOS'],
 				'phpVersion'	=> PHP_VERSION,
-				'appApi'		=> rtrim(APP_HOST,'/').'/index.php?',
+				'appApi'		=> app_host_get(),
 				'APP_HOST'		=> APP_HOST,
 				'ENV_DEV'		=> GLOBAL_DEBUG,
 				'staticPath'	=> STATIC_PATH,
@@ -143,6 +143,8 @@ class userView extends Controller{
 			header('location: https://api.pwmqr.com/qrcode/create/?url='.rawurlencode($url));
 		}
 	}
+	
+	//chrome安装: 必须https;serviceWorker引入处理;manifest配置; [manifest.json配置目录同sw.js引入];
 	public function manifest(){
 		$json   = file_get_contents(LIB_DIR.'template/user/manifest.json');
 		$name   = stristr(I18n::getType(),'zh') ? '可道云':'kodcloud';
@@ -155,5 +157,9 @@ class userView extends Controller{
 		$json = str_replace(array_keys($assign),array_values($assign),$json);
 		header("Content-Type: application/javascript; charset=utf-8");
 		echo $json;
+	}
+	public function manifestJS(){
+		header("Content-Type: application/javascript; charset=utf-8");
+		echo file_get_contents(BASIC_PATH.'static/app/vender/sw.js');
 	}
 }

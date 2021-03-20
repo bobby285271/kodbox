@@ -24,8 +24,11 @@ class explorerAuth extends Controller {
 				'explorer.editor' =>'fileGet'
 			),
 			'download'	=> array('explorer.index'=>'fileDownload'),// 下载/复制;下载/复制/文件预览打印
-			'upload'	=> array('explorer.upload'=>'fileUpload,serverDownload'),
-			'edit'		=> array(
+			'upload'	=> array(
+				'explorer.upload'	=>'fileUpload,serverDownload',
+				'explorer.index'	=>'mkdir,mkfile',
+			),
+			'edit' => array(
 				'explorer.index'	=>'mkdir,mkfile,setDesc,fileSave,pathRename,pathPast,pathCopyTo,pathCuteTo,setMeta',
 				'explorer.editor' 	=>'fileSave'
 			),
@@ -35,6 +38,7 @@ class explorerAuth extends Controller {
 			'event'		=> array('explorer.index'=>'pathLog'),
 			'root'		=> array('explorer.index'=>'setAuth'),
 		);
+		
 		$this->actionCheckSpace = array(//空间大小检测
 			'explorer.upload'	=> 'fileUpload,serverDownload',
 			'explorer.index'	=> 'mkdir,mkfile,fileSave,pathPast,pathCopyTo,pathCuteTo',
@@ -53,11 +57,10 @@ class explorerAuth extends Controller {
 		$this->targetSpaceCheck();//空间大小检测
 		Action('explorer.listGroup')->pathRootCheck($theAction);
 		
-		//直接检测；定义在actionPathCheck中的方法；参数为path，直接检测
-		$actionParse = $this->actionParse();
 		// 多个请求或者包含来源去向的，分别进行权限判别；
 		switch ($theAction) {//小写
-			case 'explorer.index.pathinfo':$this->checkAuthArray('show');break;
+			//自行判断权限,兼容文件关联附件获取信息情况;
+			// case 'explorer.index.pathinfo':$this->checkAuthArray('show');break; 
 			case 'explorer.index.zip':$this->checkAuthArray('edit');break;
 			case 'explorer.index.zipdownload':$this->checkAuthArray('download');break;
 			case 'explorer.index.unzip':
@@ -80,8 +83,20 @@ class explorerAuth extends Controller {
 				$this->canWrite($this->in['path']);
 				break;
 			default:
-				if(isset($actionParse[$theAction])){
-					$this->can($this->in['path'],$actionParse[$theAction]);
+				//直接检测；定义在actionPathCheck中的方法；参数为path，直接检测
+				$actionType = $this->actionParse();
+				if(isset($actionType[$theAction])){
+					$authTypeArr = $actionType[$theAction];
+					$errorNum = 0; // 一个控制器对应多个权限点时; 所有都失败了才算失败;一个成功就算成功;
+					$this->isShowError = false;
+					for ($i=0; $i < count($authTypeArr); $i++) { 
+						$result = $this->can($this->in['path'],$authTypeArr[$i]);
+						$errorNum = $result ? $errorNum: ($errorNum+1);
+					}
+					$this->isShowError = true;
+					if($errorNum == count($authTypeArr)){
+						$this->errorMsg(LNG('explorer.noPermissionAction'),1005);
+					}
 				}
 				break;
 		}
@@ -190,12 +205,17 @@ class explorerAuth extends Controller {
 		//个人挂载目录；跨空间移动复制根据身份处理；
 		if( $ioType == KodIO::KOD_USER_DRIVER ) return true;
 		if( $ioType == KodIO::KOD_SHARE_LINK){
-			$shareAllow = array('view','show','download');
-			$allow = in_array($action,$shareAllow);
-			if( Action('explorer.share')->sharePathInfo($path) && $allow) return true;
+			$shareInfo  = Action('explorer.share')->sharePathInfo($path);
+			if($shareInfo && in_array($action,array('view','show'))) return true;
+			if($shareInfo && $action == 'download' && _get($shareInfo,'option.notDownload') !='1' ) return true;
 			return $this->errorMsg(LNG('explorer.pathNotSupport'),1108);
 		}
-
+		
+		//不支持删除自己的桌面
+		if(trim($path,'/') == trim(MY_DESKTOP,'/') && $action == 'remove'){
+			return $this->errorMsg(LNG('explorer.desktopDelError'),1100);
+		}
+		
 		// 纯虚拟路径只能列表; 不支持其他任何操作;
 		if( $this->pathOnlyShow($path) ){
 			if($action == 'show') return true;
@@ -346,10 +366,14 @@ class explorerAuth extends Controller {
 				$stActions = explode(',',trim($stActions,','));
 				foreach ($stActions as $action) {
 					$fullAction = strtolower($controller.'.'.$action);
-					$actionArray[$fullAction] = $authType;
+					if(!isset($actionArray[$fullAction])){
+						$actionArray[$fullAction] = array();
+					}
+					$actionArray[$fullAction][] = $authType;
 				}
 			}
 		}
+		// pr($actionArray,$this->actionPathCheck);exit;
 		return $actionArray;
 	}
 }

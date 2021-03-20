@@ -44,43 +44,9 @@ class explorerListDriver extends Controller{
 		}
 		return $list;
 	}
-	
-	// 文件列表,某个路径自己分享了,则追加分享信息;
-	public function driverAppend(&$data){
-		foreach ($data as $type =>&$list) {
-			if(!in_array($type,array('fileList','folderList'))) continue;
-			foreach ($list as $key=>$item){
-				$list[$key] = $this->parsePathIO($item);
-			}
-		}
-		$data['current'] = $this->parsePathIO($data['current']);
-	}
-	
-	public function folderChildrenAppend(&$data,$pathParse){
-		$ioAllow = array('Local');	//'Minio'
-		$isLocal = $pathParse['type'] ? false:true;
-		$isIoAllow = in_array($data['current']['ioType'],$ioAllow);
-		if($pathParse['type'] == KodIO::KOD_BLOCK && $pathParse['id'] != 'driver') return;
-		
-		foreach ($data['folderList'] as $key => $item){
-			if(isset($item['hasFolder'])) continue;
 
-			$info = array('hasFolder'=>true,'hasFile'=> true);
-			if($isLocal || $isIoAllow){
-				$info = IO::has($item['path'],1);
-			}else if($pathParse['type'] == KodIO::KOD_USER_FAV){
-				$itemParse = KodIO::parse($item['path']);
-				if(!$itemParse['type']){
-					$info = IO::has($item['path'],1);
-				}
-			}			
-			$item['hasFolder']  = $info['hasFolder'];
-			$item['hasFile']  	= $info['hasFile'];
-			$data['folderList'][$key] = $item;
-		}
-	}
 		
-	public function parsePathIO($info){
+	public function parsePathIO($info,$current=false){
 		if(substr($info['path'],0,4) != '{io:') return $info;
 		static $driverList = false;
 		if ($driverList === false) {
@@ -89,31 +55,60 @@ class explorerListDriver extends Controller{
 		}
 		if(!$driverList) return $info;
 		
+		$isFavPath = false;
+		if(is_array($current) && isset($current['path'])){
+			$isFavPath = trim($current['path'],'/') == KodIO::KOD_USER_FAV;
+		}
+		
 		$parse = KodIO::parse($info['path']);
 		$storage = $driverList[$parse['id']];
-		if($storage){
-			$info['ioType'] = $storage['driver'];
-			$info['pathDisplay'] = str_replace($parse['pathBase'],$storage['name'],$info['path']);
+		if(!$storage) return $info;
 
-			// 根目录;
-			if( !trim($parse['param'],'/') || $info['sourceInfo']['isFav'] ){
-				if(!$info['sourceInfo']['favName']){
-					$info['name'] = $storage['name'];
-				}
-				$info['icon'] = 'io-'.strtolower($storage['driver']);
-				if(isset($storage['config']['domain'])){
-					$info['ioDomain'] = $storage['config']['domain'];
-				}
-				if(isset($storage['config']['bucket'])){
-					$info['ioBucket'] = $storage['config']['bucket'];
-				}
-				if(isset($storage['config']['basePath'])){
-					$info['ioBasePath'] = $storage['config']['basePath'];
-				}
+		$info['isReadable']  = true;
+		$info['isWriteable'] = true;
+		$info['ioType'] = $storage['driver'];
+		$info['pathDisplay'] = str_replace($parse['pathBase'],$storage['name'],$info['path']);
+
+		// 根目录;
+		if( !trim($parse['param'],'/') || $isFavPath ){
+			$info['name'] = $storage['name'];
+			if($isFavPath){
+			    $info['name'] = $info['sourceInfo']['favName'];
+			}
+			$info['icon'] = 'io-'.strtolower($storage['driver']);
+			if(isset($storage['config']['domain'])){
+				$info['ioDomain'] = $storage['config']['domain'];
+			}
+			if(isset($storage['config']['bucket'])){
+				$info['ioBucket'] = $storage['config']['bucket'];
+			}
+			if(isset($storage['config']['basePath'])){
+				$info['ioBasePath'] = $storage['config']['basePath'];
 			}
 		}
 		// pr($storage,$parse,$info,$driverList);exit;
-		return $info;		
+		return $info;
+	}
+	public function parsePathChildren($info,$current){
+		if($info['type'] == 'file' || isset($info['hasFolder']) ) return $info;	
+		$ioAllow = array('Local','MinIO');// 'Local','MinIO'
+		$pathParse = KodIO::parse($current['path']);
+		$isLocal = $pathParse['type'] ? false:true;
+		$isIoAllow = in_array($current['ioType'],$ioAllow);
+		if($pathParse['type'] == KodIO::KOD_BLOCK && $pathParse['id'] != 'driver') return $info;
+
+		$infoMore = array('hasFolder'=>true,'hasFile'=> true);
+		if($isLocal || $isIoAllow){
+			$infoMore = IO::has($info['path'],1);
+		}else if($pathParse['type'] == KodIO::KOD_USER_FAV){
+			$itemParse = KodIO::parse($info['path']);
+			if(!$itemParse['type']){
+				$infoMore = IO::has($info['path'],1);
+			}
+		}
+		$info['hasFolder']  = $infoMore['hasFolder'];
+		$info['hasFile']  	= $infoMore['hasFile'];
+		return $info;
 	}
 
 	

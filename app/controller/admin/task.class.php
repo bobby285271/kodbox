@@ -9,10 +9,7 @@ class adminTask extends Controller {
 
 	public function taskList($userID=false){
 		// Cache::deleteAll();
-		$result  = Task::listData($userID);
-		$list 	 = array_sort_by($list,'timeStart',true);
-		$list    = array_slice($list,0,30);//top 30;
-		
+		$result  = Task::taskListUser($userID);pr($result);
 		$userArr = array_to_keyvalue($result,'','userID');
 		$userArr = Model('User')->userListInfo($userArr);		
 		foreach ($result as $key =>$value) {
@@ -20,11 +17,22 @@ class adminTask extends Controller {
 				timeFloat() - $value['timeUpdate'] >= 10){
 				Task::valueSet($value['id'],false);
 			}
+			if( timeFloat() - $value['timeUpdate'] >= 600 ){
+				Task::valueSet($value['id'],false);//超过10分钟没有更新则删除;
+			}
 			$result[$key]['userInfo'] = $userArr[$value['userID']];
 		}
+		
+		$result = array_slice($result,0,50);//最多50
 		show_json($result,true);
 	}
-	
+	public function taskKillAll($userID=false){
+		$result  = Task::taskListUser($userID);
+		foreach ($result as $item) {
+			Task::kill($item['id']);
+		}
+		$this->taskList($userID);
+	}
 	public function taskAction(){
 		$result = $this->taskActionRun(false);
 		if( !is_array($result['taskInfo']) ){
@@ -51,14 +59,13 @@ class adminTask extends Controller {
 			}
 			return array('result'=>false,'taskInfo'=>false);
 		}
-		
 		switch($param['action']){
 			case 'get':		$result = $taskInfo;break;
 			case 'stop':	$result = Task::stop($param['id']);break;
 			case 'restart':	$result = Task::restart($param['id']);break;
 			case 'kill':	$result = Task::kill($param['id']);break;
-			// case 'killAll':	$result = Task::killAll();break;
+			default:break;
 		}
-		return array('result'=>$result,'taskInfo'=>$taskInfo);;
+		return array('result'=>$result,'taskInfo'=>$taskInfo);
 	}
 }

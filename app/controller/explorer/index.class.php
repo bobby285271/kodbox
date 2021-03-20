@@ -18,28 +18,24 @@ class explorerIndex extends Controller{
 			show_json(LNG('explorer.error'),false);
 		}
 		$result = array();
-		for ($i=0; $i < count($fileList); $i++) {
-			$result[] = $this->itemInfo($fileList[$i]);
-		}
-		if(count($fileList) == 1){
-			$result = $result[0];
-			$result = Model('SourceAuth')->authOwnerApply($result);
+		for ($i=0; $i < count($fileList); $i++){// 处理掉无权限和不存在的内容;
+			if(!Action('explorer.auth')->fileCan($fileList[$i]['path'],'show')) continue;
 			
-			// md5;
-			if( $result['type'] == 'file' && 
-				( $result['size'] <= 50*1024*1024 || $this->in['getMore'] )
-			){
-				$result['hashMd5'] = IO::hashMd5($result['path']);
-			}
+			$itemInfo = $this->itemInfo($fileList[$i]);
+			if($itemInfo){$result[] = $itemInfo;}
+		}
+		if(count($fileList) == 1 && $result){
+			$result = $this->itemInfoMore($result[0]);
 		}
 		$data = !!$result ? $result : LNG('common.pathNotExists');
 		show_json($data,!!$result);
 	}
 	private function itemInfo($item){
 		$path = $item['path'];
-		if($item['type'] == 'full'){
+		$type = _get($item,'type');
+		if($type == 'full'){
 			$result = IO::infoFull($path);
-		}else if($item['type'] == 'simple'){
+		}else if($type == 'simple'){
 			$result = IO::info($path);
 		}else{
 			$result = IO::infoWithChildren($path);
@@ -48,7 +44,20 @@ class explorerIndex extends Controller{
 		if( $result['type'] == 'file' && Action('explorer.auth')->fileCanRead($path)){
 			$result['downloadPath'] = Action('explorer.share')->link($path);
 		}
-		$result = Action('explorer.list')->pathInfoParse($result);
+		$result = Action('explorer.list')->pathInfoParse($result,0,0);
+		return $result;
+	}
+
+	private function itemInfoMore($item){
+		$result = Model('SourceAuth')->authOwnerApply($item);
+		if($result['type'] != 'file') return $item;
+		
+		if( !_get($result,'fileInfo.hashMd5') && 
+			($result['size'] <= 200*1024*1024 || _get($this->in,'getMore') )  ){
+			$result['hashMd5'] = IO::hashMd5($result['path']);
+		}
+		$result = Action('explorer.list')->pathInfoMore($result);
+		// unset($result['fileInfoMore']);GetInfo::infoAdd($result);pr($result);exit;
 		return $result;
 	}
 	
@@ -167,8 +176,9 @@ class explorerIndex extends Controller{
 		    show_json(LNG('explorer.charNoSupport').implode(',',$notAllow),false);
 		}
 		
-		if( strlen($name) > $GLOBALS['config']['systemOption']['fileNameLengthMax'] ){
-			show_json(LNG("common.lengthLimit"),false);
+		$maxLength = $GLOBALS['config']['systemOption']['fileNameLengthMax'];
+		if( strlen($name) > $maxLength ){
+			show_json(LNG("common.lengthLimit")." (max=$maxLength)",false);
 		}
 		return;
 	}
@@ -220,11 +230,6 @@ class explorerIndex extends Controller{
 		$success=0;$error=0;
 		$errorMsg = LNG('explorer.removeFail');
 		foreach ($list as $val) {
-			if($val['path'] == MY_DESKTOP){
-				$error ++;
-				$errorMsg = LNG('explorer.desktopDelError');
-				continue;
-			}
 			$result = Action('explorer.recycleDriver')->removeCheck($val['path'],$toRecycle);
 			$result ? $success ++ : $error ++;
 		}
@@ -239,27 +244,47 @@ class explorerIndex extends Controller{
 	public function recycleDelete(){		
 		$sourceArr = false;
 		$pathArr   = false;
-		if( !_get($this->in,'all') ){
+		if( _get($this->in,'all') ){
+			$recycleList = Model('SourceRecycle')->listData();
+			foreach ($recycleList as $key => $sourceID) {
+				$recycleList[$key] = array("path"=>KodIO::make($sourceID));
+			}
+			$this->taskCopyCheck($recycleList);//彻底删除: children数量获取为0,只能是主任务计数;
+		}else{
 			$sourceArr = $this->parseSource();
 			$pathArr = json_decode($this->in['dataArr'],true);
 			$pathArr = array_to_keyvalue($pathArr,'','path');
+			$this->taskCopyCheck($pathArr);
 		}
-		$this->taskCopyCheck(json_decode($this->in['dataArr'],true));
 		Model('SourceRecycle')->remove($sourceArr);
 		Action('explorer.recycleDriver')->remove($pathArr);
+
+		// 清空回收站时,重新计算大小; 一小时内不再处理;
+		$cacheKey = 'autoReset_'.USER_ID;
+		if(isset($this->in['all']) && time() - intval(Cache::get($cacheKey)) > 60 * 5 ){
+			Cache::set($cacheKey,time());
+			$USER_HOME = KodIO::sourceID(MY_HOME);
+			Model('Source')->folderSizeResetChildren($USER_HOME);
+			Model('Source')->userSpaceReset(USER_ID);
+		}
 		show_json(LNG('explorer.success'));
 	}
 	//回收站还原
 	public function recycleRestore(){
 		$sourceArr = false;
 		$pathArr   = false;
-		if( !_get($this->in,'all') ){
+		if( _get($this->in,'all') ){
+			$recycleList = Model('SourceRecycle')->listData();
+			foreach ($recycleList as $key => $sourceID) {
+				$recycleList[$key] = array("path"=>KodIO::make($sourceID));
+			}
+			$this->taskCopyCheck($recycleList);
+		}else{
 			$sourceArr = $this->parseSource();
 			$pathArr = json_decode($this->in['dataArr'],true);
 			$pathArr = array_to_keyvalue($pathArr,'','path');
-		}
-		
-		$this->taskCopyCheck(json_decode($this->in['dataArr'],true));
+			$this->taskCopyCheck($pathArr);
+		}				
 		Model('SourceRecycle')->restore($sourceArr);
 		Action('explorer.recycleDriver')->restore($pathArr);
 		show_json(LNG('explorer.success'));
@@ -380,10 +405,6 @@ class explorerIndex extends Controller{
 			if($info['option'] && $this->share['options']['notDownload'] == '1'){
 				show_json(LNG('explorer.share.noDownTips'), false);
 			}
-			$storeMax = $GLOBALS['settings']['storeFileNumberMax'];
-			if($info['type'] == 'folder' && $storeMax && $info['children']['fileNum'] > $storeMax){
-				show_json(LNG('explorer.upload.fileSizeDisable'), false);
-			}
 			$list[$i]['path'] = $info['path'];
 			// pr($path,$info);exit;
 		}
@@ -392,6 +413,7 @@ class explorerIndex extends Controller{
 
 	// 文件移动; 耗时任务;
 	private function taskCopyCheck($list){
+		$list = is_array($list) ? $list : array();
 		$defaultID = 'copyMove-'.USER_ID.'-'.rand_string(8);
 		$taskID = $this->in['longTaskID'] ? $this->in['longTaskID']:$defaultID;
 		
@@ -548,7 +570,7 @@ class explorerIndex extends Controller{
 		if(isset($this->in['type']) && $this->in['type'] == 'image'){
 			$info = IO::info($path);
 			$imageThumb = array('jpg','png','jpeg','bmp');
-			if ($info['size'] >= 1024*50 &&
+			if ($info['size'] >= 1024*200 &&
 				function_exists('imagecolorallocate') &&
 				in_array($info['ext'],$imageThumb) 
 			){
@@ -569,10 +591,10 @@ class explorerIndex extends Controller{
 		// 拼接转换相对路径;
 		$io = IO::init($this->in['path']);
 		$parent = $io->getPathOuter($io->pathFather($io->path));
-		$find   = $parent.'/'.$this->in['add'];
+		$find   = $parent.'/'.rawurldecode($this->in['add']); //支持中文空格路径等;
 		$find   = KodIO::clear(str_replace('./','/',$find));
 		$info   = IO::infoFull($find);
-		// pr($parent,$find,$info,IO::info($this->in['path']));exit;
+		// pr($parent,$this->in,$find,$info,IO::info($this->in['path']));exit;
 		if(!$info || $info['type'] != 'file'){
 			return show_json(LNG('common.pathNotExists'),false);
 		}

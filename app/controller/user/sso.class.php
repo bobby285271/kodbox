@@ -34,6 +34,8 @@ class userSso extends Controller{
 	public function apiCheckToken(){
 		$result = $this->checkAuth($_GET['appName']);
 		$result = $result === true ? '[ok]' : "[error]:".$result;
+
+		if($result == '[ok]'){ob_get_clean();}
 		// var_dump($this->in,$_GET,Session::get());
 		echo $result;
 	}

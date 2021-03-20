@@ -109,10 +109,10 @@
 | createUser | bigint(20) unsigned    | 创建者id |
 | modifyUser | bigint(20) unsigned    | 最后修改者 |
 | isFolder | tinyint(4) unsigned    | 是否为文件夹(0否,1是) |
-| name | varchar(255)    | 文件名 |
+| name | varchar(256)    | 文件名 |
 | fileType | varchar(10)    | 文件扩展名，文件夹则为空 |
 | parentID | bigint(20) unsigned    | 父级资源id，为0则为部门或用户根文件夹，添加用户部门时自动新建 |
-| parentLevel | varchar(1000)    | 父路径id; 例如:  ,2,5,10 |
+| parentLevel | varchar(2000)    | 父路径id; 例如:  ,2,5,10 |
 | fileID | bigint(20) unsigned    | 对应存储资源id,文件夹则该处为0 |
 | isDelete | tinyint(4) unsigned    | 是否删除(0-正常 1-已删除) |
 | size | bigint(20) unsigned    | 占用空间大小 |

@@ -97,8 +97,9 @@ class adminLog extends Controller{
         $data = Input::getArray(array(
             'timeFrom'  => array('check' => 'require'),
             'timeTo'    => array('check' => 'require'),
-            'type'      => array('default' => ''),
             'userID'    => array('default' => ''),
+            'type'      => array('default' => ''),
+            'ip'        => array('default' => null),
         ));
         $res = $this->model->get($data);
         if(empty($res)) show_json(array());

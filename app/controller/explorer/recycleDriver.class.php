@@ -16,7 +16,7 @@ class explorerRecycleDriver extends Controller{
 		$beforePath = get_path_father($path);
 		
 		$recycleName  = '.recycle/user_'.USER_ID.'/';
-		$recycleLocal = DATA_PATH.$recycleName;		
+		$recycleLocal = rtrim(DATA_PATH,'/').'/'.$recycleName;
 		if(!$pathParse['type']){// 物理路径
 			$recyclePath = $recycleLocal;
 			return $this->moveToRecycle($path,$recyclePath,$beforePath);
@@ -24,7 +24,7 @@ class explorerRecycleDriver extends Controller{
 
 		// io路径
 		if($pathParse['type'] == KodIO::KOD_IO){
-			$recyclePath = $pathParse['pathBase'].$recycleName;
+			$recyclePath = rtrim($pathParse['pathBase'],'/').'/'.$recycleName;
 			return $this->moveToRecycle($path,$recyclePath,$beforePath);
 		}
 		
@@ -38,7 +38,7 @@ class explorerRecycleDriver extends Controller{
 				}
 				// io路径
 				if($pathParseIO['type'] == KodIO::KOD_IO){
-					$recyclePath = $pathParseIO['pathBase'].$recycleName;
+					$recyclePath = rtrim($pathParse['pathBase'],'/').'/'.$recycleName;
 					return $this->moveToRecycle($driver->path,$recyclePath,$beforePath);
 				}
 			}

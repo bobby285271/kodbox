@@ -83,9 +83,6 @@ class userAuthRole extends Controller {
 		$userRoleAllow 	= explode(',',trim($roleInfo['auth'],','));	
 		$authRoleList 	= array();
 		$allowAction 	= array();
-		foreach ($authAllowAction as $action) {
-			$allowAction[strtolower($action)] = 1;
-		}
 		foreach ($roleAction as $role => $modelActions) {
 			$enable = intval(in_array($role,$userRoleAllow));
 			$authRoleList[$role] = $enable;
@@ -104,8 +101,22 @@ class userAuthRole extends Controller {
 				$action = strtolower($action);//统一转为小写
 				if(!isset($allowAction[$action])){
 					$allowAction[$action] = $enable;
+				}else{
+					/**
+					 * false可以覆盖true;true不能覆盖false;
+					 * 'explorer.download'	=> array('explorer.index'=>'zipDownload...')
+					 * 'explorer.zip'		=> array('explorer.index'=>'zipDownload...')
+					*/
+					if($allowAction[$action]){
+						$allowAction[$action] = $enable;
+					}
 				}
 			}
+		}
+		
+		//不需要检测的动作白名单; 优先级最高;
+		foreach ($authAllowAction as $action) { 
+			$allowAction[strtolower($action)] = 1;
 		}
 		self::$authRole = array(
 			'info'			=> $roleInfo,

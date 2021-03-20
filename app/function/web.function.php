@@ -198,13 +198,24 @@ function parse_headers($raw_headers){
 
 $GLOBALS['curlKodLastTime'] = 0; // 间隔100ms;
 $GLOBALS['curlKodLast'] = false;
+
+$GLOBALS['curlCache'] = array();
+$GLOBALS['curlCacheResult'] = array();
 function curl_progress_start($curl){
 	$GLOBALS['curlKodLastTime'] = 0;
 	$GLOBALS['curlKodLast'] = $curl;
 	Hook::trigger('curl.progressStart',$curl);
 	think_status('curlTimeStart');
+
+	// 内存缓存;
+	// $curlInfo = curl_getinfo($curl);
+	// if(isset($GLOBALS['curlCache'][$curlInfo['url']])){
+	// 	write_log($curlInfo);
+	// 	$curl = curl_copy_handle($GLOBALS['curlCache'][$curlInfo['url']]);
+	// 	return $GLOBALS['curlCacheResult'][$curlInfo['url']];
+	// }
 }
-function curl_progress_end($curl){
+function curl_progress_end($curl,$curlResult=false){
 	$GLOBALS['curlKodLastTime'] = 0;
 	$GLOBALS['curlKodLast'] = false;
 	Hook::trigger('curl.progressEnd',$curl);
@@ -215,6 +226,18 @@ function curl_progress_end($curl){
 	$runTime = '[ RunTime:'.think_status('curlTimeStart','curlTimeEnd',6).'s ]';
 	$runInfo = "sizeUp={$curlInfo['size_upload']};sizeDown={$curlInfo['download_content_length']};";//json_encode($curlInfo)
 	think_trace(" ".$curlInfo['url'].";".$runInfo.$runTime,'','CURL');
+
+	// 缓存处理;
+	if($curlResult){
+		// if(count($GLOBALS['curlCache']) > 50){
+		// 	$GLOBALS['curlCacheResult'] = null;
+		// 	$GLOBALS['curlCacheResult'] = array();
+		// 	$GLOBALS['curlCache'] = null;
+		// 	$GLOBALS['curlCache'] = array();
+		// }
+		// $GLOBALS['curlCacheResult'][$curlInfo['url']] = $curlResult;
+		// $GLOBALS['curlCache'][$curlInfo['url']] = curl_copy_handle($curl);
+	}
 }
 function curl_progress(){
 	$args = func_get_args();
@@ -388,15 +411,6 @@ function url_request($url,$method='GET',$data=false,$headers=false,$options=fals
 			$http_body = $data;
 		}
 	}
-	if($method == 'DOWNLOAD'){
-		@fclose($fp);
-		@clearstatcache();
-		if($success){
-			move_path($downTemp,$data);
-		}
-		@unlink($downTemp);
-	}
-
 	$return = array(
 		'data'		=> $http_body,
 		'status'	=> $success,
@@ -405,8 +419,8 @@ function url_request($url,$method='GET',$data=false,$headers=false,$options=fals
 	);
 	return $return;
 }
-function curl_get_contents($url){
-	$data = url_request($url);
+function curl_get_contents($url,$timeout=60){
+	$data = url_request($url,'GET',0,0,0,0,$timeout);
 	return $data['data'];
 }
 
@@ -429,6 +443,8 @@ function get_headers_curl($url,$timeout=10,$depth=0,&$headers=array()){
 
 	$res = curl_exec($ch);
 	$res = explode("\r\n", $res);
+	$response_info = curl_getinfo($ch);
+	$headers['http_code'] = $response_info['http_code'];
 
 	$location = false;
 	foreach ($res as $line) {
@@ -483,10 +499,14 @@ function request_url_safe($url){
 // url header data
 function url_header($url){
 	$header = get_headers_curl($url);//curl优先
+	$header = false;
 	if(is_array($header)){
 		$header['ACTION_BY'] = 'get_headers_curl';
 	}else{
 		$header = @get_headers($url,true);
+		if($header){
+			$header['http_code'] = intval(match_text($header[0],'HTTP\/1\.1\s+(\d+)\s+'));
+		}
 	}
 	foreach ($header as $key => $value) {
 		$header[strtolower($key)] = $value;
@@ -539,7 +559,7 @@ function url_header($url){
 		if (strstr($name,'?')){
 			$name = substr($name,0,strrpos($name,'?'));
 		}
-		if(!$name) $name = data("mdHi");
+		if(!$name) $name = date("mdHi");
 		if(!strstr($name,'.')){ //没有扩展名,自动追加;
 			$ext  = get_file_ext_by_mime($header['content-type']);
 			$name .= '.'.$ext;
@@ -556,6 +576,8 @@ function url_header($url){
 		'length' 	=> $length,
 		'name' 		=> trim($name,'"'),
 		'supportRange' => $supportRange && ($length!=0),
+		'code'		=> $header['http_code'],
+		'status'	=> $header['http_code'] >= 200 && $header['http_code'] < 400,
 		'all'		=> $header,
 	);
 	if(!function_exists('curl_init')){
@@ -668,7 +690,7 @@ function parse_url_route(){
 function parse_incoming(){
 	parse_url_route();
 	global $_GET, $_POST,$_COOKIE;
-	if (function_exists('get_magic_quotes_gpc') && get_magic_quotes_gpc()) {
+	if (function_exists('get_magic_quotes_gpc') && @get_magic_quotes_gpc()) {
 		$_COOKIE = stripslashes_deep($_COOKIE);
 		$_GET	 = stripslashes_deep($_GET);
 		$_POST	 = stripslashes_deep($_POST);

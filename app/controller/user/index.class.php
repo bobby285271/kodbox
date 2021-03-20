@@ -16,22 +16,29 @@ class userIndex extends Controller {
 		include(TEMPLATE.'user/index.html');
 	}
 	// 进入初始化
-	public function init() {
+	public function init(){
+		$this->checkUrl();
 		Hook::trigger('globalRequestBefore');
 		Hook::bind('beforeShutdown','user.index.shutdownEvent');
 		if( !file_exists(USER_SYSTEM . 'install.lock') ){
 			return ActionCall('install.index.check');
 		}
-		$this->initDB();   		//10ms;
+		$this->initDB();   		//
 		$this->initSession();   //
 		$this->initSetting();   // 
 		init_check_update();	// 升级检测处理;
 		
-		$this->loginCheck();    //5-15ms session读取写入
+		Action('filter.index')->bind();
+		$this->loginCheck();
 		KodIO::initSystemPath();
-		Model('Plugin')->init();//5-10ms
-		Action('filter.index')->init();
+		Model('Plugin')->init();
+		Action('filter.index')->trigger();
 	}
+	
+	public function checkUrl(){
+		if(!isset($_GET['check_app_host_get'])) return;
+		echo '[ok]';exit;
+	}	
 	public function shutdownEvent(){
 		CacheLock::unlockRuntime();// 清空异常时退出,未解锁的加锁;
 	}
@@ -179,9 +186,9 @@ class userIndex extends Controller {
 		}
 		if(!is_array($user)) return $user;
 		
-		$result = Action('user.check')->loginBefore($user);
+		$result = Hook::trigger('user.index.loginBefore',$user);
 		if($result !== true) return $result;
-		Action('user.check')->loginAfter($user);
+		Hook::trigger('user.index.loginAfter',$user);
 		return $user;
 	}
 	

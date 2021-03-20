@@ -134,6 +134,8 @@ class adminAutoTask extends Controller {
 	}
 	public function taskRestart(){
 		AutoTask::restart();
+		sleep(1);
+		AutoTask::start();
 	}
 
 	// 移动排序、拖拽排序

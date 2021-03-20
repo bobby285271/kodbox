@@ -29,20 +29,9 @@ class explorerUserShare extends Controller{
 		show_json($share);
 	}
 	
-	// 文件列表,某个路径自己分享了,则追加分享信息;
-	public function shareDriverAppend(&$data){
-		foreach ($data as $type =>&$list) {
-			if(!in_array($type,array('fileList','folderList','groupList'))) continue;
-			foreach ($list as $key=>$item){
-				$list[$key] = $this->shareAppendItem($item);
-			}
-		}
-		$data['current'] = $this->shareAppendItem($data['current']);
-	}
-	
 	// 分享信息处理;
 	public function shareAppendItem($item){
-		$shareInfo = $item['shareInfo'];
+		$shareInfo = _get($item,'shareInfo');
 		if(!isset($item['sourceInfo'])){$item['sourceInfo'] = array();}
 		if(isset($item['sourceInfo']['shareInfo']) ) return $item;
 		
@@ -52,11 +41,10 @@ class explorerUserShare extends Controller{
 			$shareList = array_to_keyvalue($shareList,'sourcePath');
 		}
 		
-		$shareInfo = $shareInfo ? $shareInfo : $shareList[$item['path']];
-		$shareInfo = $shareInfo ? $shareInfo : $shareList[rtrim($item['path'],'/')];
-		$shareInfo = $shareInfo ? $shareInfo : $shareList[rtrim($item['path'],'/').'/'];
+		$shareInfo = $shareInfo ? $shareInfo : _get($shareList,$item['path']);
+		$shareInfo = $shareInfo ? $shareInfo : _get($shareList,rtrim($item['path'],'/'));
+		$shareInfo = $shareInfo ? $shareInfo : _get($shareList,rtrim($item['path'],'/').'/');
 		if(!$shareInfo) return $item;
-		
 		$item['sourceInfo']['shareInfo'] = array(
 			'shareID' 		=> $shareInfo['shareID'],
 			'shareHash' 	=> $shareInfo['shareHash'],
@@ -267,7 +255,7 @@ class explorerUserShare extends Controller{
 		$source['shareCreateTime'] 	= $share['createTime'];
 		$source['shareModifyTime'] 	= $share['modifyTime'];
 		$source['shareID']  = $share['shareID'];
-		$sourceRoot = $share['sourceInfo'] ? $share['sourceInfo'] : $source;
+		$sourceRoot = isset($share['sourceInfo']) ? $share['sourceInfo'] : $source;
 		
 		// 物理路径,io路径;
 		$pathAdd = $source['sourceID'];
@@ -340,12 +328,6 @@ class explorerUserShare extends Controller{
 	 */
 	public function edit(){
 		$data = $this->_getParam('shareID');
-		if($data['isLink'] == 0 && $data['isShareTo'] == 0){
-			$res   = $this->model->remove(array($data['shareID']));
-			$msg  = !!$res ? LNG('explorer.success'): LNG('explorer.error');
-			show_json($msg,!!$res);
-		}
-		
 		$result = $this->model->shareEdit($data['shareID'],$data);
 		if(!$result) show_json(LNG('explorer.error'),false);
 		
@@ -402,10 +384,20 @@ class explorerUserShare extends Controller{
 		}else{
 			// 批量删除指定内部协作分享, or外链分享;
 			foreach ($list as $shareID) {
-				$data = array('isLink'=>0);
 				if($this->in['type'] == 'shareTo'){
 					$data = array('isShareTo'=>0,'authTo'=>array());
+				}else{
+					$data = array('isLink'=>0);
 				}
+
+				// 都为空时则删除数据, 再次分享shareID更新;
+				$shareInfo = $this->model->getInfo($shareID);
+				if( $data['isLink'] == 0 && $shareInfo['isShareTo'] == 0 ||
+					$data['isShareTo'] == 0 && $shareInfo['isLink'] == 0 ){
+					$res = $this->model->remove(array($shareID));
+					continue;
+				}
+								
 				$res = $this->model->shareEdit($shareID,$data);
 			}
 		}

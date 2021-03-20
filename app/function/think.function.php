@@ -67,7 +67,8 @@ function think_exception($msg) {
 	write_log($desc.';'.$error."\n".get_caller_msg(),'error');
     if(defined('GLOBAL_DEBUG') && !GLOBAL_DEBUG ){
 		$error = "<div class='desc'>$desc</div>".$error;
-		$error = str_replace(BASIC_PATH,'./',$error); //去除路径前缀;
+        $error = str_replace(BASIC_PATH,'./',$error); //去除路径前缀;
+        think_error_parse($error);
         show_tips($error,'',0,'',false);
     }else{
 		if(is_object($msg)){ //系统错误或警告;
@@ -79,6 +80,22 @@ function think_exception($msg) {
 		}
 	}
 	exit;
+}
+
+function think_error_parse(&$error){
+    $errMsg = array(
+        'using password'        => '拒绝访问：用户名或密码错误。',
+        'timed out'             => '连接超时，请检查服务器地址是否正确。',
+        'connection refused'    => '连接被拒绝：配置信息有误，或服务未启动。',
+        'getaddrinfo failed'    => '连接错误，请检查服务器地址是否正确。',
+        '_NOT_SUPPERT_'         => '不支持的数据库类型，请检查对应服务，或配置文件是否正常。'
+    );
+    foreach($errMsg as $key => $msg) {
+        if(stripos($error, $key) !== false) {
+            $error .= '<br/></br/>' . $msg;
+            break;
+        }
+    }
 }
 
 /**

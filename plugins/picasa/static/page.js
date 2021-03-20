@@ -87,7 +87,7 @@ define(function(require, exports) {
 			var images = getImageArr(path,name);
 			myPicasa.play(images.items,images.index);
 			$("#PV_Btn_Open").remove();
-			setTimeout(() => {
+			setTimeout(function(){
 				$('#PicasaView').attr('tabindex','10').focus();
 			},100);
 		});

@@ -13,6 +13,7 @@
 			}
 			var title = "<?php echo rawurlencode($_GET['name']);?>";
 			if(title){
+				title = urlDecode(title);
 				$('.lnk-file-title').html(title).attr('title',title);
 			}
 		});

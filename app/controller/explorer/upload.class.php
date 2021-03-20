@@ -50,6 +50,17 @@ class explorerUpload extends Controller{
 		$repeat = Model('UserOption')->get('fileRepeat');
 		$repeat = isset($this->in['repeatType']) ? $this->in['repeatType'] : $repeat;
 		
+		// 文件保存; 必须已经先存在;
+		if($this->in['uploadType'] == 'fileSave'){
+			$repeat = REPEAT_REPLACE;
+			$info   = IO::info($this->in['path']);
+			if(!$info){
+				show_json(LNG("common.pathNotExists"),false);
+			}
+			// 重新构造路径 父目录+文件名;
+			$savePath = rtrim(IO::pathFather($info['path']),'/').'/'.$info['name'];
+		}
+		
 		// 第三方存储上传完成
 		if( isset($this->in['uploadLinkSuccess']) ){
 			$this->fileUploadByClient($savePath,$repeat);
@@ -70,7 +81,7 @@ class explorerUpload extends Controller{
 		}
 	}
 	private function uploadInfo($path){
-		if(!$GLOBALS['UPLOAD_ATTACHMENT']) return $path;
+		if($this->in['uploadType'] != 'fileInfo') return $path;
 		$info = IO::info($path);
 		$info = array_field_key($info,array("ext",'name','createTime','size'));
 		$info['link'] = Action('explorer.share')->link($path);
@@ -182,7 +193,7 @@ class explorerUpload extends Controller{
 		$uuid = 'download_'.$this->in['uuid'];
 		$this->serverDownloadCheck($uuid);
 		$url 	= $this->in['url'];
-		$path   = rtrim($this->in['path'],'/').'/';
+		$savePath = rtrim($this->in['path'],'/').'/';
 		$header = url_header($url);
 		if (!$header){
 			show_json(LNG('download_error_exists'),false);
@@ -190,24 +201,46 @@ class explorerUpload extends Controller{
 
 		$filename = _get($this->in,'name',$header['name']);
 		$filename = unzip_filter_ext($filename);
-		$saveFile = TEMP_FILES.md5($uuid);
+		$tempFile = TEMP_FILES.md5($uuid);
 		mk_dir(TEMP_FILES);
 		Session::set($uuid,array(
 			'supportRange'	=> $header['supportRange'],
 			'length'		=> $header['length'],
-			'path'			=> $saveFile,
+			'path'			=> $tempFile,
 			'name'			=> $filename,
 		));
-		$result = Downloader::start($url,$saveFile);
+		$this->serverDownloadHashCheck($url,$header,$savePath,$filename,$uuid);
+		$result = Downloader::start($url,$tempFile);
 		if($result['code']){
-			$outPath = IO::move($saveFile,$path,REPEAT_REPLACE);
-			$outPath = IO::rename($outPath,$filename);
-			$pathInfo = IO::info($outPath);
-			show_json(LNG('explorer.downloaded'),true,$pathInfo);
+			$outPath = IO::copy($tempFile,$savePath,REPEAT_RENAME);
+			$fileName= IO::fileNameAuto($savePath,$filename,REPEAT_RENAME);
+			$outPath = IO::rename($outPath,$fileName);
+			show_json(LNG('explorer.downloaded'),true,IO::info($outPath));
 		}else{
 			show_json($result['data'],false);
 		}
 	}
+
+	/**
+	 * 远程下载秒传处理;
+	 * 小于10M的文件不处理;
+	 */
+	private function serverDownloadHashCheck($url,$header,$savePath,$filename,$uuid){
+		if($header['length'] < 10 * 1024*1024) return false;
+		$driver = new PathDriverUrl();
+		$fileHash = $driver->hashSimple($url,$header); // 50个请求;8s左右;
+		$file = Model("File")->findByHash($fileHash);
+		if(!$fileHash || !$file) return;
+		
+		$tempFile = $file['path'];
+		Session::remove($uuid);
+		$outPath = IO::copy($tempFile,$savePath,REPEAT_RENAME);
+		$fileName= IO::fileNameAuto($savePath,$filename,REPEAT_RENAME);
+		$outPath = IO::rename($outPath,$fileName);
+		show_json(LNG('explorer.upload.secPassSuccess'),true,IO::info($outPath));
+	}
+	
+	
 	private function serverDownloadCheck($uuid){
 		$data = Session::get($uuid);
 		if ($this->in['type'] == 'percent') {

@@ -35,7 +35,7 @@ class KodSSO{
 		}
 
 		$link = rawurlencode(self::thisUrl());
-		$url  = $host.'index.php?user/sso/apiLogin&appName='.$appName.'&callbackUrl='.$link;
+		$url  = $host.'?user/sso/apiLogin&appName='.$appName.'&callbackUrl='.$link;
 		header('Location: '.$url);exit;
 	}
 	public static function checkToken($appName,$host,$token){
@@ -50,10 +50,11 @@ class KodSSO{
 			$res = shell_exec($command);
 		}
 		if(!$res){
-			$streamContext = stream_context_create(
-				array('http'=>array('timeout' => 2,'method'=>"GET"))
-			);
-			$res = file_get_contents($host.'index.php?'.$uri,false,$streamContext);
+			$context = stream_context_create(array(
+				'http'	=> array('timeout' => 2,'method'=>"GET"),
+				"ssl" 	=> array("verify_peer"=>false,"verify_peer_name"=>false)
+			));
+			$res = file_get_contents($host.'?'.$uri,false,$context);
 		}
 		// var_dump(microtime(true) - $timeStart,$res);exit;
 		

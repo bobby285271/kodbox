@@ -1,7 +1,7 @@
 ## 版本：`Version 1.4.12`
 - 下载：https://github.com/ajaxorg/ace-builds/tags
 - 插件：https://github.com/ajaxorg/ace/wiki/Extensions
-- js压缩: https://www.css-js.com/
+- js压缩: https://www.css-js.com/   https://tool.lu/js/
 
 ## 优化修改 (ace.js)
 - iframe鼠标选中超出失去焦点; ace初始化之前hook处理;
@@ -13,7 +13,7 @@
 - 鼠标中键多光标选择支持;
     ```
     ace.define("ace/mouse/multi_select_handler ...; 方法 onMouseDown: 中加入;
-    if(ev.which == 2){alt = true;};// add by warlee;
+    if(button == 1 || e.altKey){alt = true;button=0;};//add by warlee;
     ```
 - 含未知字符时会导致光标位置错误; 形如:123123
     ```

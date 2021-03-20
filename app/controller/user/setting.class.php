@@ -135,8 +135,8 @@ class userSetting extends Controller {
 		if (!$this->model->userPasswordCheck($this->user['userID'], $oldpwd)) {
 			show_json(LNG('user.oldPwdError'), false);
 		}
-		if( !ActionCall('user.check.password',$newpwd) ){
-			return ActionCall('user.check.passwordTips');
+		if( !ActionCall('filter.userCheck.password',$newpwd) ){
+			return ActionCall('filter.userCheck.passwordTips');
 		}
 		return $newpwd;
 	}
@@ -165,9 +165,9 @@ class userSetting extends Controller {
 			show_json(LNG('user.unAuthFile'),false);
 		}
 
-		$link = Action('explorer.share')->link($file);
+		$link = Action('explorer.share')->linkFile($file);
 		if(!$link) show_json(null, false);
-		if (!$this->model->userEdit($userID, array("avatar" => str_replace(APP_HOST, './', $link)))) {
+		if(!$this->model->userEdit($userID, array("avatar" => str_replace(APP_HOST, './', $link)))) {
 			show_json(LNG('explorer.upload.error'), false);
 		}
 		$user = $this->model->getInfo($userID);
@@ -278,8 +278,8 @@ class userSetting extends Controller {
 		if (isset($data['salt'])) {
 			$data['password'] = $this->decodePwd($data['password']);
 		}
-		if( !ActionCall('user.check.password',$data['password']) ){
-			return ActionCall('user.check.passwordTips');
+		if( !ActionCall('filter.userCheck.password',$data['password']) ){
+			return ActionCall('filter.userCheck.passwordTips');
 		}
 		Cache::remove($data['token']);		
 		if (!$this->model->userEdit($res['userID'], array('password' => $data['password']))) {
@@ -295,11 +295,23 @@ class userSetting extends Controller {
 	// 个人操作日志
 	public function userLog(){
 		$type = Input::get('type', null, null);
-		$action = $type == 'user.index.loginSubmit' ? 'userLogLogin' : 'userLog';
-		ActionCall('admin.log.' . $action);
+		if(!$type){
+			return ActionCall('admin.log.userLog');
+		}
+		if($type == 'user.index.loginSubmit'){
+			return ActionCall('admin.log.userLogLogin');
+		}
 	}
 	// 个人登录设备
 	public function userDevice(){
+		$set = Input::get('set', null, 0);
+		if($set == '1') {
+			$this->in = array(
+				'key' => 'loginDevice', 
+				'value' => Input::get('data', 'require')
+			);
+			return $this->setConfig();
+		} 
 		$data = Input::getArray(array(
 			'userID'	=> array('default' => USER_ID),
 			'lastLogin'	=> array('default' => null),
@@ -308,9 +320,8 @@ class userSetting extends Controller {
 		show_json($res);
 	}
 
-	public function taskList(){
-		ActionCall('admin.task.taskList',USER_ID);
-	}
+	public function taskList(){ActionCall('admin.task.taskList',USER_ID);}
+	public function taskKillAll(){ActionCall('admin.task.taskKillAll',USER_ID);}
 	public function taskAction(){
 		$result = ActionCall('admin.task.taskActionRun',false);
 		if( !is_array($result['taskInfo']) || 
@@ -322,7 +333,7 @@ class userSetting extends Controller {
 	public function notice(){
 		$data	= Input::getArray(array(
 			'id'		=> array('default' => false),
-			'action'	=> array('check' => 'in', 'param' => array('get', 'edit', 'remove')),
+			'action'	=> array('check' => 'in','param' => array('get','edit','remove')),
 		));
 		$action = 'admin.notice.notice' . ucfirst($data['action']);
 		ActionCall($action, $data['id']);

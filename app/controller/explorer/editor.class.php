@@ -12,68 +12,76 @@ class explorerEditor extends Controller{
 	}
 	
 	public function fileGet(){
-		$data = Input::getArray(array(
-			'path'		=> array('check'=>'require'),
-			'base64'	=> array('default'=>''),
-			'charset'	=> array('check'=>'require','default'=>''),
-		));
-		if(request_url_safe($data['path'])){
-			return $this->urlFileGet($data['path']);
+		$path = Input::get('path','require');
+		if(request_url_safe($path)){
+			$urlInfo = parse_url_query($path);
+			$driver  = new PathDriverUrl();
+			$pathInfo  = $driver->info($path);
+			$pathInfo['path'] = '';
+			$pathInfo['name'] = isset($urlInfo['name']) ? rawurldecode($urlInfo['name']) : $pathInfo['name'];
+			$pathInfo['pathDisplay'] = "[" . trim($pathInfo['name'], '/') . "]";
+			return $this->fileGetMake($path,$pathInfo);
 		}
-		$pathInfo = IO::info($data['path']);
+		$pathInfo = IO::info($path);
+		$pathInfo = Action('explorer.list')->pathInfoParse($pathInfo,0,0);
+		$this->fileGetMake($path,$pathInfo);
+	}
+	
+	private function contentPage($path,$size){
+		// if($size >= 1024*1024*20){show_json(LNG('explorer.editor.fileTooBig'),false);}
+		$PAGE_MIN 	= 1024 * 100;
+		$PAGE_MAX 	= 1024 * 1024 * 10;
+		$pageNum 	= _get($this->in,'pageNum',1024 * 500);
+		$pageNum	= $pageNum <= $PAGE_MIN ? $PAGE_MIN : ($pageNum >= $PAGE_MAX ? $PAGE_MAX : $pageNum);
+		$pageTotal	= ceil($size/$pageNum);
+		$page		= _get($this->in,'page',1);
+		$page		= $page <= 1 ? 1  : ($page >= $pageTotal ? $pageTotal : $page);
+		$from = 0;$length = $size;
+		if($size > $PAGE_MIN){
+			$from = ($page - 1) * $pageNum;
+			$length = $pageNum;
+		}
+		
+		if(request_url_safe($path)){
+			$driver  = new PathDriverUrl();
+			$content = $driver->fileSubstr($path,$from,$length);
+		}else{
+			$content = IO::fileSubstr($path,$from,$length);
+		}
+		if($size == 0){$content = '';}
+		return array(
+			'content' 	=> $content,
+			'pageInfo'	=> array(
+				'page'		=> $page,
+				'pageNum'	=> $pageNum,
+				'pageTotal'	=> $pageTotal,
+				'totalNum'	=> $size
+			)
+		);
+	}
+
+	private function fileGetMake($path,$pathInfo){
+		// pr($path,$pathInfo);exit;
 		if(!$pathInfo || $pathInfo['type'] == 'folder'){
 			return show_json(LNG('common.pathNotExists'),false);
 		}
-		
-		if($pathInfo['size'] >= 1024*1024*20){
-			show_json(LNG('explorer.editor.fileTooBig'),false);
-		}
-		$content = IO::getContent($pathInfo['path']);
-		// $content = IO::fileSubstr($data['path'],1024*1024*0.5,1024*1024*0.5);		
-		if(isset($pathInfo['size']) && $pathInfo['size'] == 0){
-			$content = '';//空文件处理;
-		}
-		$charset = strtolower($data['charset']);
-		$charset = $charset ? $charset : get_charset($content);
-		if ($charset !='' &&$charset !='utf-8' && 
-			function_exists("mb_convert_encoding") ){
-			$content = @mb_convert_encoding($content,'utf-8',$charset);
-		}
-		// $data['base64'] = '1';//
-		if($data['base64']=='1'){
-			$content = strrev(base64_encode($content));
-		}
-		$pathInfo['base64'] 	= $data['base64'];
-		$pathInfo['content'] 	= $content;
-		$pathInfo['charset'] 	= $charset;
-		show_json($pathInfo);
-	}
-
-	private function urlFileGet($path){
-		$urlInfo = parse_url_query($path);
-		$displayName = rawurldecode($urlInfo['name']);
-		$fileContents = file_get_contents($path);
-		if(strlen($fileContents) >= 1024*1024*20){
-			show_json(LNG('explorer.editor.fileTooBig'),false);
-		}
+		$contentInfo = $this->contentPage($path,$pathInfo['size']);
+		$content 	 = $contentInfo['content'];
 		if(isset($this->in['charset']) && $this->in['charset']){
 			$charset = strtolower($this->in['charset']);
 		}else{
-			$charset = get_charset($fileContents);
+			$charset = get_charset($content);
 		}
-		if ($charset !='' && $charset !='utf-8' && 
-			function_exists("mb_convert_encoding")){
-			$fileContents = @mb_convert_encoding($fileContents,'utf-8',$charset);
+		if ($charset !='' && $charset !='utf-8' && function_exists("mb_convert_encoding")){
+			$content = @mb_convert_encoding($content,'utf-8',$charset);
 		}
-		$data = array(
-			'ext'			=> get_path_ext($displayName),
-			'name'			=> iconv_app(get_path_this($displayName)),
-			'path'			=> '',
-			'pathDisplay'	=> "[" . trim($displayName, '/') . "]",
+		
+		$data = array_merge($pathInfo,array(
 			'charset'		=> $charset,
 			'base64'		=> $this->in['base64'] == '1' ?'1':'0',// 部分防火墙编辑文件误判问题处理
-			'content'		=> $fileContents
-		);
+			'pageInfo' 		=> $contentInfo['pageInfo'],
+			'content'		=> $content,
+		));
 		if($data['base64']=='1'){
 			$data['content'] = strrev(base64_encode($data['content']));
 		}

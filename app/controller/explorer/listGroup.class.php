@@ -32,15 +32,15 @@ class explorerListGroup extends Controller{
 	}
 	
 	// 根据多个部门信息,构造部门item;
-	private function groupArray($groupInfo){
-		$groupInfo 	= array_to_keyvalue($groupInfo,'groupID');//自己所在的组
-		$group 		= array_remove_value(array_keys($groupInfo),1);
+	private function groupArray($groupArray){
+		$groupArray 	= array_to_keyvalue($groupArray,'groupID');//自己所在的组
+		$group 		= array_remove_value(array_keys($groupArray),1);
 		if(!$group) return array();
 
 		$groupSource = $this->model->sourceRootGroup($group);
 		$groupSource = array_to_keyvalue($groupSource,'targetID');
 		$result = array();
-		foreach($groupInfo as $group){ // 保持部门查询结构的顺序;
+		foreach($groupArray as $group){ // 保持部门查询结构的顺序;
 			$groupID = $group['groupID'];
 			if($groupID == '1') continue; // 去除根部门
 			if(!isset($groupSource[$groupID])) continue;
@@ -57,6 +57,13 @@ class explorerListGroup extends Controller{
 					continue;// 没有权限;
 				}
 			}
+			
+			// 没有字文件; 则获取是否有子部门;
+			if( !$pathInfo['hasFolder'] && !$pathInfo['hasFile'] ){
+				$groupInfo = Model('Group')->getInfo($groupID);
+				$pathInfo['hasFolder']  = $groupInfo['hasChildren'];
+				$pathInfo['hasFile'] 	= $groupInfo['hasChildren'];
+			}
 			$result[] = $pathInfo;
 		}
 		// pr($result,$groupInfo,$groupSource);exit;
@@ -66,37 +73,25 @@ class explorerListGroup extends Controller{
 	/**
 	 * 部门根目录;罗列子部门;
 	 */
-	public function groupChildAppend(&$data){
+	public function appendChildren(&$data){
 		$pathInfo = $data['current'];
-		if(!$this->groupChildAppendCheck($pathInfo)) return;
-		if(!$this->enableListGroup($pathInfo['targetID'])) return;
-		$groupID = $pathInfo['targetID'];
-		$groupList  = $this->modelGroup->where(array('parentID'=>$groupID))->select();
-	
-		$data['groupList'] = $this->groupArray($groupList);
-		$data['pageInfo']['totalNum'] += count($data['groupList']);
-		// pr($groupList,$data,$groupListItem);exit;
-	}
-	
-	//是否追加子部门检测; 部门根目录;分页第一页;
-	private function groupChildAppendCheck($pathInfo){
-		if(!$pathInfo || $pathInfo['targetType'] != 'group') return false;
-
-		//不是根目录
-		$parents = $this->model->parentLevelArray($pathInfo['parentLevel']);
-		if(count($parents) != 0) return false;
-
+		if(!$pathInfo || _get($pathInfo,'targetType') != 'group') return false;
+		
 		// 第一页才罗列;
 		$page = intval($this->in['page']);
 		$page = $page >= 1? $page:1;
 		if($page !=1) return false;
 		
-		return true;
+		//不是根目录
+		$parents = $this->model->parentLevelArray($pathInfo['parentLevel']);
+		if(count($parents) != 0) return false;
+
+		if(!$this->enableListGroup($pathInfo['targetID'])) return;
+		$groupID = $pathInfo['targetID'];
+		$groupList  = $this->modelGroup->where(array('parentID'=>$groupID))->select();
+		$data['groupList'] = $this->groupArray($groupList);
 	}
 
-	public function pathGroupAuth($groupID){
-		return $this->pathGroupAuthMake($groupID);
-	}
 	public function pathGroupAuthMake($groupID){
 		$groupInfo  = $this->modelGroup->getInfoSimple($groupID);//101
 		$selfGroup 	= Session::get("kodUser.groupInfo");
