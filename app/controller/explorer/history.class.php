@@ -66,6 +66,7 @@ class explorerHistory extends Controller{
 	 */
 	public function rollback() {
 		$id  = $this->checkItem();
+		Model("Source")->checkLock($this->sourceID);
 		$res = $this->model->rollbackToItem($this->sourceID,$id);
 		$msg = !!$res ? LNG('explorer.success') : LNG('explorer.error');
 		show_json($msg,!!$res);

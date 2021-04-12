@@ -27,8 +27,8 @@
 	<?php if(STATIC_DEV){?>
 	<link href="<?php linkHref('style/lib/index.css',1);?>" rel="stylesheet" />
 	<link href="<?php linkHref('style/skin_dev/index.less',1);?>" rel='stylesheet/less' type='text/css' />
-	<script>var lessENV = "development";var less={useFileCache:false,env:lessENV};</script>
-	<script src="<?php linkHref('app/vender/less.min.js',1);?>"></script>
+	<script>var lessENV = "development";var less={useFileCache:false,async:1,fileAsync:1,env:lessENV};</script>
+	<script src="<?php linkHref('app/vender/less.min.js',1);?>" data-async="true"></script>
 	<?php }else{?>
 	<link href="<?php linkHref('style/lib/main.css');?>" rel="stylesheet" />
 	<link href="<?php linkHref('style/dist/main.css');?>" rel='stylesheet' />
@@ -52,17 +52,14 @@
 	<?php Hook::trigger('templateCommonHeader');?>
 </head>
 
+
 <body>
 	<div id="app"></div>
 	<div class="loading-msg loading-msg-mask loading-body">
-		<div class="loading-msg-content">
-			<div class="loading-msg-box">
-				<div class="loader loader-wave"><div></div><div></div><div></div><div></div></div>
-			</div>
-			<div class="loading-msg-title"></div>
-		</div>
+		<img src="<?php linkHref('images/common/loading-page.gif');?>"
+		style="position:absolute;margin:auto;left:0;top:0;right:0;bottom:0;max-width:64px;max-height:64px;width:64px;border-radius:4px;">
 	</div>
-
+	
 	<script type="text/javascript"> 
 		window.API_HOST = "<?php echo app_host_get();?>";
 		window.STATIC_PATH = "<?php echo STATIC_PATH;?>";

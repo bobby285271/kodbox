@@ -205,8 +205,7 @@ class userBind extends Controller {
 		$userID = $regist['data'];
 		$user = Model("User")->getInfo($userID);
 		if($user['status']) {
-			Model('User')->userEdit( $userID,array("lastLogin"=>time()) );
-			Action('user.index')->loginSuccess($user);
+			Action('user.index')->loginSuccessUpdate($user);
 		}
 		if($this->withApp) {	// bindHtml会直接打印，故在此return
 			return array(
@@ -574,7 +573,9 @@ class userBind extends Controller {
 			return false;
 		}
 		// 前端,用户存在,则直接登录
-		if($user['status']) Action('user.index')->loginSuccess($user);
+		if($user['status']){
+			Action('user.index')->loginSuccessUpdate($user);
+		}
 		return array($user['status']);	// true
 	}
 

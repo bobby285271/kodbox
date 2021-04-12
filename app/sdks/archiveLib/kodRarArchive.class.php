@@ -146,7 +146,7 @@ class kodRarArchive {
 	}
 	
 	static function listContent($file) {
-		$ext = $GLOBALS['ARCHIVE_FILE_EXT'] ? $GLOBALS['ARCHIVE_FILE_EXT'] : get_path_ext($file);
+		$ext = !empty($GLOBALS['ARCHIVE_FILE_EXT']) ? $GLOBALS['ARCHIVE_FILE_EXT'] : get_path_ext($file);
 		if($ext == 'rar'){
 			return self::listContentRar($file);
 		}else{

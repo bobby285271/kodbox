@@ -235,7 +235,7 @@ class S3 {
 	 * @param type $code
 	 * @return boolean
 	 */
-	private function __execReponse($rest, $function, $noBody = 0, $params = array(), $code = 200) {
+	private static function __execReponse($rest, $function, $noBody = 0, $params = array(), $code = 200) {
 		if ($rest->error === false && $rest->code !== $code) {
 			$rest->error = array('code' => $rest->code, 'message' => 'Unexpected HTTP status');
 		}
@@ -771,7 +771,7 @@ class S3 {
 	 * @param type $requestHeaders
 	 * @return bool
 	 */
-	public function completeMultiUpload($bucket, $uri, $uploadId, $data, $metaHeaders = array(), $requestHeaders = array()) {
+	public static function completeMultiUpload($bucket, $uri, $uploadId, $data, $metaHeaders = array(), $requestHeaders = array()) {
 		$xmlStr = "<?xml version='1.0' encoding='UTF-8'?><CompleteMultipartUpload>";
 		foreach ($data as $part) {
 			$xmlStr .= '<Part>'

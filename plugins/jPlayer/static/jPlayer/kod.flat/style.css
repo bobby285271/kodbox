@@ -639,6 +639,7 @@
 	transition: background-color .2s ease;
 	-webkit-transition: background-color .2s ease;
 	overflow: hidden;
+	position: relative;
 }
 
 .jPlayer-music .play-list .item .name{
@@ -660,7 +661,7 @@
 .jPlayer-music .play-list .item .action-right {
 	float: right;display:none;
 	transition: all .2s ease;-webkit-transition: all .2s ease;
-    position: absolute;right: 0;margin-top: -44px;
+    position: absolute;right: 0;top:0;
 }
 .jPlayer-music .play-list .item:hover .action-right{display:block;}
 .jPlayer-music .play-list .item .action-right .download,
@@ -686,4 +687,3 @@
 .hide-play-list .aui-main{height:155px !important;}
 .hide-play-list .jPlayer-music{min-height:inherit;}
 .hide-play-list .jPlayer-music .play-list{display:none;}
-

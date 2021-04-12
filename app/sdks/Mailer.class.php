@@ -24,7 +24,7 @@ class Mailer {
 	public function send($data){
 		$config = $this->getConfig($data);
 		if(isset($config['code']) && !$config['code']) return $config;
-		
+
 		$mail = new PHPMailer(true);
 		try {
 			if(i18n::getType() == 'zh-CN') {
@@ -39,7 +39,8 @@ class Mailer {
 		    $mail->Password		= $config['password'];						// SMTP password
 		    // $mail->SMTPSecure	= PHPMailer::ENCRYPTION_STARTTLS;	// Enable TLS encryption; `PHPMailer::ENCRYPTION_SMTPS` also accepted
 		    // $mail->SMTPSecure	= false;         					// Enable TLS encryption; `PHPMailer::ENCRYPTION_SMTPS` also accepted
-		    $mail->SMTPSecure	= PHPMailer::ENCRYPTION_SMTPS;
+		    // $mail->SMTPSecure	= PHPMailer::ENCRYPTION_SMTPS;
+			$mail->SMTPSecure	= $config['secure'];
 		    // $mail->Port       	= 587;                             // TCP port to connect to
 		    $mail->Port       	= $config['port'];	// 465
 			$mail->setFrom($config['email'], $config['signature']);
@@ -90,6 +91,13 @@ class Mailer {
 		$parts = parse_url($data['host']);
 		$data['host'] = isset($parts['host']) ? $parts['host'] : $parts['path'];
 		$data['port'] = isset($parts['port']) ? $parts['port'] : 465;
+		if(empty($data['secure']) || $data['secure'] == 'ssl') {
+			$data['secure'] = PHPMailer::ENCRYPTION_SMTPS;
+		}else if($data['secure'] == 'tls') {
+			$data['secure'] = PHPMailer::ENCRYPTION_STARTTLS;
+		}else{
+			$data['secure'] = false;
+		}
 		if(!isset($data['signature'])) $data['signature'] = 'kodbox';
 
 		return array_merge($data, $result);

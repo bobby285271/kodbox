@@ -198,7 +198,7 @@ class explorerAuth extends Controller {
 		// 物理路径 io路径拦截；只有管理员且开启了访问才能做相关操作;
 		if( $ioType == KodIO::KOD_IO || $ioType == false ){
 			if( request_url_safe($path) ) return $action == 'view';
-			if($GLOBALS['isRoot'] && $this->config["ADMIN_ALLOW_IO"]) return true;
+			if(_get($GLOBALS,'isRoot') && $this->config["ADMIN_ALLOW_IO"]) return true;
 			return $this->errorMsg(LNG('explorer.pathNotSupport'),1001);
 		}
 		
@@ -212,8 +212,13 @@ class explorerAuth extends Controller {
 		}
 		
 		//不支持删除自己的桌面
-		if(trim($path,'/') == trim(MY_DESKTOP,'/') && $action == 'remove'){
-			return $this->errorMsg(LNG('explorer.desktopDelError'),1100);
+		if($action == 'remove'){
+			if(trim($path,'/') == trim(MY_DESKTOP,'/')){
+				return $this->errorMsg(LNG('explorer.desktopDelError'),1100);
+			}
+			if(trim($path,'/') == trim(MY_HOME,'/')){
+				return $this->errorMsg(LNG('explorer.pathNotSupport'),1100);
+			}
 		}
 		
 		// 纯虚拟路径只能列表; 不支持其他任何操作;
@@ -231,7 +236,7 @@ class explorerAuth extends Controller {
 		Hook::trigger("explorer.auth.can",$pathInfo,$action);
 		// source 类型; 新建文件夹 {source:10}/新建文件夹; 去除
 		//文档类型检测：屏蔽用户和部门之外的类型；
-		if($GLOBALS['isRoot'] && $this->config["ADMIN_ALLOW_SOURCE"]) return true;
+		if(_get($GLOBALS,'isRoot') && $this->config["ADMIN_ALLOW_SOURCE"]) return true;
 		$targetType = $pathInfo['targetType'];
 		// if(!$pathInfo) return true; 
 		if(!$pathInfo){//不存在,不判断文档权限;
@@ -297,7 +302,7 @@ class explorerAuth extends Controller {
 	 * $method: view,show,...   AuthModel::authCheckShow...
 	 */
 	private function checkAuthMethod($auth,$method){
-		if($GLOBALS['isRoot'] && $this->config["ADMIN_ALLOW_SOURCE"]) return true;
+		if(_get($GLOBALS,'isRoot') && $this->config["ADMIN_ALLOW_SOURCE"]) return true;
 		$auth = intval($auth);
 		if(!$auth || $auth == 0){
 			return $this->errorMsg(LNG('explorer.noPermissionAction'),1005);

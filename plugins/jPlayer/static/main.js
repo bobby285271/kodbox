@@ -32,7 +32,8 @@ kodReady.push(function(){
 		if(myPlayer){
 			callback(myPlayer);
 		}else{
-			var top = ShareData.frameTop();
+			// var top = ShareData.frameTop();
+			var top = window;
 			top.requireAsync(appStatic+'page.js',function(app){
 				if(!myPlayer){
 					myPlayer = app;

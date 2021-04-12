@@ -304,21 +304,11 @@ class userSetting extends Controller {
 	}
 	// 个人登录设备
 	public function userDevice(){
-		$set = Input::get('set', null, 0);
-		if($set == '1') {
-			$this->in = array(
-				'key' => 'loginDevice', 
-				'value' => Input::get('data', 'require')
-			);
-			return $this->setConfig();
-		} 
-		$data = Input::getArray(array(
-			'userID'	=> array('default' => USER_ID),
-			'lastLogin'	=> array('default' => null),
-		));
-		$res = Model('SystemLog')->deviceList($data['userID'], $data['lastLogin']);
+		$fromTime = time() - 3600 * 24 * 30 * 3;//最近3个月;
+		$res = Model('SystemLog')->deviceList(USER_ID,$fromTime);
 		show_json($res);
 	}
+	
 
 	public function taskList(){ActionCall('admin.task.taskList',USER_ID);}
 	public function taskKillAll(){ActionCall('admin.task.taskKillAll',USER_ID);}

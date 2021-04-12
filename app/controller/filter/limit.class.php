@@ -12,6 +12,7 @@ class filterLimit extends Controller{
             'explorer.usershare.edit',      // 外链分享
 			'explorer.index.unzip',         // 解压缩
 			'explorer.index.zip',           // 压缩
+			'explorer.index.zipdownload',   // 下载压缩
 			'explorer.upload.fileupload',   // 上传
 		);
         if(!in_array($action,$actions)) return;
@@ -27,6 +28,7 @@ class filterLimit extends Controller{
                 $this->checkUnzip();
                 break;
             case 'explorer.index.zip':
+            case 'explorer.index.zipdownload':
                 $this->checkZip();
                 break;
             case 'explorer.upload.fileupload':

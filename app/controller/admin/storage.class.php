@@ -76,10 +76,11 @@ class adminStorage extends Controller {
 		if($cnt) {
 			echo json_encode(array('code'=>true,'data'=>'OK'));
 			http_close();
-			$this->model->removeWithFile($data['id']);
+			$res = $this->model->removeWithFile($data['id']);
+		}else{
+			// 没有文件直接删除
+			$res = $this->model->remove($data['id']);
 		}
-		// 没有文件直接删除
-		$res = $this->model->remove($data['id']);
 		$msg = $res ? LNG('explorer.success') : LNG('explorer.error');
 		show_json($msg,!!$res,true);
 	}

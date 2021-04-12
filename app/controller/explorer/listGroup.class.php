@@ -52,7 +52,7 @@ class explorerListGroup extends Controller{
 			if(!$pathInfo['auth']){
 				$pathInfo['auth'] = Model("SourceAuth")->authDeepCheck($pathInfo['sourceID']);
 			}
-			if(!$GLOBALS['isRoot']){
+			if(!_get($GLOBALS,'isRoot')){
 				if( !$pathInfo['auth'] || $pathInfo['auth']['authValue'] == 0){ // 放过-1; 打开通路;
 					continue;// 没有权限;
 				}
@@ -95,9 +95,12 @@ class explorerListGroup extends Controller{
 	public function pathGroupAuthMake($groupID){
 		$groupInfo  = $this->modelGroup->getInfoSimple($groupID);//101
 		$selfGroup 	= Session::get("kodUser.groupInfo");
+
+		// 部门文件夹或子文件夹没有针对自己设置权限,向上级部门回溯;
 		$selfGroup 	= array_to_keyvalue($selfGroup,'groupID');//自己所在的组
-		$parents = $this->model->parentLevelArray($groupInfo['parentLevel']);
-		$parents = array_reverse($parents);
+		$parents	= $this->model->parentLevelArray($groupInfo['parentLevel']);
+		$parents[]	= $groupID;
+		$parents 	= array_reverse($parents);
 		foreach ($parents as $id) {
 			if($id == '1') return false;// 根部门;
 			if(isset($selfGroup[$id])){
@@ -107,7 +110,6 @@ class explorerListGroup extends Controller{
 				);
 			}
 		}
-		// return false;
 		return Model("SourceAuth")->authDeepCheck($groupInfo['sourceInfo']['sourceID']);
 	}
 

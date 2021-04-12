@@ -57,6 +57,37 @@ class adminServer extends Controller {
 		}
 		return $data;
 	}
+	// 获取服务器持续运行时间
+	private function srvUptime(){
+		$time = array(
+			'day'		=> 0,
+			'hour'		=> 0,
+			'minute'	=> 0,
+			'second'	=> 0,
+		);
+		$filePath = '/proc/uptime';
+        if (@is_file($filePath)) {
+			$str	= file_get_contents($filePath);
+			$num	= (float) $str;
+			$sec	= (int) fmod($num, 60);
+			$num	= (int) ($num / 60);
+			$min	= (int) $num % 60;
+			$num	= (int) ($num / 60);
+			$hour	= (int) $num % 24;
+			$num	= (int) ($num / 24);
+			$day	= (int) $num;
+			foreach($time as $k => $v) {
+				$time[$k] = $$k;
+			}
+        }
+		$str = '';
+		// $isCn = stristr(I18n::getType(),'zh') ? true : false;
+		foreach($time as $key => $val) {
+			// $ext = $isCn ? LNG('common.'.$key) : strtoupper(substr($key, 0, 1));
+			$str .= ' ' . $val . ' ' . LNG('common.'.$key);
+		}
+		return trim($str);
+	}
 	// 获取服务器状态
 	public function getSrvState(){
 		if(!Input::get('state', null, 0)) return;
@@ -83,7 +114,11 @@ class adminServer extends Controller {
 			'cpu'		=> $server->cpuUsage(),	// CPU使用率
 			'memory'	=> $sizeMem,	// 内存使用率
 			'server'	=> $this->srvSize($this->srvPath()),	// 服务器系统盘空间
-			'default'	=> $sizeDef	// 网盘默认存储空间
+			'default'	=> $sizeDef,	// 网盘默认存储空间
+			'time'		=> array(
+				'time'	=> date('Y-m-d H:i:s'), 
+				'upTime'=> $this->srvUptime()
+			)
 		);
 		show_json($data);
 	}
@@ -103,12 +138,14 @@ class adminServer extends Controller {
 		$server = $_SERVER;
 		$phpVersion = 'PHP/' . PHP_VERSION;
 		$data['server_info'] = array(
-			'name' => $server['SERVER_NAME'],
-			'ip' => $server['SERVER_ADDR'],
-			'softWare' => $server['SERVER_SOFTWARE'],
-			'phpVersion' => $phpVersion,
-			'system' => php_uname(),
-			'webPath' => BASIC_PATH,
+			'name'		=> $server['SERVER_NAME'],
+			'ip'		=> $server['SERVER_ADDR'],
+			'time'		=> date('Y-m-d H:i:s'),
+			'upTime'	=> '',
+			'softWare'	=> $server['SERVER_SOFTWARE'],
+			'phpVersion'=> $phpVersion,
+			'system'	=> php_uname(),
+			'webPath'	=> BASIC_PATH,
 		);
 
 		// 3.php信息
@@ -211,6 +248,7 @@ class adminServer extends Controller {
 		}catch(Exception $e){
 			show_json(sprintf(LNG('admin.install.cacheConnectError'),"[{$type}]"), false);
 		}
+		return $data;
 	}
     /**
 	 * 缓存配置切换检测、保存
@@ -222,7 +260,7 @@ class adminServer extends Controller {
 			$type = Input::get('cacheType','in',null,array('file','redis','memcached'));
 		}
 		if(in_array($type, array('redis','memcached'))) {
-			$this->_cacheCheck($type);
+			$data = $this->_cacheCheck($type);
 			if(Input::get('check', null, 0)) {
 				show_json(LNG('admin.setting.checkPassed'));
 			}
@@ -235,8 +273,8 @@ class adminServer extends Controller {
             "\$config['cache']['cacheType'] = '{$type}';"
 		);
 		if($type != 'file'){
-			$text[] = "\$config['cache']['{$type}']['host'] = '".$config['host']."';";
-			$text[] = "\$config['cache']['{$type}']['port'] = '".$config['port']."';";
+			$text[] = "\$config['cache']['{$type}']['host'] = '".$data['host']."';";
+			$text[] = "\$config['cache']['{$type}']['port'] = '".$data['port']."';";
 		}
 		$content = implode(PHP_EOL, $text);
 		if(!file_put_contents($file, $content, FILE_APPEND)) {

@@ -8,7 +8,7 @@ CREATE TABLE "io_file_meta" (
 );
 -- index io_file_meta:
 CREATE INDEX 'idx_io_file_meta_primary_key' ON 'io_file_meta' ("id");
-CREATE INDEX 'idx_io_file_meta_fileID_key' ON 'io_file_meta' ("fileID","key");
+CREATE UNIQUE INDEX 'idx_io_file_meta_fileID_key' ON 'io_file_meta' ("fileID","key");
 CREATE INDEX 'idx_io_file_meta_fileID' ON 'io_file_meta' ("fileID");
 CREATE INDEX 'idx_io_file_meta_key' ON 'io_file_meta' ("key");
 

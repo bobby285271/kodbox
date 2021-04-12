@@ -120,14 +120,15 @@ define(function(require, exports) {
 		if(bindCloseTag) return;
 		bindCloseTag = true;
 		$(document).delegate('.pswp__item','touchend',function(e){
-			var needClose = !$(e.target).existParent('.pswp__zoom-wrap');
-			if(needClose){
-				$(".pswp__button--close").trigger("click");
-			}
-
 			setTimeout(function(){
 				$(".pswp__bg").scrollTop($(".pswp__bg").scrollInnerHeight() / 2);
 			},10);
+		});
+		$(document).delegate('.pswp__item','click',function(e){
+			if(!$(e.target).existParent('.pswp__zoom-wrap')){
+				// 移动端点击非图片区域关闭;  小图片滑动不在图片上异常关闭问题;
+				$(".pswp__button--close").trigger("click");
+			}
 		});
 	}
 

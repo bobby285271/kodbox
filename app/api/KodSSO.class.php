@@ -48,8 +48,10 @@ class KodSSO{
 			$BASIC_PATH = str_replace('\\','/',dirname(dirname(dirname(__FILE__)))).'/';
 			$command = $phpBin.' '.$BASIC_PATH.'index.php '.escapeshellarg($uri);
 			$res = shell_exec($command);
+		}else{
+		    echo "shell_exec is disabled; please open it";exit;
 		}
-		if(!$res){
+		if(!$res || substr(trim($res),0,1) != '[' ){ // 避免命令行调用返回错误的问题; 
 			$context = stream_context_create(array(
 				'http'	=> array('timeout' => 2,'method'=>"GET"),
 				"ssl" 	=> array("verify_peer"=>false,"verify_peer_name"=>false)
@@ -57,7 +59,6 @@ class KodSSO{
 			$res = file_get_contents($host.'?'.$uri,false,$context);
 		}
 		// var_dump(microtime(true) - $timeStart,$res);exit;
-		
 		if(trim($res) === '[ok]') return true;
 		if(!strstr($res,'[error]:')){echo $res;exit;}
 		return false;
@@ -66,10 +67,14 @@ class KodSSO{
 
 	// 获取当前php执行目录; 
 	private static function phpBin(){
+		if(defined('PHP_BINARY') && @file_exists(PHP_BINARY)){
+			$php = str_replace('-fpm','',PHP_BINARY);
+			if(file_exists($php)) return $php;
+		}
 		if(!defined('PHP_BINDIR')) return false; // PHP_BINDIR,PHP_BINARY
 		$includePath = get_include_path();// php_ini_loaded_file();//php.ini path;
 		$includePath = substr($includePath,strpos($includePath,'/'));
-
+	
 		$isWindow 	= strtoupper(substr(PHP_OS, 0,3)) === 'WIN';
 		$binFile	= $isWindow ? 'php.exe':'php';
 		$checkPath 	= array(
@@ -80,7 +85,7 @@ class KodSSO{
 		foreach ($checkPath as $path) {
 			if(file_exists($path.$binFile)) return $path.$binFile;
 		}
-        return 'php';
+		return 'php';
     }
 
 	private static function urlRemoveKey($url,$key){

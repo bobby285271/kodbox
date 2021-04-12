@@ -41,6 +41,7 @@ class adminTask extends Controller {
 		show_json($result['result'],true);
 	}
 	
+	// 不允许直接访问;
 	public function taskActionRun($param){
 		$allow = array('get','kill','stop','restart');
 		$param = Input::getArray(array(

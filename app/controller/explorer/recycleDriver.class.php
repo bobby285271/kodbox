@@ -146,7 +146,12 @@ class explorerRecycleDriver extends Controller{
 		$list = Model("UserOption")->get('recycleList','recycle');
 		return $list ? json_decode($list,true):array();
 	}
-	private function resetList($list){		
-		Model("UserOption")->set('recycleList',json_encode($list),'recycle');
+	private function resetList($list){
+		$listData = json_encode($list);
+		// options表key=>value value最长长度限制;
+		if(strlen($listData) > 65536){
+			show_json(LNG('explorer.recycleClearForce'),false);
+		}
+		Model("UserOption")->set('recycleList',$listData,'recycle');
 	}
 }

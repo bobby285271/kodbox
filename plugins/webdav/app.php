@@ -5,8 +5,9 @@
  * 独立模块,不需要登陆,权限内部自行处理;
  */
 class webdavPlugin extends PluginBase{
+	protected $dav;
 	function __construct(){
-		$this->echoLog = 0;//开启关闭日志;
+		$this->echoLog = 1;//开启关闭日志;
 		parent::__construct();
 	}
 	public function regist(){
@@ -41,11 +42,13 @@ class webdavPlugin extends PluginBase{
 	}
 	public function run(){
 		if(!$this->isOpen()) return show_json("not open webdav",false);
+		require($this->pluginPath.'php/webdavServer.class.php');
 		require($this->pluginPath.'php/kodWebDav.class.php');
 		register_shutdown_function(array(&$this, 'endLog'));
-		$dav = new kodWebDav('/index.php/plugin/webdav/'.$this->webdavName().'/'); // 适配window多一层;
+		
+		$this->dav = new kodWebDav('/index.php/plugin/webdav/'.$this->webdavName().'/'); // 适配window多一层;
 		$this->debug($dav);
-		$dav->run();
+		$this->dav->run();
 	}
 	public function download(){
 		IO::fileOut($this->pluginPath.'static/webdav.cmd',true);
@@ -100,24 +103,52 @@ class webdavPlugin extends PluginBase{
 		$option = $this->getConfig();
 		return $option['isOpen'] == '1';
 	}
-	private function debug($dav){
-		$path = $dav->pathGet().';'.$dav->pathGet(true).';'.$dav->path;
-		$this->log(' start;'.$path);
+	private function debug(){
+		// $this->log('start;'.$this->dav->pathGet().';'.$this->dav->path);
 		if(strstr($_SERVER['HTTP_USER_AGENT'],'Chrome')){
 			//PROPFIND;GET;MOVE;COPY,HEAD,PUT
 			$_SERVER['REQUEST_METHOD'] = 'PROPFIND';
+			// $_SERVER['REQUEST_METHOD'] = 'COPY';
 		}
 	}
 	public function endLog(){
-		$this->log(' end  ;['.http_response_code().'];'.$_SERVER['REQUEST_URI']);
+		$logInfo = 'dav-error';
+		if($this->dav){
+			$logInfo = $this->dav->pathGet().';'.$this->dav->path;
+		}
+		// $logInfo .= get_caller_msg();
+		$this->log('end;['.http_response_code().'];'.$logInfo);
 	}
+	
+	private function serverInfo($pick = '',$encode=false){
+		$ignore = 'USER,HOME,PATH_TRANSLATED,ORIG_SCRIPT_FILENAME,HTTP_CONNECTION,HTTP_ACCEPT,HTTP_HOST,SERVER_NAME,SERVER_PORT,SERVER_ADDR,REMOTE_PORT,REMOTE_ADDR,SERVER_SOFTWARE,GATEWAY_INTERFACE,REQUEST_SCHEME,SERVER_PROTOCOL,DOCUMENT_ROOT,DOCUMENT_URI,REQUEST_URI,SCRIPT_NAME,CONTENT_LENGTH,CONTENT_TYPE,REQUEST_METHOD,QUERY_STRING,PATH_INFO,SCRIPT_FILENAME,FCGI_ROLE,PHP_SELF,REQUEST_TIME_FLOAT,REQUEST_TIME,REDIRECT_STATUS,HTTP_ACCEPT_ENCODING,HTTP_CACHE_CONTROL,HTTP_UPGRADE_INSECURE_REQUESTS,HTTP_CONTENT_LENGTH,HTTP_CONTENT_TYPE';
+		$ignore .= ',HTTP_COOKIE,HTTP_ACCEPT_LANGUAGE,HTTP_USER_AGENT';
+		$ignore .= ',HTTP_AUTHORIZATION,PHP_AUTH_USER,PHP_AUTH_PW';
+		$ignore = explode(',',$ignore);
+		$pick   = $pick ? explode(',',$pick) : array();
+		
+		$result = array();
+		foreach($GLOBALS['__SERVER'] as $key => $val){
+			if($pick){
+				if(in_array($key,$pick)){
+					$result[$key] = $val;
+				}
+			}else{
+				if(!in_array($key,$ignore)){
+					$result[$key] = $val;
+				}
+			}
+		}
+		return $result ? "\n".json_encode($result):'';
+	}
+	
 	public function log($data){
 		if(!$this->echoLog) return;
-		if($_SERVER['REQUEST_METHOD'] == 'PROPFIND' ) return;
 		if(is_array($data)){$data = json_encode_force($data);}
+		// if($_SERVER['REQUEST_METHOD'] == 'PROPFIND' ) return;
 		
 		$data = $_SERVER['REQUEST_METHOD'].' '.$data;
-		// $data = array($data,$GLOBALS['__SERVER']);
+		$data = $data.$this->serverInfo('');
 		write_log($data,'webdav');
 	}
 }

@@ -3,10 +3,9 @@
 /**
  * webdav 文件管理处理;
  */
-class kodWebDav extends HttpDavServer {
+class kodWebDav extends webdavServer {
 	public function __construct($DAV_PRE) {
 		$this->plugin = Action('webdavPlugin');
-		//pr($_SERVER);exit;
 		$this->checkUser();
 		$this->initPath($DAV_PRE);
 	}
@@ -30,11 +29,16 @@ class kodWebDav extends HttpDavServer {
 	    if(!$userInfo || !is_array($userInfo)){
     	    $user = HttpAuth::get();
     		$find = ActionCall('user.index.userInfo', $user['user'],$user['pass']);
-			$this->plugin->log(array($user,$find));
     		if ( !is_array($find) || !isset($find['userID']) ){
+    			$this->plugin->log(array($user,$find,$_SERVER['HTTP_AUTHORIZATION']));
     			return HttpAuth::error();
     		}
     		ActionCall('user.index.loginSuccess',$find);
+			// 登陆日志;
+			if(HttpHeader::method() == 'OPTIONS'){
+				Model('User')->userEdit($find['userID'],array("lastLogin"=>time()));
+				ActionCall('admin.log.loginLog');
+			}
 	    }
 		if(!$this->plugin->authCheck()){
 			self::response(array('code'=>404,'body'=>"<error>您没有此权限!</error>"));exit;
@@ -101,7 +105,7 @@ class kodWebDav extends HttpDavServer {
 	 */
 	public function pathList($path){
 		if(!$path) return false;
-		$info   = IO::infoFull($path);
+		$info  = IO::infoFull($path);
 		if(!$info && !Action('explorer.auth')->pathOnlyShow($path) ){
 			return false;
 		}
@@ -109,7 +113,7 @@ class kodWebDav extends HttpDavServer {
 		if(!$this->can($path,'show')) return false;
 		if($info && $info['isDelete'] == '1') return false;//回收站中;
 		if($info && $info['type'] == 'file'){ //单个文件;
-			return array('fileList'=>array($info));
+			return array('fileList'=>array($info),'current'=>$info);
 		}
 		
 		$pathParse = KodIO::parse($path);
@@ -122,10 +126,7 @@ class kodWebDav extends HttpDavServer {
 	}
 	
 	public function pathMkdir($path){
-		if(!$path){ //收藏夹下的文件夹;
-			$inPath  = $this->pathGet();
-			$path = $this->parsePath(IO::pathFather($inPath)).'/'.IO::pathThis($inPath);
-		}
+		$path = $this->pathCreateParent($path);
 		if(!$this->can($path,'edit')) return false;
 		return IO::mkdir($path);
 	}
@@ -151,47 +152,50 @@ class kodWebDav extends HttpDavServer {
 			if(stristr($ua,$type)) return true;
 		}
 		return false;
-	}	
+	}
+	
+	// 收藏夹下文件夹处理;(新建,上传)
+	private function pathCreateParent($path){
+		if($path) return $path;
+		$inPath  = $this->pathGet();
+		return rtrim($this->parsePath(IO::pathFather($inPath)),'/').'/'.IO::pathThis($inPath);
+	}
 	
 	public function pathPut($path,$localFile=''){
-		if(!$path){ //收藏夹下的文件夹;
-			$inPath  = $this->pathGet();
-			$path = $this->parsePath(IO::pathFather($inPath)).'/'.IO::pathThis($inPath);
-		}
+		$path = $this->pathCreateParent($path);
 		$info = IO::infoFull($path);
 		if($info){	// 文件已存在; 则使用文件父目录追加文件名;
 			$name 		= IO::pathThis($this->pathGet());
-			$father 	= IO::init($path)->getPathOuter(IO::pathFather($path));
-			$uploadPath = rtrim($father,'/').'/'.$name; //构建上层目录追加文件名;
-		}else{		// 首次请求创建,文件不存在; 则使用{source:xx}/newfile.txt;
+			$uploadPath = rtrim(IO::pathFather($path),'/').'/'.$name; //构建上层目录追加文件名;
+		}else{// 首次请求创建,文件不存在; 则使用{source:xx}/newfile.txt;
 			$uploadPath = $path;
 		}
 		if(!$this->can($path,'edit')) return false;
 
 		// 传入了文件; wscp等直接一次上传处理的情况;  windows/mac等会调用锁定,解锁,判断是否存在等之后再上传;
 		// 文件夹下已存在,或在回收站中处理;
-		$replace = REPEAT_REPLACE;
-		if($localFile){
-			$result = IO::upload($uploadPath,$localFile,true,$replace);
-		}else{
-			$result = IO::mkfile($uploadPath,'',$replace);
-		}
-
 		// 删除临时文件; mac系统生成两次 ._file.txt;
-		if($localFile){ 
+		$size = 0;
+		if($localFile){
+			$size = filesize($localFile);
+			$result = IO::upload($uploadPath,$localFile,true,REPEAT_REPLACE);
 			$this->pathPutRemoveTemp($uploadPath);
-			$this->pathPutRemoveTemp($uploadPath);
+		}else{
+			if(!$info){ // 不存在,创建;
+				$result = IO::mkfile($uploadPath,'',REPEAT_REPLACE);
+			}
+			$result = true;	
 		}
-		$this->plugin->log("upload=$uploadPath;path=$path;res=$result;local=$localFile;");
+		$this->plugin->log("upload=$uploadPath;path=$path;res=$result;local=$localFile;size=".$size);
 		return $result;
 	}
 	private function pathPutRemoveTemp($path){
 		$pathArr = explode('/',$path);
 		$pathArr[count($pathArr) - 1] = '._'.$pathArr[count($pathArr) - 1];
-		
 		$tempPath = implode('/',$pathArr);
+		
 		$tempInfo = IO::infoFull($tempPath);
-		if($tempInfo){
+		if($tempInfo && $tempInfo['type'] == 'file'){
 			IO::remove($tempInfo['path'],false);
 		}
 	}
@@ -202,14 +206,17 @@ class kodWebDav extends HttpDavServer {
 	}
 	public function pathMove($path,$dest){
 		$pathUrl = $this->pathGet();
-		$destURL = $this->pathGet(true);
-		$this->plugin->log("move from=$path;to=$dest;$pathUrl;$destURL");
+		$destURL = $this->pathGet(true);		
+		$path 	= $this->parsePath($pathUrl);
+		$dest   = $this->parsePath(IO::pathFather($destURL)); //多出一层-来源文件(夹)名
+		$this->plugin->log("from=$path;to=$dest;$pathUrl;$destURL");
 
-		// 目录不变,重命名
+		// 目录不变,重命名,(编辑文件)
 		$io = IO::init('/');
 		if($io->pathFather($pathUrl) == $io->pathFather($destURL)){
 			if(!$this->can($path,'edit')) return false;
-			$this->plugin->log("move edit=$path;$pathUrl;$destURL;dest=".intval($this->pathExists($dest)));
+			$destFile = rtrim($dest,'/').'/'.$io->pathThis($destURL);
+			$this->plugin->log("edit=$destFile;exists=".intval($this->pathExists($destFile)));
 			$fromExt = get_path_ext($pathUrl);
 			$toExt   = get_path_ext($destURL);
 			$officeExt = array('doc','docx','xls','xlsx','ppt','pptx');
@@ -221,30 +228,31 @@ class kodWebDav extends HttpDavServer {
 			 * 3. 删除 test~388C66.tmp  
 			 */
 			if( $this->isWindows() && $toExt == 'tmp' && in_array($fromExt,$officeExt) ){
-				$result =  IO::mkfile($dest);
+				$result =  IO::mkfile($destFile);
 			    $this->plugin->log("move mkfile=$path;$pathUrl;$destURL;res=".$result);
 			    return $result;
 			}
 			// 都存在则覆盖；
-			if( $this->pathExists($path) && $this->pathExists($dest) ){
-				$result = IO::saveFile($path,$dest);
-				$this->plugin->log("move saveFile=$path;res=".$dest.';res='.$result);
+			if( $this->pathExists($path) && $this->pathExists($destFile) ){
+				$destFileInfo = IO::infoFull($destFile);
+				$result = IO::saveFile($path,$destFileInfo['path']);
+				$this->plugin->log("move saveFile=$path;res=".$destFile.';res='.$result);
 				return $result;
-			}			
+			}
 			return IO::rename($path,$io->pathThis($destURL));
 		}
 		
-		// 移动到目标文件夹;多一层当前文件名时则去除;
-		if(!$this->pathExists($dest)){
-			$info = IO::infoFull($io->pathFather($dest));
-			if(!$info) return false;
-			$dest = $info['path'];
-		}
 		if(!$this->can($path,'remove')) return false;
 		if(!$this->can($dest,'edit')) return false;
 		return IO::move($path,$dest);
 	}
 	public function pathCopy($path,$dest){
+		$pathUrl = $this->pathGet();
+		$destURL = $this->pathGet(true);		
+		$path 	= $this->parsePath($pathUrl);
+		$dest   = $this->parsePath(IO::pathFather($destURL)); //多出一层-来源文件(夹)名
+		$this->plugin->log("from=$path;to=$dest;$pathUrl;$destURL");
+
 		if(!$this->can($path,'download')) return false;
 		if(!$this->can($dest,'edit')) return false;
 		return IO::copy($path,$dest);

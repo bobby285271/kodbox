@@ -68,11 +68,12 @@ class explorerAttachment extends Controller{
 	}
 	
 	// 自动清理24小时未转移的临时文件;
-	public function autoClear(){
+	public function clearCache(){
+		$timeStart  = time() - 3600*24;//1天前未关联的临时文件区域;
 		$tempFolder = KodIO::systemFolder('attachmentTemp/');
 		$where = array(
 			'parentID' 		=> KodIO::sourceID($tempFolder),
-			'createTime' 	=> array('<',time()-3600*24),
+			'createTime' 	=> array('<',$timeStart),
 		);
 		$sourceArr = Model("Source")->where($where)->select();
 		$sourceArr = array_to_keyvalue($sourceArr,'','sourceID');

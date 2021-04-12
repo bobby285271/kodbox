@@ -114,6 +114,7 @@ class adminLog extends Controller{
     public function log($data=false,$info=null){
         $typeList = $this->model->allTypeList();
         if(!isset($typeList[ACTION])) return;
+		if($GLOBALS['loginLogSaved'] ==1) return;
         $actionList = array(
             'user.index.logout',
             'user.index.loginSubmit',
@@ -136,7 +137,7 @@ class adminLog extends Controller{
         if(ACTION == 'user.bind.bindApi' && !$data['success']) return;
         if(ACTION == 'user.index.loginSubmit'){
             return $this->loginLog();
-        }
+        }		
         return $this->model->addLog(ACTION, $data);
     }
 
@@ -147,6 +148,8 @@ class adminLog extends Controller{
      * @return void
      */
     public function loginLog(){
+		if($GLOBALS['loginLogSaved'] == 1) return;
+		$GLOBALS['loginLogSaved'] = 1;
         $data = array(
             'is_wap' => is_wap(),
             'ua' => isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ''
@@ -155,8 +158,7 @@ class adminLog extends Controller{
             $data['is_wap'] = true;
             $data['HTTP_X_PLATFORM'] = $this->in['HTTP_X_PLATFORM'];
         }
-        $action = 'user.index.loginSubmit';
-        return $this->model->addLog($action, $data);
+        return $this->model->addLog('user.index.loginSubmit', $data);
     }
 
     /**

@@ -39,7 +39,7 @@ class CommentAuth extends Controller {
 				$this->canEdit($info['targetType'],$info['targetID']);
 				break;
 			case 'comment.index.listbyuser':
-				if(!$GLOBALS['isRoot']){
+				if(!_get($GLOBALS,'isRoot')){
 					show_json(LNG('explorer.noPermissionAction'),false);
 				}
 				break;

@@ -6,8 +6,8 @@ if(!function_exists('gzinflate')){
 
 //扩展名权限判断 有权限则返回1 不是true
 function checkExt($file){
-	if($GLOBALS['isRoot']) return 1;
-	if (strstr($file,'<') || strstr($file,'>') || $file=='') {
+	if(_get($GLOBALS,'isRoot')) return 1;
+	if(strstr($file,'<') || strstr($file,'>') || $file=='') {
 		return 0;
 	}
 	

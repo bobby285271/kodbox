@@ -62,7 +62,7 @@ class filterUserGroup extends Controller{
 	
 	// 是否允许查询数据;
 	private function enableGroup(){
-		if($GLOBALS['isRoot']) return true;
+		if(_get($GLOBALS,'isRoot')) return true;
 		$groupInfo 	= Session::get("kodUser.groupInfo");
 		if(!$groupInfo || count($groupInfo) == 1) return false;
 		return true;

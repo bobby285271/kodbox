@@ -40,7 +40,7 @@ CREATE TABLE "comment_meta" (
 );
 -- index comment_meta:
 CREATE INDEX 'idx_comment_meta_primary_key' ON 'comment_meta' ("id");
-CREATE INDEX 'idx_comment_meta_commentID_key' ON 'comment_meta' ("commentID","key");
+CREATE UNIQUE INDEX 'idx_comment_meta_commentID_key' ON 'comment_meta' ("commentID","key");
 CREATE INDEX 'idx_comment_meta_commentID' ON 'comment_meta' ("commentID");
 CREATE INDEX 'idx_comment_meta_key' ON 'comment_meta' ("key");
 
@@ -54,7 +54,7 @@ CREATE TABLE "comment_praise" (
 );
 -- index comment_praise:
 CREATE INDEX 'idx_comment_praise_primary_key' ON 'comment_praise' ("id");
-CREATE INDEX 'idx_comment_praise_commentID_userID' ON 'comment_praise' ("commentID","userID");
+CREATE UNIQUE INDEX 'idx_comment_praise_commentID_userID' ON 'comment_praise' ("commentID","userID");
 CREATE INDEX 'idx_comment_praise_commentID' ON 'comment_praise' ("commentID");
 CREATE INDEX 'idx_comment_praise_userID' ON 'comment_praise' ("userID");
 CREATE INDEX 'idx_comment_praise_modifyTime' ON 'comment_praise' ("modifyTime");
@@ -93,7 +93,7 @@ CREATE TABLE "group_meta" (
 );
 -- index group_meta:
 CREATE INDEX 'idx_group_meta_primary_key' ON 'group_meta' ("id");
-CREATE INDEX 'idx_group_meta_groupID_key' ON 'group_meta' ("groupID","key");
+CREATE UNIQUE INDEX 'idx_group_meta_groupID_key' ON 'group_meta' ("groupID","key");
 CREATE INDEX 'idx_group_meta_groupID' ON 'group_meta' ("groupID");
 CREATE INDEX 'idx_group_meta_key' ON 'group_meta' ("key");
 
@@ -141,7 +141,7 @@ CREATE TABLE "io_file_meta" (
 );
 -- index io_file_meta:
 CREATE INDEX 'idx_io_file_meta_primary_key' ON 'io_file_meta' ("id");
-CREATE INDEX 'idx_io_file_meta_fileID_key' ON 'io_file_meta' ("fileID","key");
+CREATE UNIQUE INDEX 'idx_io_file_meta_fileID_key' ON 'io_file_meta' ("fileID","key");
 CREATE INDEX 'idx_io_file_meta_fileID' ON 'io_file_meta' ("fileID");
 CREATE INDEX 'idx_io_file_meta_key' ON 'io_file_meta' ("key");
 
@@ -248,7 +248,7 @@ CREATE TABLE "io_source_meta" (
 );
 -- index io_source_meta:
 CREATE INDEX 'idx_io_source_meta_primary_key' ON 'io_source_meta' ("id");
-CREATE INDEX 'idx_io_source_meta_sourceID_key' ON 'io_source_meta' ("sourceID","key");
+CREATE UNIQUE INDEX 'idx_io_source_meta_sourceID_key' ON 'io_source_meta' ("sourceID","key");
 CREATE INDEX 'idx_io_source_meta_sourceID' ON 'io_source_meta' ("sourceID");
 CREATE INDEX 'idx_io_source_meta_key' ON 'io_source_meta' ("key");
 
@@ -374,7 +374,7 @@ CREATE TABLE "system_option" (
 );
 -- index system_option:
 CREATE INDEX 'idx_system_option_primary_key' ON 'system_option' ("id");
-CREATE INDEX 'idx_system_option_key_type' ON 'system_option' ("key","type");
+CREATE UNIQUE INDEX 'idx_system_option_key_type' ON 'system_option' ("key","type");
 CREATE INDEX 'idx_system_option_createTime' ON 'system_option' ("createTime");
 CREATE INDEX 'idx_system_option_modifyTime' ON 'system_option' ("modifyTime");
 
@@ -390,7 +390,7 @@ CREATE TABLE "system_session" (
 );
 -- index system_session:
 CREATE INDEX 'idx_system_session_primary_key' ON 'system_session' ("id");
-CREATE INDEX 'idx_system_session_sign' ON 'system_session' ("sign");
+CREATE UNIQUE INDEX 'idx_system_session_sign' ON 'system_session' ("sign");
 CREATE INDEX 'idx_system_session_userID' ON 'system_session' ("userID");
 CREATE INDEX 'idx_system_session_expires' ON 'system_session' ("expires");
 CREATE INDEX 'idx_system_session_modifyTime' ON 'system_session' ("modifyTime");
@@ -459,7 +459,7 @@ CREATE TABLE "user_group" (
 );
 -- index user_group:
 CREATE INDEX 'idx_user_group_primary_key' ON 'user_group' ("id");
-CREATE INDEX 'idx_user_group_userID_groupID' ON 'user_group' ("userID","groupID");
+CREATE UNIQUE INDEX 'idx_user_group_userID_groupID' ON 'user_group' ("userID","groupID");
 CREATE INDEX 'idx_user_group_userID' ON 'user_group' ("userID");
 CREATE INDEX 'idx_user_group_groupID' ON 'user_group' ("groupID");
 CREATE INDEX 'idx_user_group_groupRole' ON 'user_group' ("authID");
@@ -476,7 +476,7 @@ CREATE TABLE "user_meta" (
 );
 -- index user_meta:
 CREATE INDEX 'idx_user_meta_primary_key' ON 'user_meta' ("id");
-CREATE INDEX 'idx_user_meta_userID_metaKey' ON 'user_meta' ("userID","key");
+CREATE UNIQUE INDEX 'idx_user_meta_userID_metaKey' ON 'user_meta' ("userID","key");
 CREATE INDEX 'idx_user_meta_userID' ON 'user_meta' ("userID");
 CREATE INDEX 'idx_user_meta_metaKey' ON 'user_meta' ("key");
 
@@ -492,7 +492,7 @@ CREATE TABLE "user_option" (
 );
 -- index user_option:
 CREATE INDEX 'idx_user_option_primary_key' ON 'user_option' ("id");
-CREATE INDEX 'idx_user_option_userID_key_type' ON 'user_option' ("userID","key","type");
+CREATE UNIQUE INDEX 'idx_user_option_userID_key_type' ON 'user_option' ("userID","key","type");
 CREATE INDEX 'idx_user_option_userID' ON 'user_option' ("userID");
 CREATE INDEX 'idx_user_option_key' ON 'user_option' ("key");
 CREATE INDEX 'idx_user_option_type' ON 'user_option' ("type");

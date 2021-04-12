@@ -172,7 +172,7 @@
                 }
                 var delay = null;
                 if(!result.code || (result.info && result.info == '10000')) delay = 5000;
-                var msg = result.data || (LNG['explorer.error']+'!<br>'+lng.path_write);
+                var msg = result.data || (LNG['explorer.error']+', '+LNG['admin.install.setPathWrt']);
                 Tips.close(msg, result.code, delay);
                 if(!result.code) return;
                 stepNext(_this, 2);
@@ -210,7 +210,7 @@
         request('install/index/save', data, function(result){
             tips.close();
             var delay = !result.code ? 5000 : null;
-            var msg = result.data || (LNG['explorer.error']+'!<br>'+lng.path_write);
+            var msg = result.data || (LNG['explorer.error']+', '+LNG['admin.install.setPathWrt']);
             Tips.close(msg, result.code, delay);
             if(!result.code) return;
             stepNext(_this, 2);
@@ -254,7 +254,7 @@
             request('install/index/save', data, function(result){
                 tips.close();
                 var delay = !result.code ? 5000 : null;
-                var msg = result.data || (LNG['explorer.error']+'!<br>'+lng.path_write);
+                var msg = result.data || (LNG['explorer.error']+', '+LNG['admin.install.setPathWrt']);
                 Tips.close(msg, result.code, delay);
                 if(!result.code) return;
                 // 显示admin账号密码

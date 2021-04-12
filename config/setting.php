@@ -30,8 +30,11 @@ $config['settings'] = array(
 		
 		'ignoreExt'			=> '',          // 限制的扩展名; 扩展名在该说明中则自动不上传;
 		'downloadSpeed'		=> 0,			// 下载限速;MB/s*1024*1024; 0代表不限制		
-		'ignoreFileSize'	=> 0,			// 许单个文件上传最大值,0则不限制; 单位GB(float)
+		'ignoreFileSize'	=> 0,			// 允许单个文件上传最大值,0则不限制; 单位GB(float)
 		'osChunkSize'		=> 10,			// 对象存储分片大小(七牛固定为4Mb)
+		
+		// 图片上传压缩参数compress,默认配置不压缩,上传原图;
+		// 可以配置参考: http://fex.baidu.com/webuploader/doc/index.html#WebUploader_Uploader_options
 	),
 	'fileEditLockTimeout' 	=> 1200,		// 文件编辑锁默认锁定最长时间;默认20分钟;超过了则自动解锁;
 	'fileHistoryMax'		=> 500,			// 文件历史版本默认个数,免费版3个; 大于500则认为不限制
@@ -46,8 +49,9 @@ $config['settings'] = array(
 );
 $config['settings']['searchContent'] = 1;
 $config['settings']['searchMutil'] = 1;
-$config["ADMIN_ALLOW_IO"] = 1;		//其他部门or用户目录操作开关，仅限管理员
-$config["ADMIN_ALLOW_SOURCE"] = 1;	//物理路径操作开关，仅限管理员
+$config["ADMIN_ALLOW_IO"] = 1;			// 其他部门or用户目录操作开关，仅限管理员
+$config["ADMIN_ALLOW_SOURCE"] = 1;		// 物理路径操作开关，仅限管理员
+$config['APP_HOST_LINK'] = APP_HOST;	// 分享链接站点url; 可在setting_user中覆盖;
 
 // windows upload threads;兼容不支持并发的服务器
 if($config['systemOS'] == 'windows'){
@@ -185,6 +189,7 @@ $config['settingSystemDefault'] = array(
 	'passwordRule'		=> 'none',		// 限制密码强度;none-不限制;strong-中等强度;strongMore-高强度
 	'loginCheckAllow'	=> '',			// 登陆限制
 	'csrfProtect'		=> '1',		 	// 开启csrf保护	
+	'shareLinkZip'		=> '1',			// 外链分享,开启关闭文件夹打包下载; 默认开启
 	
 	'treeOpen'			=> 'my,myFav,myGroup,rootGroup,recentDoc,fileType,fileTag,driver',//树目录开启功能;
 	'wallpageDesktop'	=> "1,2,3,4,5,6,7,8,9,10,11,12,13",

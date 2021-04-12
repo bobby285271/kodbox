@@ -13,16 +13,18 @@ class adminAutoRun extends Controller {
     public function logBind(){
         // 退出时在请求出记录，其他在出执行结果后记录
         if(ACTION == 'user.index.logout'){
-            $user = Session::get('kodUser');
-            $data = array(
-                'code' => true,
-                'data' => array(
-                    'userID'    => $user['userID'], 
-                    'name'      => $user['name'],
-                    'nickName'  => $user['nickName'],
-                )
-            );
-            return $this->log($data);
+            if($user = Session::get('kodUser')) {
+                $data = array(
+                    'code' => true,
+                    'data' => array(
+                        'userID'    => $user['userID'], 
+                        'name'      => $user['name'],
+                        'nickName'  => $user['nickName'],
+                    )
+                );
+                $this->log($data);
+            }
+            return;
         }
         Hook::bind('show_json','admin.AutoRun.log');
         Hook::bind('explorer.fileDownload','admin.AutoRun.log');

@@ -23,6 +23,11 @@ define(function(require, exports) {
 			},
 			pluginOptions: {
 				flvjs: {},
+				webtorrent: {},
+				flv:{
+					mediaDataSource:{},
+					config:{}
+				}
 			},
 			contextmenu: [
 				{
@@ -105,16 +110,32 @@ define(function(require, exports) {
 		dialog.DOM.wrap.addClass('dplayer-dialog');
 		return dialog.DOM.wrap.find(".Dplayer");
 	}
+	
+	// 磁力链接支持播放
+	var playVedioStart = function(vedioInfo){
+		if(vedioInfo.ext != 'magnet'){
+			return playStart(vedioInfo);;
+		}
+		// 磁力链接支持播放; magnet文件扩展名; 内容为磁力链接url;
+		$.get(vedioInfo.url,function(data){
+			if(data && _.startsWith(data,'magnet:')){
+				vedioInfo.url = data;
+				vedioInfo.ext = 'webtorrent';
+				playStart(vedioInfo);
+			}
+		});
+	}
 
 	var playReady = function(appStatic,vedioInfo){
 		requireAsync([
 			appStatic+'DPlayer/lib/flv.min.js',
 			appStatic+'DPlayer/lib/hls.min.js',
+			appStatic+'DPlayer/lib/webtorrent.min.js',
 			appStatic+'DPlayer/lib/dash.all.min.js',
 			appStatic+'DPlayer/DPlayer.min.css',
 			appStatic+'DPlayer/DPlayer.min.js',
-			],function(){
-			playStart(vedioInfo);
+		],function(){
+			playVedioStart(vedioInfo);
 		});
 	}
 	return playReady;

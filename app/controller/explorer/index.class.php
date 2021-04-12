@@ -41,10 +41,12 @@ class explorerIndex extends Controller{
 			$result = IO::infoWithChildren($path);
 		}
 		if(!$result) return false;
-		if( $result['type'] == 'file' && Action('explorer.auth')->fileCanRead($path)){
+		// $canLink = Action('explorer.auth')->fileCanDownload($path);
+		$canLink = Action('explorer.auth')->fileCan($path,'edit');//edit,share; 有编辑权限才能生成外链;
+		if( $result['type'] == 'file' && $canLink){
 			$result['downloadPath'] = Action('explorer.share')->link($path);
 		}
-		$result = Action('explorer.list')->pathInfoParse($result,0,0);
+		$result = Action('explorer.list')->pathInfoParse($result,0,1);
 		return $result;
 	}
 
@@ -68,7 +70,7 @@ class explorerIndex extends Controller{
 			if($item['menuType'] == 'menu-default-open'){
 				$item['menuType'] = 'menu-default';
 			}
-			if(!$GLOBALS['isRoot'] && $item['rootNeed']){
+			if(!_get($GLOBALS,'isRoot') && $item['rootNeed']){
 				unset($desktopApps[$key]);
 			}
 		}
@@ -108,10 +110,10 @@ class explorerIndex extends Controller{
 			show_json(LNG('explorer.error'),false);
 		}
 
-		$info = IO::infoSimple($data['path']);
+		$info = IO::info($data['path']);
 		if($info && $info['sourceID']){
 			foreach ($meta as $key => $value) {
-				if( !$this->metaKeyCheck($key) ){
+				if( !$this->metaKeyCheck($key,$value,$info) ){
 					show_json("key error!",false);
 				}
 				$value = $value === '' ? null:$value; //为空则删除;
@@ -121,7 +123,7 @@ class explorerIndex extends Controller{
 		}
 		show_json(LNG('explorer.error'),false);
 	}
-	private function metaKeyCheck($key){
+	private function metaKeyCheck($key,$value,$info){
 		static $metaKeys = false;
 		if(!$metaKeys){
 			$metaKeys = array_keys($this->config['settings']['sourceMeta']);
@@ -130,6 +132,10 @@ class explorerIndex extends Controller{
 				'systemLock',		// 编辑锁定
 				'systemLockTime',	// 编辑锁定时间
 			));
+		}
+		$isLock = _get($info,'metaInfo.systemLock') ? true:false;
+		if($key == "systemLock" && $value && $isLock){
+			show_json(LNG('explorer.fileLockError'),false);
 		}
 		return in_array($key,$metaKeys);
 	}
@@ -177,7 +183,7 @@ class explorerIndex extends Controller{
 		}
 		
 		$maxLength = $GLOBALS['config']['systemOption']['fileNameLengthMax'];
-		if( strlen($name) > $maxLength ){
+		if($maxLength && strlen($name) > $maxLength ){
 			show_json(LNG("common.lengthLimit")." (max=$maxLength)",false);
 		}
 		return;
@@ -242,7 +248,6 @@ class explorerIndex extends Controller{
 	}
 	// 从回收站删除
 	public function recycleDelete(){		
-		$sourceArr = false;
 		$pathArr   = false;
 		if( _get($this->in,'all') ){
 			$recycleList = Model('SourceRecycle')->listData();
@@ -251,17 +256,16 @@ class explorerIndex extends Controller{
 			}
 			$this->taskCopyCheck($recycleList);//彻底删除: children数量获取为0,只能是主任务计数;
 		}else{
-			$sourceArr = $this->parseSource();
-			$pathArr = json_decode($this->in['dataArr'],true);
-			$pathArr = array_to_keyvalue($pathArr,'','path');
-			$this->taskCopyCheck($pathArr);
+			$dataArr = json_decode($this->in['dataArr'],true);
+			$this->taskCopyCheck($dataArr);
+			$pathArr = $this->parseSource($dataArr);
 		}
-		Model('SourceRecycle')->remove($sourceArr);
+		Model('SourceRecycle')->remove($pathArr);
 		Action('explorer.recycleDriver')->remove($pathArr);
 
 		// 清空回收站时,重新计算大小; 一小时内不再处理;
 		$cacheKey = 'autoReset_'.USER_ID;
-		if(isset($this->in['all']) && time() - intval(Cache::get($cacheKey)) > 60 * 5 ){
+		if(isset($this->in['all']) && time() - intval(Cache::get($cacheKey)) > 3600 * 10 ){
 			Cache::set($cacheKey,time());
 			$USER_HOME = KodIO::sourceID(MY_HOME);
 			Model('Source')->folderSizeResetChildren($USER_HOME);
@@ -271,8 +275,7 @@ class explorerIndex extends Controller{
 	}
 	//回收站还原
 	public function recycleRestore(){
-		$sourceArr = false;
-		$pathArr   = false;
+		$pathArr = false;
 		if( _get($this->in,'all') ){
 			$recycleList = Model('SourceRecycle')->listData();
 			foreach ($recycleList as $key => $sourceID) {
@@ -280,23 +283,23 @@ class explorerIndex extends Controller{
 			}
 			$this->taskCopyCheck($recycleList);
 		}else{
-			$sourceArr = $this->parseSource();
-			$pathArr = json_decode($this->in['dataArr'],true);
-			$pathArr = array_to_keyvalue($pathArr,'','path');
-			$this->taskCopyCheck($pathArr);
-		}				
-		Model('SourceRecycle')->restore($sourceArr);
+			$dataArr = json_decode($this->in['dataArr'],true);
+			$this->taskCopyCheck($dataArr);
+			$pathArr = $this->parseSource($dataArr);
+		}
+
+		Model('SourceRecycle')->restore($pathArr);
 		Action('explorer.recycleDriver')->restore($pathArr);
-		show_json(LNG('explorer.success'));
+		show_json(LNG('explorer.success')); 
 	}
-	private function parseSource(){
-		$list = json_decode($this->in['dataArr'],true);
+	private function parseSource($list){
 		$result = array();
-		foreach ($list as &$value) {
+		foreach ($list as $value) {
 			$result[] = IO::getPath($value['path']);
 		}
 		return $result;
 	}
+
 	
 	public function pathCopy(){
 		Session::set(array(
@@ -378,10 +381,6 @@ class explorerIndex extends Controller{
 				}
 				$result[] = IO::copy($thePath,$pathTo,$repeatType);
 			}else{
-				if($thePath == MY_DESKTOP){
-					$error .= LNG('explorer.desktopDelError');
-					continue;
-				}
 				$result[] = IO::move($thePath,$pathTo,$repeat);
 			}
 		}

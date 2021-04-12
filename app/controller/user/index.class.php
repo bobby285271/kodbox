@@ -52,7 +52,7 @@ class userIndex extends Controller {
 			$pass = substr(md5('kodbox_'.$systemPassword),0,15);
 			$sessionSign = Mcrypt::decode($_REQUEST['accessToken'],$pass);
 			if(!$sessionSign){
-				show_json(LNG('common.loginTokenError'),false);
+				show_json(LNG('common.loginTokenError'),ERROR_CODE_LOGOUT);
 			}
 			Session::sign($sessionSign);
 		}
@@ -234,7 +234,7 @@ class userIndex extends Controller {
 		if(!$user['status']){
 			show_json(LNG('user.userEnabled'), ERROR_CODE_USER_INVALID);
 		}
-		$this->loginSuccess($user);
+		$this->loginSuccessUpdate($user);
 		show_json('ok',true,$this->accessToken());
 	}
 	private function loginWithToken(){
@@ -249,15 +249,20 @@ class userIndex extends Controller {
 			return show_json('API 接口参数错误!', false);
 		}
 		$name = base64_decode($param[0]);
-		$user = Model('User')->where(array('name' => $name))->find();
-		if ( !is_array($user) ) {
+		$res = Model('User')->where(array('name' => $name))->field('userID')->find();
+		if(empty($res['userID'])) {
 			return show_json(LNG('user.pwdError'),false);
 		}
-
-		$user = Model("User")->getInfo($user['userID']);
-		$this->loginSuccess($user);
-		Model('User')->userEdit($user['userID'],array("lastLogin"=>time()));	// 更新登录时间
+		$user = Model('User')->getInfo($res['userID']);
+		$this->loginSuccessUpdate($user);
 		return show_json('ok',true,$this->accessToken());
+	}
+	
+	// 更新登录时间
+	public function loginSuccessUpdate($user){
+		$this->loginSuccess($user);
+		Model('User')->userEdit($user['userID'],array("lastLogin"=>time()));
+		ActionCall('admin.log.loginLog');	// 登录日志
 	}
 
 	/**
@@ -336,7 +341,7 @@ class userIndex extends Controller {
 		// Model('SystemOption')->set('maintenance',0);exit;
 		if($update) return Model('SystemOption')->set('maintenance', $value);
 		// 管理员or未启动维护，返回
-		if((isset($GLOBALS['isRoot']) && $GLOBALS['isRoot']) || !Model('SystemOption')->get('maintenance')) return;
+		if(_get($GLOBALS,'isRoot') || !Model('SystemOption')->get('maintenance')) return;
 		show_tips(LNG('common.maintenanceTips'), '','',LNG('common.tips'));
 	}
 }
